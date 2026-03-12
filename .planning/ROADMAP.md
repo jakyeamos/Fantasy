@@ -34,15 +34,19 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Dashboard shows a data freshness status per league with explicit gaps called out (e.g., "trade history incomplete before 2023")
   4. User can manually correct any ingested data point and see the correction persist across sessions
   5. The ingest pipeline runs against incomplete or partial Sleeper API responses without crashing — null gaps are surfaced, not silently dropped
-**Plans**: TBD
+**Plans**: 6 plans
 
-**Open question (must address in Phase 1 planning):** Sleeper's player stats endpoint is deprecated. Phase 1 planning must specify whether matchup-based score reconstruction is feasible for scoring history, or whether scoring history is explicitly scoped out of Phase 1.
+**Open question resolved:** Scoring history uses nfl_data_py (not Sleeper's deprecated player stats endpoint). Fantasy points reconstructed from raw stat lines using each league's actual scoring_settings. 10+ years of data ingested in Phase 1 to seed Phase 8's Historical Prospect Lab.
 
-**Open question (must address in Phase 1 planning):** The Global Asset Baseline (E1) requires a player value foundation before league-specific adjustment. KTC consensus is not the foundation. Phase 1 planning must specify the seeding approach (matchup score reconstruction, ADP signals, or another source).
+**Open question resolved:** Global Asset Baseline seeded from two sources: ADP signals (FantasyPros dynasty ADP CSV) + nfl_data_py scoring reconstruction. Baseline is foundation-only in Phase 1; Phase 2 applies league-specific adjustments on top.
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-00-PLAN.md — Project scaffold: FastAPI skeleton, DuckDB schema + Alembic migrations, test stubs
+- [ ] 01-01-PLAN.md — SleeperMapper adapter: domain models (LeagueSettings, RosterSnapshot, TradedPick, StandingRow, TransactionRecord)
+- [ ] 01-02-PLAN.md — Repository layer: LeagueRepo DuckDB upserts + NflDataPyLoader with fantasy point reconstruction
+- [ ] 01-03-PLAN.md — SleeperClient (httpx + tenacity) + IngestService orchestration with all-weeks transaction loop
+- [ ] 01-04-PLAN.md — OverrideService (corrections CRUD) + FastAPI routers (ingest, corrections) wired into main.py
+- [ ] 01-05-PLAN.md — GapDetector + health endpoint + ADP baseline loader + human-verify checkpoint
 
 ---
 
@@ -195,7 +199,7 @@ Phases execute in numeric order: 1 → 2 → 3 → [GATE] → 4 → 5 → 6 → 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Sleeper Ingestion | 0/TBD | Not started | - |
+| 1. Sleeper Ingestion | 0/6 | Planned | - |
 | 2. Team Intelligence | 0/TBD | Not started | - |
 | 3. Core Dashboard | 0/TBD | Not started | - |
 | 4. Manager Profiling | 0/TBD | Not started | - |
