@@ -110,62 +110,60 @@
 
 ## Traceability
 
-*Populated during roadmap creation.*
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INGEST-01 | — | Pending |
-| INGEST-02 | — | Pending |
-| INGEST-03 | — | Pending |
-| INGEST-04 | — | Pending |
-| INGEST-05 | — | Pending |
-| INGEST-06 | — | Pending |
-| INGEST-07 | — | Pending |
-| INGEST-08 | — | Pending |
-| TEAM-01 | — | Pending |
-| TEAM-02 | — | Pending |
-| TEAM-03 | — | Pending |
-| TEAM-04 | — | Pending |
-| TEAM-05 | — | Pending |
-| DASH-01 | — | Pending |
-| DASH-02 | — | Pending |
-| DASH-03 | — | Pending |
-| DASH-04 | — | Pending |
-| PLAY-01 | — | Pending |
-| PLAY-02 | — | Pending |
-| PLAY-03 | — | Pending |
-| PLAY-04 | — | Pending |
-| TRADE-01 | — | Pending |
-| TRADE-02 | — | Pending |
-| TRADE-03 | — | Pending |
-| TRADE-04 | — | Pending |
-| MGR-01 | — | Pending |
-| MGR-02 | — | Pending |
-| MGR-03 | — | Pending |
-| MGR-04 | — | Pending |
-| PICK-01 | — | Pending |
-| PICK-02 | — | Pending |
-| PICK-03 | — | Pending |
-| PICK-04 | — | Pending |
-| PICK-05 | — | Pending |
-| PICK-06 | — | Pending |
-| PROS-01 | — | Pending |
-| PROS-02 | — | Pending |
-| PROS-03 | — | Pending |
-| PROS-04 | — | Pending |
-| PROS-05 | — | Pending |
-| PORT-01 | — | Pending |
-| PORT-02 | — | Pending |
-| PORT-03 | — | Pending |
-| PORT-04 | — | Pending |
-| PORT-05 | — | Pending |
-| PORT-06 | — | Pending |
+| INGEST-01 | Phase 1 | Pending |
+| INGEST-02 | Phase 1 | Pending |
+| INGEST-03 | Phase 1 | Pending |
+| INGEST-04 | Phase 1 | Pending |
+| INGEST-05 | Phase 1 | Pending |
+| INGEST-06 | Phase 1 | Pending |
+| INGEST-07 | Phase 1 | Pending |
+| INGEST-08 | Phase 1 | Pending |
+| TEAM-01 | Phase 2 | Pending |
+| TEAM-02 | Phase 2 | Pending |
+| TEAM-03 | Phase 2 | Pending |
+| TEAM-04 | Phase 2 | Pending |
+| TEAM-05 | Phase 2 | Pending |
+| DASH-01 | Phase 3 | Pending |
+| DASH-02 | Phase 3 | Pending |
+| DASH-03 | Phase 3 | Pending |
+| DASH-04 | Phase 3 | Pending |
+| PLAY-01 | Phase 2 | Pending |
+| PLAY-02 | Phase 2 | Pending |
+| PLAY-03 | Phase 2 | Pending |
+| PLAY-04 | Phase 2 | Pending |
+| TRADE-01 | Phase 5 | Pending |
+| TRADE-02 | Phase 5 | Pending |
+| TRADE-03 | Phase 5 | Pending |
+| TRADE-04 | Phase 5 | Pending |
+| MGR-01 | Phase 4 | Pending |
+| MGR-02 | Phase 4 | Pending |
+| MGR-03 | Phase 4 | Pending |
+| MGR-04 | Phase 4 | Pending |
+| PICK-01 | Phase 6 | Pending |
+| PICK-02 | Phase 6 | Pending |
+| PICK-03 | Phase 6 | Pending |
+| PICK-04 | Phase 7 | Pending |
+| PICK-05 | Phase 7 | Pending |
+| PICK-06 | Phase 7 | Pending |
+| PROS-01 | Phase 8 | Pending |
+| PROS-02 | Phase 8 | Pending |
+| PROS-03 | Phase 8 | Pending |
+| PROS-04 | Phase 8 | Pending |
+| PROS-05 | Phase 8 | Pending |
+| PORT-01 | Phase 3 | Pending |
+| PORT-02 | Phase 9 | Pending |
+| PORT-03 | Phase 9 | Pending |
+| PORT-04 | Phase 9 | Pending |
+| PORT-05 | Phase 9 | Pending |
+| PORT-06 | Phase 9 | Pending |
 
 **Coverage:**
 - v1 requirements: 46 total
-- Mapped to phases: 0
-- Unmapped: 46 ⚠️
+- Mapped to phases: 46
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-11*
-*Last updated: 2026-03-11 after initial definition*
+*Last updated: 2026-03-11 — traceability populated after roadmap creation*
