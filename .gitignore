@@ -1,0 +1,11 @@
+# Python cache artifacts
+__pycache__/
+*.pyc
+
+# Local test/cache folders
+backend/.pytest_cache/
+backend/pytest-cache-files-*/
+backend/.tmp/
+
+# Local runtime database files
+data/*.duckdb
