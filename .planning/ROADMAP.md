@@ -78,13 +78,14 @@ Plans:
   3. Dashboard alerts fire for players owned across 2+ leagues with concentration risk flags
   4. Dashboard surfaces leaguemates currently showing behavioral triggers (losing trades, positional thinness, recent panic moves)
   5. League snapshots are saved automatically at scheduled intervals and on user trigger — early snapshots cannot be recovered retroactively, so this must be live before Phase 4
-**Plans**: TBD
+**Plans**: 3 plans
 
 **HARD GATE — Phase 3 exit:** Before Phase 4 begins, direction labels must be manually reviewed and confirmed against all active leagues. If a direction label is materially wrong (e.g., a clear rebuild labeled as a contender), Phase 4 and Phase 5 must not proceed until the engine is corrected. This gate is not optional.
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [ ] 03-01-PLAN.md — Backend: snapshot migration, SnapshotService, dashboard + snapshot routers, post-ingest hook
+- [ ] 03-02-PLAN.md — Frontend scaffold: Vite + React 19 + TanStack Router/Query + shadcn/ui init + route shells + API queries
+- [ ] 03-03-PLAN.md — Frontend views: LeagueCard grid, drill-in with risers/fallers + exploit windows + snapshot controls + human-verify
 
 ---
 
@@ -201,7 +202,7 @@ Phases execute in numeric order: 1 → 2 → 3 → [GATE] → 4 → 5 → 6 → 
 |-------|----------------|--------|-----------|
 | 1. Sleeper Ingestion | 0/6 | Planned | - |
 | 2. Team Intelligence | 0/TBD | Not started | - |
-| 3. Core Dashboard | 0/TBD | Not started | - |
+| 3. Core Dashboard | 0/3 | Planned | - |
 | 4. Manager Profiling | 0/TBD | Not started | - |
 | 5. Trade Intelligence | 0/TBD | Not started | - |
 | 6. Dynamic Pick Valuation | 0/TBD | Not started | - |
