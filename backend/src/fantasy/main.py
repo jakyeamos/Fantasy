@@ -14,6 +14,7 @@ from fantasy.routers import (
     health,
     ingest,
     intelligence,
+    profiling,
     snapshots,
 )
 
@@ -56,6 +57,7 @@ def create_app() -> FastAPI:
     app.include_router(intelligence.router)
     app.include_router(dashboard.router)
     app.include_router(snapshots.router)
+    app.include_router(profiling.router)
     return app
 
 

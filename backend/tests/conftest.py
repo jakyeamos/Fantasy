@@ -1,3 +1,6 @@
+import json
+from datetime import datetime, timedelta
+
 import duckdb
 import pytest
 
@@ -502,4 +505,83 @@ def phase3_seed_data(phase2_seed_data):
             )
         """
     )
+    return phase2_seed_data
+
+
+@pytest.fixture
+def profiling_seed_data(phase2_seed_data):
+    phase2_seed_data.execute("DELETE FROM transactions WHERE league_id = 'league_x'")
+    phase2_seed_data.execute(
+        """
+        INSERT INTO team_directions (
+            id, league_id, roster_id, primary_label, confidence, reasoning,
+            alternates_json, delta_json, approved_moves, discouraged_moves
+        )
+        VALUES
+            (
+                1, 'league_x', 1, 'hard_rebuild', 0.92, 'seeded',
+                '[]', '{}', '[]', '[]'
+            ),
+            (
+                2, 'league_x', 2, 'true_contender', 0.88, 'seeded',
+                '[]', '{}', '[]', '[]'
+            )
+        ON CONFLICT (league_id, roster_id) DO UPDATE SET
+            primary_label = EXCLUDED.primary_label,
+            confidence = EXCLUDED.confidence,
+            reasoning = EXCLUDED.reasoning,
+            alternates_json = EXCLUDED.alternates_json,
+            delta_json = EXCLUDED.delta_json,
+            approved_moves = EXCLUDED.approved_moves,
+            discouraged_moves = EXCLUDED.discouraged_moves
+        """
+    )
+
+    base_time = datetime(2025, 1, 1, 12, 0, 0)
+    trade_rows = [
+        ("prof_trade_1", "qb2", "wr1", 1, 4),
+        ("prof_trade_2", "qb2", "rb1", 2, 5),
+        ("prof_trade_3", "qb2", "rookie1", 1, 6),
+        ("prof_trade_4", "qb2", "qb1", 0, 7),
+        ("prof_trade_5", "qb2", "te1", 0, 8),
+        ("prof_trade_6", "vet1", "wr1", 0, 9),
+        ("prof_trade_7", "vet1", "rb1", 0, 10),
+        ("prof_trade_8", "vet1", "rookie1", 0, 11),
+        ("prof_trade_9", "wr2", "rbb1", 0, 12),
+        ("prof_trade_10", "wr2", "wrb1", 0, 13),
+        ("prof_trade_11", "wr2", "te1", 0, 14),
+        ("prof_trade_12", "wr2", "wr1", 0, 15),
+    ]
+    for index, (transaction_id, received, sent, sent_pick_round, week) in enumerate(trade_rows):
+        draft_picks = (
+            [
+                {
+                    "season": "2026",
+                    "round": sent_pick_round,
+                    "roster_id": 2,
+                    "owner_id": 2,
+                    "previous_owner_id": 1,
+                }
+            ]
+            if sent_pick_round
+            else []
+        )
+        phase2_seed_data.execute(
+            """
+            INSERT INTO transactions (
+                transaction_id, league_id, type, status, created_at,
+                roster_ids, adds, drops, draft_picks, week
+            )
+            VALUES (?, 'league_x', 'trade', 'complete', ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                transaction_id,
+                base_time + timedelta(days=index),
+                json.dumps([1, 2]),
+                json.dumps({received: 1, sent: 2}),
+                json.dumps({received: 2, sent: 1}),
+                json.dumps(draft_picks),
+                week,
+            ],
+        )
     return phase2_seed_data
