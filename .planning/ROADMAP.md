@@ -196,11 +196,14 @@ Plans:
   2. User can compare any team's current state to a historical snapshot -- scorecard, direction label, player values, and pick capital all comparable side by side
   3. System grades past direction labels against actual season outcomes and surfaces calibration quality (was "true contender" calibrated?)
   4. System grades past prospect tier assignments against NFL outcomes and surfaces model accuracy per position and tier
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 09-01: TBD
-- [ ] 09-02: TBD
+- [ ] 09-01-PLAN.md -- Backend foundation: portfolio package scaffold, constants, models, PortfolioRepo, migration 007, SnapshotService capital_score patch
+- [ ] 09-02-PLAN.md -- Backend: SnapshotDiffEngine (anchor detection, delta-forward diff), snapshot diff router, main.py registration
+- [ ] 09-03-PLAN.md -- Backend: PortfolioEngine (hedge recs, correlated risk), RetroEngine (direction + prospect grading), portfolio router
+- [ ] 09-04-PLAN.md -- Frontend: Portfolio page with ExposureMatrix, CorrelatedRiskSection, health indicator, nav link, TypeScript types, query hooks
+- [ ] 09-05-PLAN.md -- Frontend: SnapshotComparisonSheet, AnchorSelector, SnapshotDiffView, league drill-in integration, human-verify checkpoint
 
 ---
 
@@ -219,4 +222,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> [GATE] -> 4 -> 5 -> 6 -> 7 -> 8 
 | 6. Dynamic Pick Valuation | 0/4 | Planned | - |
 | 7. Rookie Board & Draft Room | 0/4 | Planned | - |
 | 8. Historical Prospect Lab | 0/5 | Planned | - |
-| 9. Portfolio & Retrospectives | 0/TBD | Not started | - |
+| 9. Portfolio & Retrospectives | 0/5 | Planned | - |
