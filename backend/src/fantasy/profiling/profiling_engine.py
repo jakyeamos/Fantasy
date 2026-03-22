@@ -182,6 +182,16 @@ class ProfilingEngine:
         ).fetchall()
         return {str(row[0]): str(row[1] or "UNKNOWN") for row in rows}
 
+    def _load_player_names(self, player_ids: list[str]) -> dict[str, str]:
+        if not player_ids:
+            return {}
+        placeholders = ",".join("?" for _ in player_ids)
+        rows = self._conn.execute(
+            f"SELECT player_id, full_name FROM players WHERE player_id IN ({placeholders})",
+            player_ids,
+        ).fetchall()
+        return {str(row[0]): str(row[1] or row[0]) for row in rows}
+
     def _timing_error_count(
         self, trades: list[dict[str, Any]], roster_id: int
     ) -> int:
@@ -408,6 +418,52 @@ class ProfilingEngine:
             )
         return angles[:3]
 
+    def _build_trade_history(
+        self,
+        trades: list[dict[str, Any]],
+        roster_id: int,
+        adp_map: dict[str, float],
+    ) -> list[dict[str, Any]]:
+        player_ids = sorted(
+            {
+                player_id
+                for trade in trades
+                for player_id in (
+                    self._parse_trade_sides(trade, roster_id)[0]
+                    + self._parse_trade_sides(trade, roster_id)[1]
+                )
+            }
+        )
+        names = self._load_player_names(player_ids)
+        history: list[dict[str, Any]] = []
+        for trade in trades:
+            received, sent, received_picks, sent_picks = self._parse_trade_sides(trade, roster_id)
+            value_delta = self._compute_value_delta(
+                received,
+                sent,
+                received_pick_rounds=received_picks,
+                sent_pick_rounds=sent_picks,
+                adp_map=adp_map,
+            )
+            sent_assets = [names.get(player_id, player_id) for player_id in sent] + [
+                f"2026 Round {round_number} pick" for round_number in sent_picks
+            ]
+            received_assets = [names.get(player_id, player_id) for player_id in received] + [
+                f"2026 Round {round_number} pick" for round_number in received_picks
+            ]
+            created_at = trade.get("created_at")
+            history.append(
+                {
+                    "transaction_id": trade.get("transaction_id"),
+                    "date": created_at.isoformat() if created_at is not None else None,
+                    "sent_assets": sent_assets,
+                    "received_assets": received_assets,
+                    "value_delta": round(value_delta, 3),
+                }
+            )
+        history.sort(key=lambda item: item["date"] or "", reverse=True)
+        return history
+
     def compute_profile(self, league_id: str, roster_id: int) -> ManagerProfile:
         trades = self._load_trades(league_id, roster_id)
         all_players = sorted(
@@ -494,6 +550,7 @@ class ProfilingEngine:
             exploitation_secondary=exploitation.secondary_type,
             exploitation_evidence=exploitation.evidence_strings,
             pitch_angles=pitch_angles,
+            trade_history=self._build_trade_history(trades, roster_id, adp_map),
             aggregate_trade_stats=aggregate_trade_stats,
             roster_summary=roster_summary,
         )

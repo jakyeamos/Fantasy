@@ -40,6 +40,7 @@ class ManagerProfile(BaseModel):
     exploitation_secondary: str | None = None
     exploitation_evidence: dict[str, str]
     pitch_angles: list[PitchAngle]
+    trade_history: list[dict[str, Any]] = []
     aggregate_trade_stats: dict[str, Any]
     roster_summary: dict[str, Any] | None = None
 

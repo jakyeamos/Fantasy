@@ -29,14 +29,10 @@ def get_manager_profile(
     roster_id: int,
     conn: duckdb.DuckDBPyConnection = Depends(get_read_db_conn),
 ) -> ManagerProfile:
-    repo = ProfilingRepo(conn)
-    profile = repo.get_profile(league_id, roster_id)
-    if profile is None:
-        engine = ProfilingEngine(conn)
-        transient_profile = engine.compute_profile(league_id, roster_id)
-        if transient_profile.evidence_count == 0:
-            raise HTTPException(status_code=404, detail="Manager profile not found")
-        return transient_profile
+    engine = ProfilingEngine(conn)
+    profile = engine.compute_profile(league_id, roster_id)
+    if profile.evidence_count == 0:
+        raise HTTPException(status_code=404, detail="Manager profile not found")
     return profile
 
 

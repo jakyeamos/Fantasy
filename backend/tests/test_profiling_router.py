@@ -48,3 +48,4 @@ def test_get_manager_profile_endpoint(profiling_seed_data):
     payload = response.json()
     assert payload["roster_id"] == 1
     assert payload["pitch_angles"]
+    assert payload["trade_history"]
