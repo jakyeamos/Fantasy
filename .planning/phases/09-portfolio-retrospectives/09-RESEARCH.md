@@ -403,7 +403,7 @@ Phase 9 has clear seams for plan breakdown. Five plans are recommended:
 
 **Plan 09-01 — Backend foundation: portfolio package scaffold**
 - `portfolio/` package with `constants.py`, `models.py`, `portfolio_repo.py`
-- Alembic migration 007: `retrospective_runs` table
+- Alembic migration 012: `retrospective_runs` table (migrations 001–010 taken; Phase 8 uses 011)
 - PortfolioRepo: cross-league exposure query (reads `rosters` + `players`), correlated risk query
 - Patch `SnapshotService._build_league_state()` to include `capital_score` per roster
 - Unit tests for exposure computation and correlated cluster detection

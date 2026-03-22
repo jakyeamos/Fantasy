@@ -17,8 +17,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Core Dashboard** - League card UI, dashboard views, snapshot table wire-in
 - [x] **Phase 4: Manager Profiling** - Leaguemate dossiers, exploitability scoring, pitch angle generation
 - [x] **Phase 5: Trade Intelligence** - Trade evaluator, reroute pathing, package builder
-- [ ] **Phase 6: Dynamic Pick Valuation** - Standings-aware pick engine, demand signals, timing recommendations
-- [ ] **Phase 7: Rookie Board & Draft Room** - Format-aware rookie tiers, roster-fit overlays, draft room view
+- [x] **Phase 6: Dynamic Pick Valuation** - Standings-aware pick engine, demand signals, timing recommendations
+- [x] **Phase 7: Rookie Board & Draft Room** - Format-aware rookie tiers, roster-fit overlays, draft room view
 - [ ] **Phase 8: Historical Prospect Lab** - 10+ year database, backtested position models, archetype clustering
 - [ ] **Phase 9: Portfolio & Retrospectives** - Cross-league exposure, season-over-season snapshots, retrospective grading
 
@@ -90,7 +90,7 @@ Plans:
 - [x] 03-02-PLAN.md -- Frontend scaffold: Vite + React 19 + TanStack Router/Query + shadcn/ui init + route shells + API queries
 - [x] 03-03-PLAN.md -- Frontend views: LeagueCard grid, drill-in with risers/fallers + exploit windows + snapshot controls + human-verify
 
-**Known gap (PORT-01):** Cross-league concentration risk alerts not implemented in dashboard. Behavioral exploit windows are present; player ownership concentration surface deferred to Phase 9.
+**Known gap (DASH-03 / PORT-03):** Cross-league concentration risk alerts not implemented in dashboard. Behavioral exploit windows are present; player ownership concentration surface deferred to Phase 9 (PORT-03).
 
 ---
 
@@ -130,7 +130,9 @@ Plans:
 - [x] 05-03-PLAN.md -- Frontend evaluator core: shadcn installs, TypeScript types, TradeInputPanel, EvaluationOutputPanel, StrategicDistinctionBanner, DimensionScoreRow, /trades route
 - [x] 05-04-PLAN.md -- Frontend completion: RerouteSheet, PackageBuilderPanel, entry point buttons on league drill-in + manager dossier, human-verify checkpoint
 
-**Known gap:** Multi-team third-party trade legs are parsed and passed through the API but TradeEngine does not score them. UI shows a note acknowledging this. Deferred — no phase currently planned to fix this.
+**Known gap:** Multi-team third-party trade legs are parsed and passed through the API but TradeEngine does not score them. UI shows a note acknowledging this. Deferred to Phase 9.
+
+**Known gap:** Trade evaluator only surfaces picks belonging to teams other than the portfolio owner's own rosters. Picks the user holds are not available as tradeable assets in the evaluator input. Deferred to Phase 9.
 
 ---
 
@@ -147,10 +149,10 @@ Plans:
 **Research complete:** Dynasty pick valuation algorithm researched -- standings-to-slot projection, calendar timing cycle, rebuilder demand adjustment, and per-manager demand factor all specified with community-verified methodology.
 
 Plans:
-- [ ] 06-01-PLAN.md -- Backend foundation: picks package with constants, models (PickValue, PickValuationContext with Phase 7 hook), PickRepo, Alembic migration 007, test stubs
-- [ ] 06-02-PLAN.md -- PickEngine TDD: four-factor formula (standings slot, calendar timing, class strength hook, demand adjustment), timing recommendations, edge cases
-- [ ] 06-03-PLAN.md -- FastAPI /picks router, main.py registration, Phase 5 TradeRepo pick value redirect to PickEngine, integration tests
-- [ ] 06-04-PLAN.md -- Frontend: TimingBadge, AssetChip pick variant extension, PickValueSummaryRow for trade evaluator, LeaguePickList with recompute, human-verify checkpoint
+- [x] 06-01-PLAN.md -- Backend foundation: picks package with constants, models (PickValue, PickValuationContext with Phase 7 hook), PickRepo, Alembic migration 009, test stubs
+- [x] 06-02-PLAN.md -- PickEngine TDD: four-factor formula (standings slot, calendar timing, class strength hook, demand adjustment), timing recommendations, edge cases
+- [x] 06-03-PLAN.md -- FastAPI /picks router, main.py registration, Phase 5 TradeRepo pick value redirect to PickEngine, integration tests
+- [x] 06-04-PLAN.md -- Frontend: TimingBadge, AssetChip pick variant extension, PickValueSummaryRow for trade evaluator, LeaguePickList with recompute, human-verify checkpoint
 
 ---
 
@@ -165,10 +167,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 07-01-PLAN.md -- Backend foundation: rookie package with constants, Pydantic models, RookieRepo, Alembic migration 008 (rookie_board_cache + league_draft_tendencies tables)
-- [ ] 07-02-PLAN.md -- RookieEngine: format-aware scoring, gap-based tier assignment, archetype labels, risk bands, class strength signal, slot availability estimation, unit tests
-- [ ] 07-03-PLAN.md -- Draft room engine (compute_draft_room, trade verdict, tendency analysis), FastAPI /rookie-board + /draft-room routers, Phase 6 class_strength hook wiring
-- [ ] 07-04-PLAN.md -- Frontend: TypeScript types, TanStack Query hooks, RookiePlayerCard, TierDivider, TierGroup, VerdictBanner, TendencyWarningList, two new routes, league drill-in nav, human-verify checkpoint
+- [x] 07-01-PLAN.md -- Backend foundation: rookie package with constants, Pydantic models, RookieRepo, Alembic migration 010 (rookie_board_cache + league_draft_tendencies tables)
+- [x] 07-02-PLAN.md -- RookieEngine: format-aware scoring, gap-based tier assignment, archetype labels, risk bands, class strength signal, slot availability estimation, unit tests
+- [x] 07-03-PLAN.md -- Draft room engine (compute_draft_room, trade verdict, tendency analysis), FastAPI /rookie-board + /draft-room routers, Phase 6 class_strength hook wiring
+- [x] 07-04-PLAN.md -- Frontend: TypeScript types, TanStack Query hooks, RookiePlayerCard, TierDivider, TierGroup, VerdictBanner, TendencyWarningList, two new routes, league drill-in nav, human-verify checkpoint
 
 ---
 
@@ -226,7 +228,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> [GATE] -> 4 -> 5 -> 6 -> 7 -> 8 
 | 3. Core Dashboard | 3/3 | Complete | 2026-03-22 |
 | 4. Manager Profiling | 4/4 | Complete | 2026-03-22 |
 | 5. Trade Intelligence | 4/4 | Complete | 2026-03-22 |
-| 6. Dynamic Pick Valuation | 0/4 | Planned | - |
-| 7. Rookie Board & Draft Room | 0/4 | Planned | - |
+| 6. Dynamic Pick Valuation | 4/4 | Complete | 2026-03-22 |
+| 7. Rookie Board & Draft Room | 4/4 | Complete | 2026-03-22 |
 | 8. Historical Prospect Lab | 0/5 | Planned | - |
 | 9. Portfolio & Retrospectives | 0/5 | Planned | - |
