@@ -8,7 +8,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from fantasy.db.connection import get_write_connection
 from fantasy.ingestion.nfl_data_loader import load_adp_baseline
-from fantasy.routers import corrections, health, ingest
+from fantasy.routers import (
+    corrections,
+    dashboard,
+    health,
+    ingest,
+    intelligence,
+    snapshots,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +53,9 @@ def create_app() -> FastAPI:
     app.include_router(ingest.router)
     app.include_router(corrections.router)
     app.include_router(health.router)
+    app.include_router(intelligence.router)
+    app.include_router(dashboard.router)
+    app.include_router(snapshots.router)
     return app
 
 

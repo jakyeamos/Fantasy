@@ -12,6 +12,7 @@ from fantasy.ingestion.nfl_data_loader import SLEEPER_TO_NFLDATA_MAP
 from fantasy.ingestion.sleeper_client import SleeperClient
 from fantasy.ingestion.sleeper_mapper import SleeperMapper
 from fantasy.repositories.league_repo import LeagueRepo
+from fantasy.snapshots.snapshot_service import SnapshotService
 
 
 class IngestService:
@@ -132,6 +133,10 @@ class IngestService:
                 WHERE id = ?
                 """,
                 [cursor_json, gaps_json, run_id],
+            )
+            snapshot_service = SnapshotService(self.conn)
+            snapshot_service.take_snapshot(
+                [league_id], triggered_by="ingest", ingest_run_id=run_id
             )
             return run_id
         except Exception as exc:

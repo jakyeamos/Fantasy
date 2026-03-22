@@ -20,7 +20,7 @@ dependencies = [
   "tenacity>=8.2",
   "polars>=1.0",
   "uvicorn>=0.30",
-  "nfl-data-py==0.3.3; python_version < '3.14'",
+  "nfl-data-py==0.3.3; python_version < '3.13'",
 ]
 
 [project.optional-dependencies]
@@ -37,4 +37,3 @@ packages = ["src/fantasy"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["src"]
-

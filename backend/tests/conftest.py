@@ -144,6 +144,112 @@ SCHEMA_SQL = [
         loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS team_scorecards (
+        id INTEGER PRIMARY KEY,
+        league_id VARCHAR NOT NULL,
+        roster_id INTEGER NOT NULL,
+        computed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        win_now DOUBLE NOT NULL,
+        future_value DOUBLE NOT NULL,
+        depth DOUBLE NOT NULL,
+        pick_capital DOUBLE NOT NULL,
+        flexibility DOUBLE NOT NULL,
+        fragility DOUBLE NOT NULL,
+        age_risk DOUBLE NOT NULL,
+        liquidity DOUBLE NOT NULL,
+        positional_insulation DOUBLE NOT NULL,
+        composite DOUBLE NOT NULL,
+        computation_json VARCHAR,
+        UNIQUE (league_id, roster_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS team_directions (
+        id INTEGER PRIMARY KEY,
+        league_id VARCHAR NOT NULL,
+        roster_id INTEGER NOT NULL,
+        computed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        primary_label VARCHAR NOT NULL,
+        confidence DOUBLE NOT NULL,
+        reasoning VARCHAR NOT NULL,
+        alternates_json VARCHAR NOT NULL,
+        delta_json VARCHAR NOT NULL,
+        approved_moves VARCHAR NOT NULL,
+        discouraged_moves VARCHAR NOT NULL,
+        UNIQUE (league_id, roster_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS player_values (
+        id INTEGER PRIMARY KEY,
+        league_id VARCHAR NOT NULL,
+        roster_id INTEGER NOT NULL,
+        player_id VARCHAR NOT NULL,
+        computed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        comp_current_production DOUBLE,
+        comp_short_term DOUBLE,
+        comp_role_stability DOUBLE,
+        comp_age_curve DOUBLE,
+        comp_insulation DOUBLE,
+        comp_market_liquidity DOUBLE,
+        comp_positional_scarcity DOUBLE,
+        comp_fragility DOUBLE,
+        comp_ceiling DOUBLE,
+        comp_floor DOUBLE,
+        comp_rerollability DOUBLE,
+        comp_contract DOUBLE,
+        lens_production DOUBLE,
+        lens_market DOUBLE,
+        lens_insulation DOUBLE,
+        lens_team_fit DOUBLE,
+        lens_direction DOUBLE,
+        UNIQUE (league_id, roster_id, player_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS league_snapshots (
+        id INTEGER PRIMARY KEY,
+        league_id VARCHAR NOT NULL,
+        snapshot_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        snapshot_type VARCHAR NOT NULL,
+        triggered_by VARCHAR NOT NULL,
+        ingest_run_id INTEGER,
+        payload_json VARCHAR NOT NULL,
+        base_snapshot_id INTEGER
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS manager_profiles (
+        id INTEGER PRIMARY KEY,
+        league_id VARCHAR NOT NULL,
+        roster_id INTEGER NOT NULL,
+        computed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        evidence_count INTEGER NOT NULL,
+        low_confidence BOOLEAN NOT NULL,
+        exploitability_score DOUBLE NOT NULL,
+        exploitation_primary VARCHAR,
+        exploitation_secondary VARCHAR,
+        exploitation_evidence VARCHAR NOT NULL,
+        roster_summary VARCHAR,
+        aggregate_trade_stats VARCHAR NOT NULL,
+        UNIQUE (league_id, roster_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS manager_pitch_angles (
+        id INTEGER PRIMARY KEY,
+        league_id VARCHAR NOT NULL,
+        roster_id INTEGER NOT NULL,
+        rank INTEGER NOT NULL,
+        deal_archetype VARCHAR NOT NULL,
+        send_description VARCHAR NOT NULL,
+        avoid_description VARCHAR NOT NULL,
+        reasoning VARCHAR NOT NULL,
+        computed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (league_id, roster_id, rank)
+    )
+    """,
 ]
 
 
@@ -260,3 +366,140 @@ def mock_transaction_response():
             "leg": 5,
         },
     ]
+
+
+@pytest.fixture
+def phase2_seed_data(db):
+    db.execute(
+        """
+        INSERT INTO leagues (
+            league_id, name, season, scoring_settings, roster_positions,
+            settings_blob, superflex, tep, ppr
+        )
+        VALUES
+            ('league_x', 'League X', '2025', '{"rec":1.0}', '["QB","RB","WR","TE","SUPER_FLEX","BN","BN"]', '{"num_teams":2}', TRUE, FALSE, 1.0)
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO rosters (id, league_id, roster_id, owner_id, starters, players, reserve, taxi)
+        VALUES
+            (1, 'league_x', 1, 'user_a', '["qb1","rb1","wr1","te1"]', '["qb1","rb1","wr1","te1","rbb1","wrb1"]', '[]', '[]'),
+            (2, 'league_x', 2, 'user_b', '["qb2","rb2","wr2","te2"]', '["qb2","rb2","wr2","te2","rbb2","wrb2"]', '[]', '[]')
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES
+            ('qb1','QB One','QB','A',24,'{}'),
+            ('rb1','RB One','RB','A',24,'{}'),
+            ('wr1','WR One','WR','A',23,'{}'),
+            ('te1','TE One','TE','A',25,'{}'),
+            ('rbb1','RB Bench One','RB','A',22,'{}'),
+            ('wrb1','WR Bench One','WR','A',22,'{}'),
+            ('qb2','QB Two','QB','B',33,'{}'),
+            ('rb2','RB Two','RB','B',29,'{}'),
+            ('wr2','WR Two','WR','B',31,'{}'),
+            ('te2','TE Two','TE','B',30,'{}'),
+            ('rbb2','RB Bench Two','RB','B',28,'{}'),
+            ('wrb2','WR Bench Two','WR','B',28,'{}'),
+            ('rookie1','Rookie One','WR','C',21,'{}'),
+            ('vet1','Vet One','RB','C',30,'{}')
+        """
+    )
+    stats_rows = [
+        ("qb1", "QB One", "QB", 2024, 1, 0, 0, 0, 0, 20, 1, 3, 250, 2, 0, 0, 0, 0, 22),
+        ("rb1", "RB One", "RB", 2024, 1, 3, 4, 20, 0, 90, 1, 18, 0, 0, 0, 0, 0, 0, 20),
+        ("wr1", "WR One", "WR", 2024, 1, 7, 8, 90, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 22),
+        ("te1", "TE One", "TE", 2024, 1, 5, 6, 55, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16),
+        ("rbb1", "RB Bench One", "RB", 2024, 1, 2, 2, 10, 0, 40, 0, 8, 0, 0, 0, 0, 0, 0, 7),
+        ("wrb1", "WR Bench One", "WR", 2024, 1, 3, 4, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7),
+        ("qb2", "QB Two", "QB", 2024, 1, 0, 0, 0, 0, 10, 0, 2, 200, 1, 1, 0, 0, 0, 14),
+        ("rb2", "RB Two", "RB", 2024, 1, 1, 2, 5, 0, 50, 0, 12, 0, 0, 0, 0, 0, 0, 8),
+        ("wr2", "WR Two", "WR", 2024, 1, 4, 6, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7),
+        ("te2", "TE Two", "TE", 2024, 1, 3, 4, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5),
+        ("rbb2", "RB Bench Two", "RB", 2024, 1, 1, 1, 5, 0, 15, 0, 4, 0, 0, 0, 0, 0, 0, 3),
+        ("wrb2", "WR Bench Two", "WR", 2024, 1, 1, 2, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3),
+        ("rookie1", "Rookie One", "WR", 2024, 1, 2, 2, 18, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5),
+        ("vet1", "Vet One", "RB", 2024, 1, 1, 1, 2, 0, 30, 0, 9, 0, 0, 0, 0, 0, 0, 5),
+    ]
+    db.executemany(
+        """
+        INSERT INTO player_stats_weekly (
+            player_id, player_name, position, season, week, receptions, targets,
+            receiving_yards, receiving_tds, rushing_yards, rushing_tds, carries,
+            passing_yards, passing_tds, interceptions, passing_2pt_conversions,
+            receiving_2pt_conversions, rushing_2pt_conversions, fantasy_points
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        stats_rows,
+    )
+    db.execute(
+        """
+        INSERT INTO player_adp_baseline (player_id, player_name, position, adp, adp_source)
+        VALUES
+            ('qb1','QB One','QB',30,'test'),
+            ('rb1','RB One','RB',20,'test'),
+            ('wr1','WR One','WR',10,'test'),
+            ('te1','TE One','TE',45,'test'),
+            ('rbb1','RB Bench One','RB',90,'test'),
+            ('wrb1','WR Bench One','WR',110,'test'),
+            ('qb2','QB Two','QB',85,'test'),
+            ('rb2','RB Two','RB',95,'test'),
+            ('wr2','WR Two','WR',120,'test'),
+            ('te2','TE Two','TE',150,'test'),
+            ('rbb2','RB Bench Two','RB',170,'test'),
+            ('wrb2','WR Bench Two','WR',180,'test'),
+            ('rookie1','Rookie One','WR',50,'test'),
+            ('vet1','Vet One','RB',130,'test')
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO traded_picks (id, league_id, season, round, roster_id, owner_id, previous_owner_id)
+        VALUES
+            (1, 'league_x', '2025', 1, 2, '1', '2'),
+            (2, 'league_x', '2026', 2, 2, '1', '2')
+        """
+    )
+    return db
+
+
+@pytest.fixture
+def phase3_seed_data(phase2_seed_data):
+    phase2_seed_data.execute(
+        """
+        INSERT INTO transactions (
+            transaction_id, league_id, type, status, created_at,
+            roster_ids, adds, drops, draft_picks, week
+        )
+        VALUES
+            (
+                'trade_1',
+                'league_x',
+                'trade',
+                'complete',
+                CURRENT_TIMESTAMP,
+                '[1,2]',
+                '{"wr2":1,"vet1":2}',
+                '{"vet1":1,"wr2":2}',
+                '[{"season":"2026","round":1,"roster_id":2,"owner_id":1,"previous_owner_id":2}]',
+                5
+            ),
+            (
+                'trade_2',
+                'league_x',
+                'trade',
+                'complete',
+                CURRENT_TIMESTAMP,
+                '[1,2]',
+                '{"rookie1":2,"wrb1":1}',
+                '{"wrb1":2,"rookie1":1}',
+                '[]',
+                6
+            )
+        """
+    )
+    return phase2_seed_data
