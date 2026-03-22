@@ -233,7 +233,7 @@ Row: `flex items-start gap-2 rounded-md bg-amber-50 dark:bg-amber-950/20 px-3 py
 | Loading | Two `Skeleton h-10 w-full rounded` rows |
 | Success | Render risk rows |
 | Empty | "No correlated NFL team clusters detected." — Label, 12px/400, `text-muted-foreground` |
-| Error | "Correlated risk data unavailable." — Label, 12px/400, `text-muted-foreground`, inline |
+| Error | "Correlated risk data unavailable. Check that the backend is running, then refresh." — Label, 12px/400, `text-muted-foreground`, inline |
 
 ---
 
@@ -392,7 +392,7 @@ Every data region implements all four states (inherited from Phase 3):
 | Empty state — no snapshot anchors | "No snapshot anchors available. Snapshots are labeled automatically on trades and large roster changes." |
 | Empty state — no diff changes | "No changes detected since this snapshot." |
 | Error state — portfolio data fetch failed | "Portfolio data unavailable. Check that the backend is running, then refresh." |
-| Error state — correlated risk fetch failed | "Correlated risk data unavailable." |
+| Error state — correlated risk fetch failed | "Correlated risk data unavailable. Check that the backend is running, then refresh." |
 | Error state — anchor list fetch failed | "Snapshot anchors unavailable. Check that the backend is running, then refresh." |
 | Error state — diff fetch failed | "Snapshot comparison unavailable. Check that the backend is running, then refresh." |
 | Player departed since snapshot | "Traded" or "Dropped" (backend provides the departure type) |
