@@ -135,13 +135,15 @@ Plans:
   1. Pick values update when standings change — a team going on a losing streak changes that pick's value at evaluation time, not at a fixed schedule
   2. Pick values reflect manager-specific demand signals within the league (a known rebuilder wanting early picks is priced in)
   3. Each pick shows a timing recommendation (sell now / hold until rookie fever / use on the clock) with reasoning tied to current standing trajectory and class strength perception
-**Plans**: TBD
+**Plans**: 4 plans
 
-**Research flag:** Phase 6 planning should use `/gsd:research-phase` before implementation. The dynamic pick valuation algorithm (class strength weighting, rebuilder count adjustment, calendar timing decay) has dynasty community methodology nuances worth researching before specifying the formula.
+**Research complete:** Dynasty pick valuation algorithm researched — standings-to-slot projection, calendar timing cycle, rebuilder demand adjustment, and per-manager demand factor all specified with community-verified methodology.
 
 Plans:
-- [ ] 06-01: TBD
-- [ ] 06-02: TBD
+- [ ] 06-01-PLAN.md — Backend foundation: picks package with constants, models (PickValue, PickValuationContext with Phase 7 hook), PickRepo, Alembic migration 007, test stubs
+- [ ] 06-02-PLAN.md — PickEngine TDD: four-factor formula (standings slot, calendar timing, class strength hook, demand adjustment), timing recommendations, edge cases
+- [ ] 06-03-PLAN.md — FastAPI /picks router, main.py registration, Phase 5 TradeRepo pick value redirect to PickEngine, integration tests
+- [ ] 06-04-PLAN.md — Frontend: TimingBadge, AssetChip pick variant extension, PickValueSummaryRow for trade evaluator, LeaguePickList with recompute, human-verify checkpoint
 
 ---
 
@@ -209,7 +211,7 @@ Phases execute in numeric order: 1 → 2 → 3 → [GATE] → 4 → 5 → 6 → 
 | 3. Core Dashboard | 0/3 | Planned | - |
 | 4. Manager Profiling | 0/4 | Planned | - |
 | 5. Trade Intelligence | 0/4 | Planned | - |
-| 6. Dynamic Pick Valuation | 0/TBD | Not started | - |
+| 6. Dynamic Pick Valuation | 0/4 | Planned | - |
 | 7. Rookie Board & Draft Room | 0/TBD | Not started | - |
 | 8. Historical Prospect Lab | 0/TBD | Not started | - |
 | 9. Portfolio & Retrospectives | 0/TBD | Not started | - |
