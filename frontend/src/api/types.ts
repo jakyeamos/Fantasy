@@ -105,3 +105,74 @@ export interface ManagerProfile {
     roster_size?: number
   } | null
 }
+
+export interface TradeAsset {
+  asset_type: "player" | "pick"
+  player_id?: string | null
+  pick_owner_roster_id?: number | null
+  pick_year?: number | null
+  pick_round?: number | null
+  projected_slot?: string | null
+}
+
+export interface DimensionScore {
+  score: number
+  confidence: "HIGH" | "MEDIUM" | "LOW"
+  reasoning: string
+}
+
+export interface StrategicDistinction {
+  verdict: "advancing" | "negative" | "neutral"
+  headline: string
+  explanation: string
+}
+
+export interface RerouteResult {
+  reroute_type: "better_target" | "better_package"
+  headline: string
+  reasoning: string
+  suggested_assets?: TradeAsset[] | null
+}
+
+export interface PackageOffer {
+  label: string
+  send_assets: TradeAsset[]
+  receive_assets: TradeAsset[]
+  reasoning: string
+}
+
+export interface PackageBuilderResult {
+  aggressive_open: PackageOffer
+  fair_close: PackageOffer
+}
+
+export interface TradeEvaluation {
+  market_fairness: DimensionScore
+  roster_fit: DimensionScore
+  direction_fit: DimensionScore
+  timing_quality: DimensionScore
+  insulation_delta: DimensionScore
+  liquidity_delta: DimensionScore
+  manager_exploit_quality: DimensionScore
+  strategic_distinction: StrategicDistinction
+  reroutes?: RerouteResult[] | null
+  package?: PackageBuilderResult | null
+}
+
+export interface PlayerSearchResult {
+  player_id: string
+  full_name: string
+  position: string
+  team?: string | null
+  roster_id: number
+  roster_name: string
+}
+
+export interface PickSearchResult {
+  original_owner_id: number
+  current_owner_id: number
+  pick_year: number
+  round: number
+  projected_slot: string
+  current_owner_name: string
+}
