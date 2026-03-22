@@ -148,18 +148,20 @@ Plans:
 ---
 
 ### Phase 7: Rookie Board & Draft Room
-**Goal**: The system produces a format-aware rookie board with tiered rankings and roster-fit overlays, and the draft room view answers the four key questions a manager needs on the clock
+**Goal**: The system produces a format-aware rookie board with tiered rankings and slot availability highlighting, and the draft room view answers three key questions: best player in abstract, league draft tendencies, and whether trading the pick is the superior play
 **Depends on**: Phase 6
 **Requirements**: PICK-04, PICK-05, PICK-06
 **Success Criteria** (what must be TRUE):
   1. Rookie board displays tiers, archetype labels, and risk bands adjusted for the active league's scoring format and lineup requirements
-  2. User can filter the rookie board to show roster-fit rankings for a specific team — who is best for this team vs. best in the abstract are clearly distinguished
-  3. Draft room view answers: best in abstract, best for this roster, best relative to this league's draft tendencies, and when trading the pick is the superior play
-**Plans**: TBD
+  2. User can highlight players likely available at a given pick slot on the rookie board (roster-fit reranking descoped per D-05; replaced by slot availability filtering per D-06)
+  3. Draft room view answers: best in abstract, best relative to this league's draft tendencies, and when trading the pick is the superior play (3 questions per D-07)
+**Plans**: 4 plans
 
 Plans:
-- [ ] 07-01: TBD
-- [ ] 07-02: TBD
+- [ ] 07-01-PLAN.md — Backend foundation: rookie package with constants, Pydantic models, RookieRepo, Alembic migration 008 (rookie_board_cache + league_draft_tendencies tables)
+- [ ] 07-02-PLAN.md — RookieEngine: format-aware scoring, gap-based tier assignment, archetype labels, risk bands, class strength signal, slot availability estimation, unit tests
+- [ ] 07-03-PLAN.md — Draft room engine (compute_draft_room, trade verdict, tendency analysis), FastAPI /rookie-board + /draft-room routers, Phase 6 class_strength hook wiring
+- [ ] 07-04-PLAN.md — Frontend: TypeScript types, TanStack Query hooks, RookiePlayerCard, TierDivider, TierGroup, VerdictBanner, TendencyWarningList, two new routes, league drill-in nav, human-verify checkpoint
 
 ---
 
@@ -212,6 +214,6 @@ Phases execute in numeric order: 1 → 2 → 3 → [GATE] → 4 → 5 → 6 → 
 | 4. Manager Profiling | 0/4 | Planned | - |
 | 5. Trade Intelligence | 0/4 | Planned | - |
 | 6. Dynamic Pick Valuation | 0/4 | Planned | - |
-| 7. Rookie Board & Draft Room | 0/TBD | Not started | - |
+| 7. Rookie Board & Draft Room | 0/4 | Planned | - |
 | 8. Historical Prospect Lab | 0/TBD | Not started | - |
 | 9. Portfolio & Retrospectives | 0/TBD | Not started | - |
