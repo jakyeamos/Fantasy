@@ -12,11 +12,11 @@ This project builds a personal dynasty intelligence system in nine focused phase
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Sleeper Ingestion** - Stack scaffold, Sleeper adapter, full data ingest pipeline with health checks
-- [ ] **Phase 2: Team Intelligence** - Team scorecard, direction detection, player valuation engines
-- [ ] **Phase 3: Core Dashboard** - League card UI, dashboard views, snapshot table wire-in
-- [ ] **Phase 4: Manager Profiling** - Leaguemate dossiers, exploitability scoring, pitch angle generation
-- [ ] **Phase 5: Trade Intelligence** - Trade evaluator, reroute pathing, package builder
+- [x] **Phase 1: Sleeper Ingestion** - Stack scaffold, Sleeper adapter, full data ingest pipeline with health checks
+- [x] **Phase 2: Team Intelligence** - Team scorecard, direction detection, player valuation engines
+- [x] **Phase 3: Core Dashboard** - League card UI, dashboard views, snapshot table wire-in
+- [x] **Phase 4: Manager Profiling** - Leaguemate dossiers, exploitability scoring, pitch angle generation
+- [x] **Phase 5: Trade Intelligence** - Trade evaluator, reroute pathing, package builder
 - [ ] **Phase 6: Dynamic Pick Valuation** - Standings-aware pick engine, demand signals, timing recommendations
 - [ ] **Phase 7: Rookie Board & Draft Room** - Format-aware rookie tiers, roster-fit overlays, draft room view
 - [ ] **Phase 8: Historical Prospect Lab** - 10+ year database, backtested position models, archetype clustering
@@ -41,12 +41,12 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Open question resolved:** Global Asset Baseline seeded from two sources: ADP signals (FantasyPros dynasty ADP CSV) + nfl_data_py scoring reconstruction. Baseline is foundation-only in Phase 1; Phase 2 applies league-specific adjustments on top.
 
 Plans:
-- [ ] 01-00-PLAN.md -- Project scaffold: FastAPI skeleton, DuckDB schema + Alembic migrations, test stubs
-- [ ] 01-01-PLAN.md -- SleeperMapper adapter: domain models (LeagueSettings, RosterSnapshot, TradedPick, StandingRow, TransactionRecord)
-- [ ] 01-02-PLAN.md -- Repository layer: LeagueRepo DuckDB upserts + NflDataPyLoader with fantasy point reconstruction
-- [ ] 01-03-PLAN.md -- SleeperClient (httpx + tenacity) + IngestService orchestration with all-weeks transaction loop
-- [ ] 01-04-PLAN.md -- OverrideService (corrections CRUD) + FastAPI routers (ingest, corrections) wired into main.py
-- [ ] 01-05-PLAN.md -- GapDetector + health endpoint + ADP baseline loader + human-verify checkpoint
+- [x] 01-00-PLAN.md -- Project scaffold: FastAPI skeleton, DuckDB schema + Alembic migrations, test stubs
+- [x] 01-01-PLAN.md -- SleeperMapper adapter: domain models (LeagueSettings, RosterSnapshot, TradedPick, StandingRow, TransactionRecord)
+- [x] 01-02-PLAN.md -- Repository layer: LeagueRepo DuckDB upserts + NflDataPyLoader with fantasy point reconstruction
+- [x] 01-03-PLAN.md -- SleeperClient (httpx + tenacity) + IngestService orchestration with all-weeks transaction loop
+- [x] 01-04-PLAN.md -- OverrideService (corrections CRUD) + FastAPI routers (ingest, corrections) wired into main.py
+- [x] 01-05-PLAN.md -- GapDetector + health endpoint + ADP baseline loader + human-verify checkpoint
 
 ---
 
@@ -60,11 +60,14 @@ Plans:
   3. Direction recommendation includes what would materially alter the label and which move types are approved or discouraged
   4. User can view any player across 5 value lenses (production, market, insulation, team-fit, direction-specific) with the active team's direction weighting applied
   5. Ranked move recommendations per team are visible and reflect the current direction label
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [x] 02-00-PLAN.md -- Intelligence package scaffold: output table migrations, constants, Pydantic models, test stubs
+- [x] 02-01-PLAN.md -- ScorecardEngine: 9-dimension scoring, normalization, corrections application
+- [x] 02-02-PLAN.md -- DirectionEngine: weighted dot-product classification, confidence, alternates, delta, ranked moves
+- [x] 02-03-PLAN.md -- ValuationEngine: 12 components, 5 lenses, PPR/superflex/TEP adjustments, direction reweighting
+- [x] 02-04-PLAN.md -- IntelligenceService orchestration + FastAPI /intelligence router wired into main.py
 
 ---
 
@@ -83,9 +86,11 @@ Plans:
 **HARD GATE -- Phase 3 exit:** Before Phase 4 begins, direction labels must be manually reviewed and confirmed against all active leagues. If a direction label is materially wrong (e.g., a clear rebuild labeled as a contender), Phase 4 and Phase 5 must not proceed until the engine is corrected. This gate is not optional.
 
 Plans:
-- [ ] 03-01-PLAN.md -- Backend: snapshot migration, SnapshotService, dashboard + snapshot routers, post-ingest hook
-- [ ] 03-02-PLAN.md -- Frontend scaffold: Vite + React 19 + TanStack Router/Query + shadcn/ui init + route shells + API queries
-- [ ] 03-03-PLAN.md -- Frontend views: LeagueCard grid, drill-in with risers/fallers + exploit windows + snapshot controls + human-verify
+- [x] 03-01-PLAN.md -- Backend: snapshot migration, SnapshotService, dashboard + snapshot routers, post-ingest hook
+- [x] 03-02-PLAN.md -- Frontend scaffold: Vite + React 19 + TanStack Router/Query + shadcn/ui init + route shells + API queries
+- [x] 03-03-PLAN.md -- Frontend views: LeagueCard grid, drill-in with risers/fallers + exploit windows + snapshot controls + human-verify
+
+**Known gap (PORT-01):** Cross-league concentration risk alerts not implemented in dashboard. Behavioral exploit windows are present; player ownership concentration surface deferred to Phase 9.
 
 ---
 
@@ -101,10 +106,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 04-01-PLAN.md -- Backend foundation: profiling constants, Pydantic models, Alembic migration 006, ProfilingRepo
-- [ ] 04-02-PLAN.md -- Backend engine + router: ProfilingEngine (exploitation classification, scoring, pitch angles), FastAPI router, unit tests
-- [ ] 04-03-PLAN.md -- Frontend managers list: shadcn install (tabs/table/alert), ManagerListRow, managers route, Phase 3 ExploitWindowPanel link update
-- [ ] 04-04-PLAN.md -- Frontend dossier: DossierPage with tabs, Overview/TradeHistory/PitchAngles tab components, human-verify checkpoint
+- [x] 04-01-PLAN.md -- Backend foundation: profiling constants, Pydantic models, Alembic migration 006, ProfilingRepo
+- [x] 04-02-PLAN.md -- Backend engine + router: ProfilingEngine (exploitation classification, scoring, pitch angles), FastAPI router, unit tests
+- [x] 04-03-PLAN.md -- Frontend managers list: shadcn install (tabs/table/alert), ManagerListRow, managers route, Phase 3 ExploitWindowPanel link update
+- [x] 04-04-PLAN.md -- Frontend dossier: DossierPage with tabs, Overview/TradeHistory/PitchAngles tab components, human-verify checkpoint
 
 ---
 
@@ -120,10 +125,12 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 05-01-PLAN.md -- Backend foundation: trade constants, Pydantic models (TradeRequest/TradeEvaluation/DimensionScore), TradeRepo for Phase 2/4 data reads
-- [ ] 05-02-PLAN.md -- Backend engines + router: TradeEngine (7-dimension scoring), RerouteEngine, PackageBuilder, FastAPI /trade router, unit tests
-- [ ] 05-03-PLAN.md -- Frontend evaluator core: shadcn installs, TypeScript types, TradeInputPanel, EvaluationOutputPanel, StrategicDistinctionBanner, DimensionScoreRow, /trades route
-- [ ] 05-04-PLAN.md -- Frontend completion: RerouteSheet, PackageBuilderPanel, entry point buttons on league drill-in + manager dossier, human-verify checkpoint
+- [x] 05-01-PLAN.md -- Backend foundation: trade constants, Pydantic models (TradeRequest/TradeEvaluation/DimensionScore), TradeRepo for Phase 2/4 data reads
+- [x] 05-02-PLAN.md -- Backend engines + router: TradeEngine (7-dimension scoring), RerouteEngine, PackageBuilder, FastAPI /trade router, unit tests
+- [x] 05-03-PLAN.md -- Frontend evaluator core: shadcn installs, TypeScript types, TradeInputPanel, EvaluationOutputPanel, StrategicDistinctionBanner, DimensionScoreRow, /trades route
+- [x] 05-04-PLAN.md -- Frontend completion: RerouteSheet, PackageBuilderPanel, entry point buttons on league drill-in + manager dossier, human-verify checkpoint
+
+**Known gap:** Multi-team third-party trade legs are parsed and passed through the API but TradeEngine does not score them. UI shows a note acknowledging this. Deferred — no phase currently planned to fix this.
 
 ---
 
@@ -214,11 +221,11 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> [GATE] -> 4 -> 5 -> 6 -> 7 -> 8 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Sleeper Ingestion | 0/6 | Planned | - |
-| 2. Team Intelligence | 0/TBD | Not started | - |
-| 3. Core Dashboard | 0/3 | Planned | - |
-| 4. Manager Profiling | 0/4 | Planned | - |
-| 5. Trade Intelligence | 0/4 | Planned | - |
+| 1. Sleeper Ingestion | 6/6 | Complete | 2026-03-22 |
+| 2. Team Intelligence | 5/5 | Complete | 2026-03-22 |
+| 3. Core Dashboard | 3/3 | Complete | 2026-03-22 |
+| 4. Manager Profiling | 4/4 | Complete | 2026-03-22 |
+| 5. Trade Intelligence | 4/4 | Complete | 2026-03-22 |
 | 6. Dynamic Pick Valuation | 0/4 | Planned | - |
 | 7. Rookie Board & Draft Room | 0/4 | Planned | - |
 | 8. Historical Prospect Lab | 0/5 | Planned | - |
