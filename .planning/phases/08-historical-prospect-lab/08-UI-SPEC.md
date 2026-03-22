@@ -53,7 +53,7 @@ Inherited from Phase 3. No new values added.
 | Token | Value | Usage |
 |-------|-------|-------|
 | xs | 4px | Icon-to-text gaps, inline badge padding, comp row internal padding, sub-flag row icon gap |
-| sm | 8px | Gap between comp rows within the comps section; gap between sub-flag rows in expanded over/undervalue section |
+| sm | 8px | Gap between comp rows within the comps section; gap between sub-flag rows in expanded over/undervalue section; Separator margin between Phase 7 and Phase 8 card content |
 | md | 16px | Card internal padding (unchanged from Phase 7); padding inside the expanded sub-flags panel |
 | lg | 24px | Tier block bottom margin (unchanged from Phase 7) |
 | xl | 32px | Page-level horizontal padding (unchanged) |
@@ -176,13 +176,13 @@ Phase 8 adds three new data regions to the existing `RookiePlayerCard` layout be
 [Historical comps]      ← Phase 8 NEW (three comp rows, always visible)
 ```
 
-The `shadcn Separator` component (already installed) renders the divider between Phase 7 content and Phase 8 content. Use `my-3` margin — `12px` top and bottom (not a scale token but an accepted mid-point between `sm`/`md` for visual breathing room within a dense card).
+The `shadcn Separator` component (already installed) renders the divider between Phase 7 content and Phase 8 content. Use `my-2` margin — 8px top and bottom (`sm` token).
 
 ---
 
 #### New Region 1: Hit-Rate + Model Row
 
-Layout: `flex items-center justify-between mt-3`
+Layout: `flex items-center justify-between mt-2`
 
 Left: Section label "Model Signal" (Label, 12px/400, `text-muted-foreground`)
 
@@ -224,7 +224,7 @@ The backend returns the sub-flag strings verbatim. Frontend renders them without
 
 #### New Region 3: Historical Comps
 
-Layout: `mt-3 flex flex-col gap-2`
+Layout: `mt-2 flex flex-col gap-2`
 
 Section label row: `flex items-center justify-between mb-1`
 - Left: "Historical Comps" (Label, 12px/400, `text-muted-foreground`)
@@ -232,7 +232,7 @@ Section label row: `flex items-center justify-between mb-1`
 
 Three comp rows rendered in order: ceiling comp first, median comp second, floor comp third.
 
-**CompRow layout:** `flex items-start gap-3`
+**CompRow layout:** `flex items-start gap-2`
 
 Left column (fixed width `w-16`):
 - Comp role badge: `Badge variant="outline"` with compact text (Label, 12px/400)
@@ -362,7 +362,7 @@ No new shadcn components are installed in Phase 8. No third-party registries are
 
 ## Implementation Notes for Executor
 
-1. **Card extension, not card replacement:** Phase 8 adds regions below the existing Phase 7 `RookiePlayerCard` content. The existing name row, archetype row, risk row, and slot availability note are unchanged. Add a `shadcn Separator` with `my-3` below the existing content to visually separate Phase 7 and Phase 8 data regions.
+1. **Card extension, not card replacement:** Phase 8 adds regions below the existing Phase 7 `RookiePlayerCard` content. The existing name row, archetype row, risk row, and slot availability note are unchanged. Add a `shadcn Separator` with `my-2` (8px / `sm` token) below the existing content to visually separate Phase 7 and Phase 8 data regions.
 
 2. **Two separate API queries, joined by player_id:** Phase 7 data and Phase 8 model outputs are fetched independently. `GET /rookie-board/{league_id}` returns Phase 7 data; `GET /prospects/model-outputs/{league_id}` returns Phase 8 model outputs. Client-side join via `player_id`. If Phase 8 data is still loading, render Phase 7 card in full with skeletons for the three new Phase 8 regions only — do not block the Phase 7 render.
 
