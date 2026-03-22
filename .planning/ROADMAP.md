@@ -117,11 +117,13 @@ Plans:
   2. System surfaces at least one reroute path per trade evaluation: a better target for the same asset, a pick-based version, or a tier-down option
   3. Package builder generates a fair range, best version, and manager-specific opening offer for any desired acquisition
   4. System explicitly distinguishes a market-fair but strategically mediocre trade from one that advances the team's direction label
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 05-01: TBD
-- [ ] 05-02: TBD
+- [ ] 05-01-PLAN.md — Backend foundation: trade constants, Pydantic models (TradeRequest/TradeEvaluation/DimensionScore), TradeRepo for Phase 2/4 data reads
+- [ ] 05-02-PLAN.md — Backend engines + router: TradeEngine (7-dimension scoring), RerouteEngine, PackageBuilder, FastAPI /trade router, unit tests
+- [ ] 05-03-PLAN.md — Frontend evaluator core: shadcn installs, TypeScript types, TradeInputPanel, EvaluationOutputPanel, StrategicDistinctionBanner, DimensionScoreRow, /trades route
+- [ ] 05-04-PLAN.md — Frontend completion: RerouteSheet, PackageBuilderPanel, entry point buttons on league drill-in + manager dossier, human-verify checkpoint
 
 ---
 
@@ -206,7 +208,7 @@ Phases execute in numeric order: 1 → 2 → 3 → [GATE] → 4 → 5 → 6 → 
 | 2. Team Intelligence | 0/TBD | Not started | - |
 | 3. Core Dashboard | 0/3 | Planned | - |
 | 4. Manager Profiling | 0/4 | Planned | - |
-| 5. Trade Intelligence | 0/TBD | Not started | - |
+| 5. Trade Intelligence | 0/4 | Planned | - |
 | 6. Dynamic Pick Valuation | 0/TBD | Not started | - |
 | 7. Rookie Board & Draft Room | 0/TBD | Not started | - |
 | 8. Historical Prospect Lab | 0/TBD | Not started | - |
