@@ -1,22 +1,104 @@
+import { useEffect } from "react"
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
+import { managerSummariesOptions } from "@/api/queries"
+import { ManagerListRow } from "@/components/ManagerListRow"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export const Route = createFileRoute("/league/$leagueId/managers")({
   component: ManagersPlaceholderPage,
 })
 
 function ManagersPlaceholderPage() {
+  const { leagueId } = Route.useParams()
+  const queryClient = useQueryClient()
+  const summariesQuery = useQuery(managerSummariesOptions(leagueId))
+  const computeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/profiling/leagues/${leagueId}/managers/compute`, {
+        method: "POST",
+      })
+      if (!response.ok) {
+        throw new Error("Failed to compute manager profiles")
+      }
+      return response.json()
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["profiling", "managers", leagueId] })
+      await queryClient.invalidateQueries({ queryKey: ["profiling", "manager", leagueId] })
+    },
+  })
+
+  useEffect(() => {
+    if (
+      summariesQuery.data &&
+      summariesQuery.data.length > 0 &&
+      summariesQuery.data.every((summary) => summary.evidence_count === 0) &&
+      !computeMutation.isPending &&
+      !computeMutation.isSuccess
+    ) {
+      computeMutation.mutate()
+    }
+  }, [computeMutation, summariesQuery.data])
+
+  if (summariesQuery.isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-40" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+      </div>
+    )
+  }
+
+  if (summariesQuery.isError || !summariesQuery.data) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Manager data unavailable. Try refreshing or recomputing profiles.
+      </p>
+    )
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Managers</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">
-          Manager dossiers will load here once the profiling UI slice is applied.
-        </p>
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-sm text-muted-foreground">League {leagueId}</p>
+          <h2 className="text-lg font-semibold">Managers</h2>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => computeMutation.mutate()}
+          disabled={computeMutation.isPending}
+        >
+          {computeMutation.isPending ? "Refreshing..." : "Refresh Profiles"}
+        </Button>
+      </div>
+
+      <div className="space-y-3">
+        {summariesQuery.data.map((summary) => (
+          <ManagerListRow
+            key={summary.roster_id}
+            leagueId={leagueId}
+            summary={summary}
+          />
+        ))}
+      </div>
+
+      <Card className="border-dashed">
+        <CardHeader>
+          <CardTitle>Signal Notes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Scores below the evidence threshold stay visible but are intentionally dimmed.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

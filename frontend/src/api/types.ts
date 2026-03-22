@@ -51,3 +51,57 @@ export interface LeagueDetailResponse {
   last_snapshot_at: string | null
   last_ingest_at: string | null
 }
+
+export interface PitchAngle {
+  rank: number
+  deal_archetype: string
+  send_description: string
+  avoid_description: string
+  reasoning: string
+}
+
+export interface ManagerSummary {
+  league_id: string
+  roster_id: number
+  manager_name: string
+  direction_label: string | null
+  exploitability_score: number
+  evidence_count: number
+  low_confidence: boolean
+  top_pitch_angle: PitchAngle | null
+}
+
+export interface TradeHistoryEntry {
+  transaction_id: string
+  date: string | null
+  sent_assets: string[]
+  received_assets: string[]
+  value_delta: number
+}
+
+export interface ManagerProfile {
+  league_id: string
+  roster_id: number
+  computed_at: string
+  manager_name: string | null
+  direction_label: string | null
+  evidence_count: number
+  low_confidence: boolean
+  exploitability_score: number
+  exploitation_primary: string | null
+  exploitation_secondary: string | null
+  exploitation_evidence: Record<string, string>
+  pitch_angles: PitchAngle[]
+  trade_history: TradeHistoryEntry[]
+  aggregate_trade_stats: {
+    total_trades: number
+    win_rate: number
+    avg_delta: number
+  }
+  roster_summary: {
+    manager_name?: string
+    direction_label?: string | null
+    positional_needs?: string[]
+    roster_size?: number
+  } | null
+}

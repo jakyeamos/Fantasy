@@ -3,6 +3,8 @@ import { queryOptions } from "@tanstack/react-query"
 import type {
   DashboardLeagueSummary,
   LeagueDetailResponse,
+  ManagerProfile,
+  ManagerSummary,
   SnapshotStatus,
 } from "@/api/types"
 
@@ -32,3 +34,21 @@ export const snapshotStatusOptions = queryOptions({
   queryFn: () => getJson<SnapshotStatus[]>("/snapshots/status"),
   staleTime: 30 * 1000,
 })
+
+export const managerSummariesOptions = (leagueId: string) =>
+  queryOptions({
+    queryKey: ["profiling", "managers", leagueId],
+    queryFn: () =>
+      getJson<ManagerSummary[]>(`/profiling/leagues/${leagueId}/managers`),
+    staleTime: 60_000,
+  })
+
+export const managerProfileOptions = (leagueId: string, managerId: string) =>
+  queryOptions({
+    queryKey: ["profiling", "manager", leagueId, managerId],
+    queryFn: () =>
+      getJson<ManagerProfile>(
+        `/profiling/leagues/${leagueId}/managers/${managerId}`,
+      ),
+    staleTime: 60_000,
+  })
