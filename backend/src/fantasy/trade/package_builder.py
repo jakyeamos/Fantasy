@@ -1,0 +1,58 @@
+from __future__ import annotations
+
+import duckdb
+
+from fantasy.trade.models import (
+    PackageBuilderResult,
+    PackageOffer,
+    TradeAsset,
+    TradeEvaluation,
+    TradeRequest,
+)
+from fantasy.trade.trade_repo import TradeRepo
+
+
+class PackageBuilder:
+    def __init__(self, conn: duckdb.DuckDBPyConnection):
+        self._repo = TradeRepo(conn)
+
+    def build(
+        self,
+        request: TradeRequest,
+        evaluation: TradeEvaluation,
+    ) -> PackageBuilderResult:
+        manager_profile = (
+            self._repo.get_manager_profile(request.league_id, request.counterparty_roster_id)
+            if request.counterparty_roster_id is not None
+            else None
+        )
+        pitch_angles = (
+            self._repo.get_pitch_angles(request.league_id, request.counterparty_roster_id)
+            if request.counterparty_roster_id is not None
+            else []
+        )
+        fair_close = PackageOffer(
+            label="Fair Close",
+            send_assets=list(request.user_sends),
+            receive_assets=list(request.user_receives),
+            reasoning="Balances current market value with your roster direction without leaning too hard on the counterparty profile.",
+        )
+
+        aggressive_sends = list(request.user_sends)
+        if manager_profile and manager_profile.get("exploitation_primary") == "value_loss" and len(aggressive_sends) > 1:
+            aggressive_sends = aggressive_sends[:-1]
+        aggressive_reasoning = (
+            pitch_angles[0]["reasoning"]
+            if pitch_angles
+            else "Leans into the counterparty's documented weaknesses while staying structurally coherent."
+        )
+        aggressive_open = PackageOffer(
+            label="Aggressive Open",
+            send_assets=aggressive_sends,
+            receive_assets=list(request.user_receives),
+            reasoning=aggressive_reasoning,
+        )
+        return PackageBuilderResult(
+            aggressive_open=aggressive_open,
+            fair_close=fair_close,
+        )

@@ -16,6 +16,7 @@ from fantasy.routers import (
     intelligence,
     profiling,
     snapshots,
+    trade,
 )
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,7 @@ def create_app() -> FastAPI:
     app.include_router(dashboard.router)
     app.include_router(snapshots.router)
     app.include_router(profiling.router)
+    app.include_router(trade.router)
     return app
 
 

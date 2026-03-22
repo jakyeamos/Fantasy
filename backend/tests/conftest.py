@@ -585,3 +585,27 @@ def profiling_seed_data(phase2_seed_data):
             ],
         )
     return phase2_seed_data
+
+
+@pytest.fixture
+def trade_seed_data(profiling_seed_data):
+    from fantasy.intelligence.intelligence_service import IntelligenceService
+    from fantasy.profiling.profiling_engine import ProfilingEngine
+    from fantasy.profiling.profiling_repo import ProfilingRepo
+
+    conn = profiling_seed_data
+    IntelligenceService(conn).compute_league("league_x")
+    conn.execute(
+        """
+        UPDATE team_directions
+        SET primary_label = 'hard_rebuild', confidence = 0.92
+        WHERE league_id = 'league_x' AND roster_id = 1
+        """
+    )
+
+    engine = ProfilingEngine(conn)
+    repo = ProfilingRepo(conn)
+    for profile in engine.compute_all_profiles("league_x"):
+        repo.upsert_profile(profile)
+        repo.replace_pitch_angles(profile.league_id, profile.roster_id, profile.pitch_angles)
+    return conn
