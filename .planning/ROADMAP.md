@@ -98,11 +98,13 @@ Plans:
   2. Exploitability score is displayed with evidence count prominently; any dossier with fewer than 10 trades in evidence shows a LOW confidence label — the threshold is a named constant, not a magic number
   3. Recommended pitch angles per manager are surfaced with deal archetypes likely to be accepted and structures to avoid
   4. Each dossier distinguishes exploitation type: value-loss trader, timing-error trader, directionally-incoherent trader, or archetype-specific overpayer
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
+- [ ] 04-01-PLAN.md — Backend foundation: profiling constants, Pydantic models, Alembic migration 006, ProfilingRepo
+- [ ] 04-02-PLAN.md — Backend engine + router: ProfilingEngine (exploitation classification, scoring, pitch angles), FastAPI router, unit tests
+- [ ] 04-03-PLAN.md — Frontend managers list: shadcn install (tabs/table/alert), ManagerListRow, managers route, Phase 3 ExploitWindowPanel link update
+- [ ] 04-04-PLAN.md — Frontend dossier: DossierPage with tabs, Overview/TradeHistory/PitchAngles tab components, human-verify checkpoint
 
 ---
 
@@ -203,7 +205,7 @@ Phases execute in numeric order: 1 → 2 → 3 → [GATE] → 4 → 5 → 6 → 
 | 1. Sleeper Ingestion | 0/6 | Planned | - |
 | 2. Team Intelligence | 0/TBD | Not started | - |
 | 3. Core Dashboard | 0/3 | Planned | - |
-| 4. Manager Profiling | 0/TBD | Not started | - |
+| 4. Manager Profiling | 0/4 | Planned | - |
 | 5. Trade Intelligence | 0/TBD | Not started | - |
 | 6. Dynamic Pick Valuation | 0/TBD | Not started | - |
 | 7. Rookie Board & Draft Room | 0/TBD | Not started | - |
