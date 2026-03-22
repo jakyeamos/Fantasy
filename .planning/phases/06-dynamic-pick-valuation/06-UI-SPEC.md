@@ -48,8 +48,8 @@ Inherited from Phase 3. No new values added.
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| xs | 4px | Icon-to-text gaps, inline badge padding, timing badge internal padding |
-| sm | 8px | Compact element spacing — gap between pick value and timing badge, gap between timing badge and reasoning string |
+| xs | 4px | Icon-to-text gaps, inline badge padding, timing badge internal padding, reasoning string top margin |
+| sm | 8px | Compact element spacing — gap between chip elements (identity text, slot badge, timing badge) |
 | md | 16px | Card/panel padding, pick row internal padding |
 | lg | 24px | Section breaks within pick lists |
 | xl | 32px | Page-level horizontal padding |
@@ -90,7 +90,7 @@ Inherited from Phase 3, Phase 4, and Phase 5 shadcn CSS variable tokens. No new 
 |------|-------|-------|
 | Dominant (60%) | `hsl(var(--background))` — shadcn default near-white/near-black | Page background |
 | Secondary (30%) | `hsl(var(--card))` — shadcn card surface | Cards, panels, pick list containers |
-| Accent (10%) | `hsl(var(--primary))` — shadcn default blue | Inherited usage from Phase 5; pick slot projected slot badge |
+| Accent (10%) | `hsl(var(--primary))` — shadcn default blue | Inherited usage from Phase 5; pick slot projected slot badge; demand-adjusted value text in trade evaluator |
 | Destructive | `hsl(var(--destructive))` — shadcn default red | Not used in Phase 6 — no destructive actions |
 
 **Timing recommendation badge colors (new Phase 6 semantic treatment):**
@@ -138,17 +138,19 @@ Phase 6 introduces no new page-level components. The following describes in-plac
 [timing reasoning string — one line, muted]
 ```
 
+**Visual focal point:** The timing badge is the primary visual anchor of the extended pick chip in Phase 6 pick display contexts. It is the only colored element in the row and must appear rightmost in the first row, after the projected slot badge, so the eye lands on it last and reads it as the action signal. The timing reasoning string on the second row supports the badge — it never competes with it.
+
 Layout specification:
-1. First row: `flex items-center gap-1.5`
+1. First row: `flex items-center gap-2`
    - Pick identity text (Label, 12px/400, `text-muted-foreground italic`) — unchanged from Phase 5
    - Projected slot badge — `bg-primary/10 text-primary rounded px-1 py-0.5` (Label, 12px/400) — unchanged from Phase 5
-   - Timing badge — `rounded px-1.5 py-0.5 text-xs font-medium` + state-specific color classes (see Color section) — NEW Phase 6 element
+   - Timing badge — `rounded px-2 py-0.5 text-xs font-medium` + state-specific color classes (see Color section) — NEW Phase 6 element
 2. Second row: timing reasoning string (Label, 12px/400, `text-muted-foreground`) — NEW Phase 6 element
-   - Renders on its own line below the first row — `mt-0.5`
+   - Renders on its own line below the first row — `mt-1`
    - Single line, no truncation — reasoning strings are short by contract (one-liner from engine)
    - Absent when timing state is "use on the clock" and no additional context is needed (reasoning is self-evident: "Draft in progress — use or trade immediately")
 
-**AssetChip structural change:** The pick chip changes from a single-row `inline-flex` to a `flex flex-col gap-0.5` to accommodate the reasoning line. The chip background and border-radius are unchanged.
+**AssetChip structural change:** The pick chip changes from a single-row `inline-flex` to a `flex flex-col gap-1` to accommodate the reasoning line. The chip background and border-radius are unchanged.
 
 ### PickValueSummaryRow (new element within EvaluationOutputPanel pick rows)
 
@@ -164,12 +166,15 @@ Layout (within the trade evaluator pick row):
 ```
 
 Specification:
-1. First row: same as extended AssetChip above
+1. First row: `flex items-center gap-2` — same gap as extended AssetChip above
+   - Pick identity text (Label, 12px/400, `text-muted-foreground italic`)
+   - Projected slot badge — `bg-primary/10 text-primary rounded px-1 py-0.5` (Label, 12px/400)
+   - Timing badge — `rounded px-2 py-0.5 text-xs font-medium` + state-specific color classes (see Color section)
 2. Value row: `flex items-center gap-3 mt-1`
    - "League value:" label (Label, 12px/400, `text-muted-foreground`) + value (Label, 12px/400, `text-foreground`)
    - "To [manager name]:" label (Label, 12px/400, `text-muted-foreground`) + demand-adjusted value (Label, 12px/400, `text-primary`)
    - "[manager name]" is populated from the counterparty column header — if no manager name is set, renders as "To counterparty:"
-3. Third row: timing reasoning string (Label, 12px/400, `text-muted-foreground`) — same as AssetChip extension
+3. Third row: timing reasoning string (Label, 12px/400, `text-muted-foreground`) — `mt-1` — same as AssetChip extension
 
 **This expanded layout applies only in the trade evaluator context** — in all other pick display contexts (league pick lists, asset chips outside the evaluator), use the compact two-row AssetChip layout.
 
@@ -192,7 +197,7 @@ Specification:
    - Slot range (Label, 12px/400, `text-muted-foreground`): e.g. "~1.03–1.05" — projected range, not a single value
    - Timing badge (Label, 12px/400): same badge spec as AssetChip extension above
    - Value (Label, 12px/400, `text-foreground`): league-adjusted value number, right-aligned
-2. Second row: timing reasoning (Label, 12px/400, `text-muted-foreground`) — `mt-0.5 pl-0`
+2. Second row: timing reasoning (Label, 12px/400, `text-muted-foreground`) — `mt-1 pl-0`
 
 **Batch recompute note:** The league pick list fetches all pick values in a single batch call to `GET /picks/{league_id}`. The loading state shows skeleton rows matching the count of picks in the league. Do not make per-pick API calls.
 
@@ -234,7 +239,7 @@ Every data region that fetches from the API implements all four states (inherite
 **Pick value recompute trigger:**
 - Pick values recompute when standings change — not on every page load.
 - If cached pick values exist in `pick_values` table (computed within the current session), display cached values immediately. Show a "Last computed: {relative time}" label (Label, 12px/400, `text-muted-foreground`) near the pick list header — not per-row.
-- "Recompute" affordance: `Button variant="ghost" size="sm"` labeled "Recompute" — appears adjacent to the "Last computed" label. Triggers batch recompute for the league's picks.
+- "Recompute Picks" affordance: `Button variant="ghost" size="sm"` labeled "Recompute Picks" — appears adjacent to the "Last computed" label. Triggers batch recompute for the league's picks.
 
 ---
 
@@ -242,7 +247,7 @@ Every data region that fetches from the API implements all four states (inherite
 
 | Element | Copy |
 |---------|------|
-| Primary CTA (recompute picks) | "Recompute" |
+| Primary CTA (recompute picks) | "Recompute Picks" |
 | Timing badge — sell now | "Sell now" |
 | Timing badge — hold | "Hold" |
 | Timing badge — on the clock | "On the clock" |
@@ -257,7 +262,7 @@ Every data region that fetches from the API implements all four states (inherite
 | Empty state — no picks in league | "No future picks tracked for this league." |
 | Empty state — pick list (direction data absent) | "Pick values require direction labels — run team analysis first." |
 | Error state — pick value fetch failed | "Pick values unavailable. Try recomputing or check the backend." |
-| Error state — recompute failed | "Recompute failed. Check that the backend is running, then try again." (inline, below the Recompute button) |
+| Error state — recompute failed | "Recompute failed. Check that the backend is running, then try again." (inline, below the Recompute Picks button) |
 | Slot range label prefix | "~" (tilde prefix for projected ranges — e.g. "~1.03–1.05") |
 | Future-year pick annotation | "(future year)" — appended in `text-muted-foreground` after the pick identity for picks 2+ years out |
 
@@ -291,7 +296,7 @@ No third-party registries are used in Phase 6. All Phase 6 UI additions are cust
 
 7. **Phase 5 pick value redirect:** The `TradeRepo.get_pick_value()` method is updated in Phase 6 to call `PickEngine.compute()` instead of the Phase 2 baseline. After this change, every pick shown in the Phase 5 trade evaluator automatically receives dynamic values. No frontend trade evaluator code changes are required for the value source change — the API response shape is unchanged (it still returns a float for the pick's trade value).
 
-8. **Recompute button placement:** The "Recompute" button and "Last computed" label appear once per league pick list, in the section header row — not on individual pick rows. Layout: `flex items-center justify-between` section header row with "Pick Capital" heading (Heading, 18px/600) on the left and `[Last computed: X] [Recompute]` on the right.
+8. **Recompute Picks button placement:** The "Recompute Picks" button and "Last computed" label appear once per league pick list, in the section header row — not on individual pick rows. Layout: `flex items-center justify-between` section header row with "Pick Capital" heading (Heading, 18px/600) on the left and `[Last computed: X] [Recompute Picks]` on the right.
 
 9. **Direction label fallback for demand factor:** If Phase 4 has not been run for a league (no manager profiles exist), pick demand factors default to neutral (0.5 per engine design). In this case, omit the "To {Manager}:" demand-adjusted row in the trade evaluator — show only the league-adjusted value. This avoids surfacing a "To counterparty: 68.2" value that is identical to the league-adjusted value and would create false precision.
 
