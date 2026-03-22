@@ -2,8 +2,8 @@
 phase: 5
 slug: trade-intelligence
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-21
 ---
 
@@ -38,14 +38,13 @@ created: 2026-03-21
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 05-01-01 | 01 | 0 | TRADE-01 | stub | `cd backend && python -m pytest tests/intelligence/test_trade_engine.py -x -q` | ❌ W0 | ⬜ pending |
-| 05-01-02 | 01 | 1 | TRADE-01 | unit | `cd backend && python -m pytest tests/intelligence/test_trade_engine.py::test_evaluate_trade -x -q` | ✅ W0 | ⬜ pending |
-| 05-01-03 | 01 | 1 | TRADE-01 | unit | `cd backend && python -m pytest tests/intelligence/test_trade_engine.py::test_dimension_scores -x -q` | ✅ W0 | ⬜ pending |
-| 05-01-04 | 01 | 1 | TRADE-02 | unit | `cd backend && python -m pytest tests/intelligence/test_trade_engine.py::test_reroute_paths -x -q` | ✅ W0 | ⬜ pending |
-| 05-02-01 | 02 | 0 | TRADE-03 | stub | `cd backend && python -m pytest tests/intelligence/test_package_builder.py -x -q` | ❌ W0 | ⬜ pending |
-| 05-02-02 | 02 | 1 | TRADE-03 | unit | `cd backend && python -m pytest tests/intelligence/test_package_builder.py::test_build_package -x -q` | ✅ W0 | ⬜ pending |
-| 05-02-03 | 02 | 1 | TRADE-04 | unit | `cd backend && python -m pytest tests/intelligence/test_package_builder.py::test_strategic_distinction -x -q` | ✅ W0 | ⬜ pending |
-| 05-03-01 | 03 | 1 | TRADE-01 | integration | `cd backend && python -m pytest tests/integration/test_trade_router.py -x -q` | ❌ W0 | ⬜ pending |
+| 05-01-00 | 01 | 0 | TRADE-01 | stub | `cd backend && python -m pytest tests/intelligence/ tests/integration/ -x -q` | Created W0 | ⬜ pending |
+| 05-01-01 | 01 | 0 | TRADE-01 | import | `cd backend && python -c "from fantasy.trade.constants import DIMENSION_WEIGHTS"` | N/A | ⬜ pending |
+| 05-01-02 | 01 | 0 | TRADE-01 | import | `cd backend && python -c "from fantasy.trade.trade_repo import TradeRepo"` | N/A | ⬜ pending |
+| 05-02-01 | 02 | 1 | TRADE-01 | unit | `cd backend && python -m pytest tests/intelligence/test_trade_engine.py -x -q` | ✅ W0 | ⬜ pending |
+| 05-02-02 | 02 | 1 | TRADE-02,03 | integration | `cd backend && python -m pytest tests/integration/test_trade_router.py -x -q` | ✅ W0 | ⬜ pending |
+| 05-02-03 | 02 | 1 | TRADE-02,03 | unit | `cd backend && python -m pytest tests/intelligence/test_reroute_engine.py tests/intelligence/test_package_builder.py -x -q` | ✅ W0 | ⬜ pending |
+| 05-03-01 | 03 | 1 | TRADE-01 | tsc | `cd frontend && npx tsc --noEmit` | N/A | ⬜ pending |
 | 05-04-01 | 04 | 2 | TRADE-01 | e2e | manual — UI interaction | N/A | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
@@ -54,12 +53,14 @@ created: 2026-03-21
 
 ## Wave 0 Requirements
 
-- [ ] `backend/tests/intelligence/test_trade_engine.py` — stubs for TRADE-01, TRADE-02
-- [ ] `backend/tests/intelligence/test_package_builder.py` — stubs for TRADE-03, TRADE-04
-- [ ] `backend/tests/integration/test_trade_router.py` — stub for /trade API endpoint
-- [ ] `backend/tests/intelligence/__init__.py` — package init if missing
+- [x] `backend/tests/intelligence/test_trade_engine.py` — stubs for TRADE-01, TRADE-02 (Plan 01 Task 0)
+- [x] `backend/tests/intelligence/test_package_builder.py` — stubs for TRADE-03, TRADE-04 (Plan 01 Task 0)
+- [x] `backend/tests/intelligence/test_reroute_engine.py` — stubs for TRADE-02 (Plan 01 Task 0)
+- [x] `backend/tests/integration/test_trade_router.py` — stub for /trade API endpoint (Plan 01 Task 0)
+- [x] `backend/tests/intelligence/__init__.py` — package init (Plan 01 Task 0)
+- [x] `backend/tests/integration/__init__.py` — package init (Plan 01 Task 0)
 
-*If test infrastructure already exists from Phase 2/4, add stubs to existing structure.*
+*All Wave 0 stubs created by Plan 01 Task 0.*
 
 ---
 
@@ -75,11 +76,11 @@ created: 2026-03-21
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 20s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 20s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved (revision pass)
