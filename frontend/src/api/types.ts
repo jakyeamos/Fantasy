@@ -109,10 +109,19 @@ export interface ManagerProfile {
 export interface TradeAsset {
   asset_type: "player" | "pick"
   player_id?: string | null
+  player_name?: string | null
+  player_position?: string | null
   pick_owner_roster_id?: number | null
+  pick_owner_name?: string | null
   pick_year?: number | null
   pick_round?: number | null
   projected_slot?: string | null
+}
+
+export interface ThirdPartyTrade {
+  roster_id: number
+  sends: TradeAsset[]
+  receives: TradeAsset[]
 }
 
 export interface DimensionScore {

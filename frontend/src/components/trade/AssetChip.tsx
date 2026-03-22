@@ -3,7 +3,12 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
 function label(asset: TradeAsset) {
-  if (asset.asset_type === "player") return asset.player_id ?? "Unknown"
+  if (asset.asset_type === "player") {
+    return asset.player_name ?? asset.player_id ?? "Unknown"
+  }
+  if (asset.pick_owner_name) {
+    return `${asset.pick_owner_name} ${asset.pick_year} R${asset.pick_round}`
+  }
   return `${asset.pick_year} Round ${asset.pick_round}`
 }
 

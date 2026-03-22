@@ -6,6 +6,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import type {
   PickSearchResult,
   PlayerSearchResult,
+  ThirdPartyTrade,
   TradeAsset,
   TradeEvaluation,
 } from "@/api/types"
@@ -16,67 +17,281 @@ import { RerouteSheet } from "@/components/trade/RerouteSheet"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
+type AssetBucket = "send" | "receive"
+
+type QueryTarget =
+  | { kind: "user"; bucket: AssetBucket }
+  | { kind: "third-party"; tradeId: string; bucket: AssetBucket }
+
+interface ThirdPartyTradeDraft {
+  clientId: string
+  rosterId: number
+  sends: TradeAsset[]
+  receives: TradeAsset[]
+}
+
 async function fetchJson<T>(path: string) {
   const response = await fetch(`/api${path}`)
   if (!response.ok) throw new Error(`Request failed: ${path}`)
   return (await response.json()) as T
 }
 
+function createThirdPartyTradeDraft(): ThirdPartyTradeDraft {
+  return {
+    clientId: Math.random().toString(36).slice(2, 10),
+    rosterId: 0,
+    sends: [],
+    receives: [],
+  }
+}
+
+function assetKey(asset: TradeAsset) {
+  if (asset.asset_type === "player") {
+    return `player:${asset.player_id ?? "unknown"}`
+  }
+  return `pick:${asset.pick_owner_roster_id ?? "unknown"}:${asset.pick_year ?? "unknown"}:${asset.pick_round ?? "unknown"}`
+}
+
+function appendUniqueAsset(assets: TradeAsset[], asset: TradeAsset) {
+  if (assets.some((current) => assetKey(current) === assetKey(asset))) {
+    return assets
+  }
+  return [...assets, asset]
+}
+
+function toPlayerAsset(player: PlayerSearchResult): TradeAsset {
+  return {
+    asset_type: "player",
+    player_id: player.player_id,
+    player_name: player.full_name,
+    player_position: player.position,
+  }
+}
+
+function toPickAsset(pick: PickSearchResult): TradeAsset {
+  return {
+    asset_type: "pick",
+    pick_owner_roster_id: pick.current_owner_id,
+    pick_owner_name: pick.current_owner_name,
+    pick_year: pick.pick_year,
+    pick_round: pick.round,
+    projected_slot: pick.projected_slot,
+  }
+}
+
+function toRequestAsset(asset: TradeAsset): TradeAsset {
+  return {
+    asset_type: asset.asset_type,
+    player_id: asset.player_id ?? null,
+    pick_owner_roster_id: asset.pick_owner_roster_id ?? null,
+    pick_year: asset.pick_year ?? null,
+    pick_round: asset.pick_round ?? null,
+    projected_slot: asset.projected_slot ?? null,
+  }
+}
+
+function toThirdPartyTrade(trade: ThirdPartyTradeDraft): ThirdPartyTrade {
+  return {
+    roster_id: trade.rosterId,
+    sends: trade.sends.map(toRequestAsset),
+    receives: trade.receives.map(toRequestAsset),
+  }
+}
+
+function assetDetail(asset: TradeAsset) {
+  if (asset.asset_type === "player") {
+    return asset.player_position ?? undefined
+  }
+  return asset.projected_slot ?? undefined
+}
+
+function AssetBucketPanel({
+  title,
+  subtitle,
+  buttonLabel,
+  isActive,
+  assets,
+  onSelect,
+  onRemove,
+}: {
+  title: string
+  subtitle: string
+  buttonLabel: string
+  isActive: boolean
+  assets: TradeAsset[]
+  onSelect: () => void
+  onRemove: (index: number) => void
+}) {
+  return (
+    <div className="rounded-xl border border-border/70 bg-background/70 p-4">
+      <div className="space-y-1">
+        <p className="text-sm font-semibold">{title}</p>
+        <p className="text-xs text-muted-foreground">{subtitle}</p>
+      </div>
+      <div className="mt-4 min-h-11">
+        {assets.length ? (
+          <div className="flex flex-wrap gap-2">
+            {assets.map((asset, index) => (
+              <AssetChip
+                key={`${assetKey(asset)}-${index}`}
+                asset={asset}
+                detail={assetDetail(asset)}
+                onRemove={() => onRemove(index)}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No assets added yet.</p>
+        )}
+      </div>
+      <Button
+        className="mt-4"
+        variant={isActive ? "default" : "outline"}
+        onClick={onSelect}
+      >
+        {buttonLabel}
+      </Button>
+    </div>
+  )
+}
+
 export const Route = createFileRoute("/trades")({
   validateSearch: (search: Record<string, unknown>) => ({
     leagueId: typeof search.leagueId === "string" ? search.leagueId : undefined,
   }),
-  component: TradesPlaceholderPage,
+  component: TradeEvaluatorPage,
 })
 
-function TradesPlaceholderPage() {
+function TradeEvaluatorPage() {
   const search = Route.useSearch()
   const [leagueId, setLeagueId] = useState(search.leagueId ?? "")
   const [userRosterId, setUserRosterId] = useState(1)
   const [counterpartyRosterId, setCounterpartyRosterId] = useState(2)
+  const [thirdPartyTrades, setThirdPartyTrades] = useState<ThirdPartyTradeDraft[]>([])
   const [queryText, setQueryText] = useState("")
-  const [queryTarget, setQueryTarget] = useState<"user-send" | "user-receive">(
-    "user-send",
-  )
-  const [userSends, setUserSends] = useState<TradeAsset[]>([])
-  const [userReceives, setUserReceives] = useState<TradeAsset[]>([])
+  const [queryTarget, setQueryTarget] = useState<QueryTarget>({
+    kind: "user",
+    bucket: "send",
+  })
   const [showReroutes, setShowReroutes] = useState(false)
   const [showPackage, setShowPackage] = useState(false)
+  const [userSends, setUserSends] = useState<TradeAsset[]>([])
+  const [userReceives, setUserReceives] = useState<TradeAsset[]>([])
+
+  const activeThirdParty =
+    queryTarget.kind === "third-party"
+      ? thirdPartyTrades.find((trade) => trade.clientId === queryTarget.tradeId) ?? null
+      : null
+
+  const activeThirdPartyIndex =
+    queryTarget.kind === "third-party"
+      ? thirdPartyTrades.findIndex((trade) => trade.clientId === queryTarget.tradeId)
+      : -1
 
   const activeRosterId =
-    queryTarget === "user-send" ? userRosterId : counterpartyRosterId
+    queryTarget.bucket === "send"
+      ? queryTarget.kind === "user"
+        ? userRosterId
+        : activeThirdParty?.rosterId
+      : undefined
+
+  const searchNeedsRoster = queryTarget.bucket === "send"
+  const hasScopedRoster = !searchNeedsRoster || Boolean(activeRosterId && activeRosterId > 0)
+  const canSearchAssets = leagueId.trim().length > 0 && hasScopedRoster
+
+  const searchTitle =
+    queryTarget.kind === "user"
+      ? queryTarget.bucket === "send"
+        ? "Add to Your Send Side"
+        : "Add to Your Receive Side"
+      : queryTarget.bucket === "send"
+        ? `Add to Third Team ${activeThirdPartyIndex + 1} Send Side`
+        : `Add to Third Team ${activeThirdPartyIndex + 1} Receive Side`
+
+  const searchDescription =
+    !hasScopedRoster
+      ? "Enter a roster ID for this extra team before searching its outgoing assets."
+      : activeRosterId
+        ? `Search is scoped to roster ${activeRosterId}.`
+        : "Search runs league-wide so you can model incoming legs from any team."
+
   const playerSearchQuery = useQuery({
-    queryKey: ["trade", "players", leagueId, queryText, activeRosterId],
-    queryFn: () =>
-      fetchJson<PlayerSearchResult[]>(
-        `/trade/players/search?league_id=${leagueId}&q=${encodeURIComponent(queryText)}&roster_id=${activeRosterId}`,
-      ),
-    enabled: leagueId.length > 0 && queryText.trim().length >= 2,
-  })
-  const pickSearchQuery = useQuery({
-    queryKey: ["trade", "picks", leagueId, activeRosterId],
-    queryFn: () =>
-      fetchJson<PickSearchResult[]>(
-        `/trade/picks/search?league_id=${leagueId}&roster_id=${activeRosterId}`,
-      ),
-    enabled: leagueId.length > 0,
+    queryKey: [
+      "trade",
+      "players",
+      leagueId,
+      queryText,
+      activeRosterId ?? "all",
+      queryTarget.kind,
+      queryTarget.bucket,
+      activeThirdParty?.clientId ?? null,
+    ],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        league_id: leagueId,
+        q: queryText.trim(),
+      })
+      if (activeRosterId) {
+        params.set("roster_id", String(activeRosterId))
+      }
+      return fetchJson<PlayerSearchResult[]>(`/trade/players/search?${params.toString()}`)
+    },
+    enabled: canSearchAssets && queryText.trim().length >= 2,
   })
 
+  const pickSearchQuery = useQuery({
+    queryKey: [
+      "trade",
+      "picks",
+      leagueId,
+      activeRosterId ?? "all",
+      queryTarget.kind,
+      queryTarget.bucket,
+      activeThirdParty?.clientId ?? null,
+    ],
+    queryFn: () => {
+      const params = new URLSearchParams({ league_id: leagueId })
+      if (activeRosterId) {
+        params.set("roster_id", String(activeRosterId))
+      }
+      return fetchJson<PickSearchResult[]>(`/trade/picks/search?${params.toString()}`)
+    },
+    enabled: canSearchAssets,
+  })
+
+  const currentRequest = useMemo(
+    () => ({
+      league_id: leagueId.trim(),
+      user_roster_id: userRosterId,
+      counterparty_roster_id: counterpartyRosterId > 0 ? counterpartyRosterId : null,
+      user_sends: userSends.map(toRequestAsset),
+      user_receives: userReceives.map(toRequestAsset),
+      third_party_trades: thirdPartyTrades
+        .filter(
+          (trade) =>
+            trade.rosterId > 0 &&
+            (trade.sends.length > 0 || trade.receives.length > 0),
+        )
+        .map(toThirdPartyTrade),
+      include_reroutes: true,
+      include_package: true,
+    }),
+    [
+      counterpartyRosterId,
+      leagueId,
+      thirdPartyTrades,
+      userReceives,
+      userRosterId,
+      userSends,
+    ],
+  )
+
   const evaluationMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (request: typeof currentRequest) => {
       const response = await fetch("/api/trade/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          league_id: leagueId,
-          user_roster_id: userRosterId,
-          counterparty_roster_id: counterpartyRosterId,
-          user_sends: userSends,
-          user_receives: userReceives,
-          third_party_trades: [],
-          include_reroutes: true,
-          include_package: true,
-        }),
+        body: JSON.stringify(request),
       })
       if (!response.ok) throw new Error("Trade evaluation failed")
       return (await response.json()) as TradeEvaluation
@@ -84,39 +299,112 @@ function TradesPlaceholderPage() {
   })
 
   const evaluation = evaluationMutation.data
-
   const pickOptions = useMemo(
-    () => pickSearchQuery.data?.slice(0, 4) ?? [],
-    [pickSearchQuery.data],
+    () => pickSearchQuery.data?.slice(0, activeRosterId ? 4 : 8) ?? [],
+    [activeRosterId, pickSearchQuery.data],
   )
 
-  const addAsset = (asset: TradeAsset) => {
-    if (queryTarget === "user-send") {
-      setUserSends((current) => [...current, asset])
-      return
-    }
-    setUserReceives((current) => [...current, asset])
+  const setActiveTarget = (target: QueryTarget) => {
+    setQueryTarget(target)
+    setQueryText("")
   }
 
-  const removeAsset = (list: "send" | "receive", index: number) => {
-    if (list === "send") {
+  const addThirdPartyTrade = () => {
+    const nextTrade = createThirdPartyTradeDraft()
+    setThirdPartyTrades((current) => [...current, nextTrade])
+    setActiveTarget({ kind: "third-party", tradeId: nextTrade.clientId, bucket: "send" })
+  }
+
+  const updateThirdPartyTrade = (
+    tradeId: string,
+    updater: (trade: ThirdPartyTradeDraft) => ThirdPartyTradeDraft,
+  ) => {
+    setThirdPartyTrades((current) =>
+      current.map((trade) => (trade.clientId === tradeId ? updater(trade) : trade)),
+    )
+  }
+
+  const removeThirdPartyTrade = (tradeId: string) => {
+    setThirdPartyTrades((current) => current.filter((trade) => trade.clientId !== tradeId))
+    if (queryTarget.kind === "third-party" && queryTarget.tradeId === tradeId) {
+      setActiveTarget({ kind: "user", bucket: "send" })
+    }
+  }
+
+  const addAsset = (asset: TradeAsset) => {
+    if (queryTarget.kind === "user") {
+      if (queryTarget.bucket === "send") {
+        setUserSends((current) => appendUniqueAsset(current, asset))
+        return
+      }
+      setUserReceives((current) => appendUniqueAsset(current, asset))
+      return
+    }
+
+    updateThirdPartyTrade(queryTarget.tradeId, (trade) => ({
+      ...trade,
+      sends:
+        queryTarget.bucket === "send"
+          ? appendUniqueAsset(trade.sends, asset)
+          : trade.sends,
+      receives:
+        queryTarget.bucket === "receive"
+          ? appendUniqueAsset(trade.receives, asset)
+          : trade.receives,
+    }))
+  }
+
+  const removeUserAsset = (bucket: AssetBucket, index: number) => {
+    if (bucket === "send") {
       setUserSends((current) => current.filter((_, assetIndex) => assetIndex !== index))
       return
     }
     setUserReceives((current) => current.filter((_, assetIndex) => assetIndex !== index))
   }
 
+  const removeThirdPartyAsset = (
+    tradeId: string,
+    bucket: AssetBucket,
+    index: number,
+  ) => {
+    updateThirdPartyTrade(tradeId, (trade) => ({
+      ...trade,
+      sends:
+        bucket === "send"
+          ? trade.sends.filter((_, assetIndex) => assetIndex !== index)
+          : trade.sends,
+      receives:
+        bucket === "receive"
+          ? trade.receives.filter((_, assetIndex) => assetIndex !== index)
+          : trade.receives,
+    }))
+  }
+
   const canEvaluate =
-    leagueId.trim().length > 0 && userSends.length > 0 && userReceives.length > 0
+    leagueId.trim().length > 0 &&
+    userRosterId > 0 &&
+    counterpartyRosterId > 0 &&
+    userSends.length > 0 &&
+    userReceives.length > 0 &&
+    thirdPartyTrades.every(
+      (trade) =>
+        trade.rosterId > 0 ||
+        (trade.sends.length === 0 && trade.receives.length === 0),
+    )
 
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="space-y-2">
           <CardTitle>Evaluate Trade</CardTitle>
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            Build your outgoing and incoming package first, then layer in extra teams for
+            multi-team trades. The seven dimensions stay anchored to your net swap and the
+            primary counterparty profile.
+          </p>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 xl:grid-cols-[repeat(3,minmax(0,1fr))_auto]">
             <label className="space-y-2">
               <span className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
                 League ID
@@ -141,7 +429,7 @@ function TradesPlaceholderPage() {
             </label>
             <label className="space-y-2">
               <span className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                Counterparty Roster ID
+                Primary Counterparty ID
               </span>
               <input
                 type="number"
@@ -150,67 +438,183 @@ function TradesPlaceholderPage() {
                 className="h-11 w-full rounded-lg border border-border bg-card px-3 text-sm"
               />
             </label>
+            <div className="flex items-end">
+              <Button className="w-full xl:w-auto" variant="outline" onClick={addThirdPartyTrade}>
+                Add Third Team
+              </Button>
+            </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
             <Card className="border-l-2 border-l-primary">
               <CardHeader>
-                <CardTitle>Your Team</CardTitle>
+                <CardTitle>Your Team View</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                    You send
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {userSends.map((asset, index) => (
-                      <AssetChip
-                        key={`${asset.asset_type}-${asset.player_id ?? asset.pick_round}-${index}`}
-                        asset={asset}
-                        detail={asset.asset_type === "pick" ? asset.projected_slot ?? undefined : undefined}
-                        onRemove={() => removeAsset("send", index)}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <Button variant="outline" onClick={() => setQueryTarget("user-send")}>
-                  Add to Send Side
-                </Button>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <AssetBucketPanel
+                  title="You Send"
+                  subtitle="Assets leaving your roster."
+                  buttonLabel="Add to Send Side"
+                  isActive={queryTarget.kind === "user" && queryTarget.bucket === "send"}
+                  assets={userSends}
+                  onSelect={() => setActiveTarget({ kind: "user", bucket: "send" })}
+                  onRemove={(index) => removeUserAsset("send", index)}
+                />
+                <AssetBucketPanel
+                  title="You Receive"
+                  subtitle="Assets you gain from the full deal."
+                  buttonLabel="Add to Receive Side"
+                  isActive={queryTarget.kind === "user" && queryTarget.bucket === "receive"}
+                  assets={userReceives}
+                  onSelect={() => setActiveTarget({ kind: "user", bucket: "receive" })}
+                  onRemove={(index) => removeUserAsset("receive", index)}
+                />
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-dashed">
               <CardHeader>
-                <CardTitle>Counterparty</CardTitle>
+                <CardTitle>Primary Counterparty</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Manager exploit scoring, reroutes, and package framing still anchor to roster{" "}
+                  {counterpartyRosterId || "?"}. Your receive buckets can still pull assets from
+                  any team in a multi-team deal.
+                </p>
+                <div className="rounded-xl border border-border/70 bg-background/70 p-4">
                   <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                    You receive
+                    Deal Shape
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    {userReceives.map((asset, index) => (
-                      <AssetChip
-                        key={`${asset.asset_type}-${asset.player_id ?? asset.pick_round}-${index}`}
-                        asset={asset}
-                        detail={asset.asset_type === "pick" ? asset.projected_slot ?? undefined : undefined}
-                        onRemove={() => removeAsset("receive", index)}
-                      />
-                    ))}
-                  </div>
+                  <p className="mt-2 text-sm font-semibold">
+                    {thirdPartyTrades.length
+                      ? `2 core teams + ${thirdPartyTrades.length} extra`
+                      : "2 core teams"}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Extra teams are included in the request payload even though scoring remains
+                    user-centric today.
+                  </p>
                 </div>
-                <Button variant="outline" onClick={() => setQueryTarget("user-receive")}>
-                  Add to Receive Side
-                </Button>
               </CardContent>
             </Card>
           </div>
 
-          <Card className="border-dashed">
+          {thirdPartyTrades.length ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                    Multi-Team Legs
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Track what each extra roster sends into and receives from the deal.
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-4 xl:grid-cols-2">
+                {thirdPartyTrades.map((trade, index) => {
+                  const isActiveTrade =
+                    queryTarget.kind === "third-party" && queryTarget.tradeId === trade.clientId
+
+                  return (
+                    <Card
+                      key={trade.clientId}
+                      className={
+                        isActiveTrade
+                          ? "border-amber-400/70 shadow-[0_18px_42px_-28px_rgba(217,119,6,0.55)]"
+                          : "border-dashed"
+                      }
+                    >
+                      <CardHeader className="flex flex-row items-start justify-between gap-4">
+                        <div className="space-y-1">
+                          <CardTitle>Third Team {index + 1}</CardTitle>
+                          <p className="text-sm text-muted-foreground">
+                            Capture the sidecar leg without changing the primary evaluation lens.
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => removeThirdPartyTrade(trade.clientId)}
+                        >
+                          Remove
+                        </Button>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <label className="space-y-2">
+                          <span className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                            Roster ID
+                          </span>
+                          <input
+                            type="number"
+                            value={trade.rosterId || ""}
+                            onChange={(event) =>
+                              updateThirdPartyTrade(trade.clientId, (current) => ({
+                                ...current,
+                                rosterId: Number(event.target.value),
+                              }))
+                            }
+                            className="h-11 w-full rounded-lg border border-border bg-card px-3 text-sm"
+                            placeholder="3"
+                          />
+                        </label>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <AssetBucketPanel
+                            title="Team Sends"
+                            subtitle="Assets this roster contributes."
+                            buttonLabel="Add Outgoing Assets"
+                            isActive={
+                              queryTarget.kind === "third-party" &&
+                              queryTarget.tradeId === trade.clientId &&
+                              queryTarget.bucket === "send"
+                            }
+                            assets={trade.sends}
+                            onSelect={() =>
+                              setActiveTarget({
+                                kind: "third-party",
+                                tradeId: trade.clientId,
+                                bucket: "send",
+                              })
+                            }
+                            onRemove={(assetIndex) =>
+                              removeThirdPartyAsset(trade.clientId, "send", assetIndex)
+                            }
+                          />
+                          <AssetBucketPanel
+                            title="Team Receives"
+                            subtitle="Assets this roster ends up with."
+                            buttonLabel="Add Incoming Assets"
+                            isActive={
+                              queryTarget.kind === "third-party" &&
+                              queryTarget.tradeId === trade.clientId &&
+                              queryTarget.bucket === "receive"
+                            }
+                            assets={trade.receives}
+                            onSelect={() =>
+                              setActiveTarget({
+                                kind: "third-party",
+                                tradeId: trade.clientId,
+                                bucket: "receive",
+                              })
+                            }
+                            onRemove={(assetIndex) =>
+                              removeThirdPartyAsset(trade.clientId, "receive", assetIndex)
+                            }
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          <Card className="border-dashed bg-card/70">
             <CardHeader>
-              <CardTitle>
-                {queryTarget === "user-send" ? "Add to Your Send Side" : "Add to Your Receive Side"}
-              </CardTitle>
+              <CardTitle>{searchTitle}</CardTitle>
+              <p className="text-sm text-muted-foreground">{searchDescription}</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <input
@@ -218,11 +622,19 @@ function TradesPlaceholderPage() {
                 onChange={(event) => setQueryText(event.target.value)}
                 className="h-11 w-full rounded-lg border border-border bg-card px-3 text-sm"
                 placeholder="Search players or picks..."
+                disabled={!canSearchAssets}
               />
+
+              {!hasScopedRoster ? (
+                <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-900">
+                  Add the third team roster ID before searching its outgoing assets.
+                </p>
+              ) : null}
+
               {playerSearchQuery.data?.length ? (
                 <div className="space-y-2">
                   <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                    Player results
+                    Player Results
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {playerSearchQuery.data.map((player) => (
@@ -230,16 +642,24 @@ function TradesPlaceholderPage() {
                         key={`${player.player_id}-${player.roster_id}`}
                         variant="outline"
                         size="sm"
-                        onClick={() =>
-                          addAsset({ asset_type: "player", player_id: player.player_id })
-                        }
+                        onClick={() => addAsset(toPlayerAsset(player))}
                       >
                         {player.full_name} ({player.position})
+                        {activeRosterId ? "" : ` • ${player.roster_name}`}
                       </Button>
                     ))}
                   </div>
                 </div>
               ) : null}
+
+              {queryText.trim().length >= 2 &&
+              playerSearchQuery.isSuccess &&
+              !playerSearchQuery.data?.length ? (
+                <p className="text-sm text-muted-foreground">
+                  No players matched this target.
+                </p>
+              ) : null}
+
               {pickOptions.length ? (
                 <div className="space-y-2">
                   <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
@@ -251,17 +671,9 @@ function TradesPlaceholderPage() {
                         key={`${pick.current_owner_id}-${pick.pick_year}-${pick.round}`}
                         variant="outline"
                         size="sm"
-                        onClick={() =>
-                          addAsset({
-                            asset_type: "pick",
-                            pick_owner_roster_id: pick.current_owner_id,
-                            pick_year: pick.pick_year,
-                            pick_round: pick.round,
-                            projected_slot: pick.projected_slot,
-                          })
-                        }
+                        onClick={() => addAsset(toPickAsset(pick))}
                       >
-                        {pick.current_owner_name}'s {pick.pick_year} R{pick.round}
+                        {pick.current_owner_name}&apos;s {pick.pick_year} R{pick.round}
                       </Button>
                     ))}
                   </div>
@@ -270,17 +682,25 @@ function TradesPlaceholderPage() {
             </CardContent>
           </Card>
 
-          <Button
-            className="w-full sm:w-auto"
-            disabled={!canEvaluate || evaluationMutation.isPending}
-            onClick={() => {
-              setShowPackage(false)
-              setShowReroutes(false)
-              evaluationMutation.mutate()
-            }}
-          >
-            {evaluationMutation.isPending ? "Evaluating..." : "Evaluate"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              className="w-full sm:w-auto"
+              disabled={!canEvaluate || evaluationMutation.isPending}
+              onClick={() => {
+                setShowPackage(false)
+                setShowReroutes(false)
+                evaluationMutation.mutate(currentRequest)
+              }}
+            >
+              {evaluationMutation.isPending ? "Evaluating..." : "Evaluate"}
+            </Button>
+            {thirdPartyTrades.length ? (
+              <p className="max-w-2xl text-xs text-muted-foreground">
+                Multi-team legs are sent with the request, but the current scorecard still
+                evaluates your send/receive package and the primary counterparty manager profile.
+              </p>
+            ) : null}
+          </div>
 
           {evaluationMutation.isError ? (
             <p className="text-sm text-red-600">
