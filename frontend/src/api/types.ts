@@ -45,6 +45,7 @@ export interface LeagueDetailResponse {
   league_id: string
   league_name: string
   user_roster_id: number | null
+  user_roster_player_ids: string[]
   direction_label: string
   confidence_band: "High" | "Medium" | "Low" | "--"
   primary_weakness: string
@@ -264,4 +265,58 @@ export interface DraftRoomResponse {
   trade_verdict: TradeVerdict
   best_in_abstract: RookiePlayer | null
   tendency_warnings: TendencyWarning[]
+}
+
+export interface ExposureRow {
+  player_id: string
+  full_name: string
+  position: string
+  team: string | null
+  owned_in_leagues: string[]
+  league_count: number
+  hedge_rec: string | null
+}
+
+export interface CorrelatedRiskPlayer {
+  player_id: string
+  full_name: string
+  league_id: string
+}
+
+export interface CorrelatedRiskRow {
+  nfl_team: string
+  players: CorrelatedRiskPlayer[]
+  league_ids: string[]
+  risk_string: string
+}
+
+export interface PortfolioExposureResponse {
+  exposure: ExposureRow[]
+  correlated_risk: CorrelatedRiskRow[]
+}
+
+export interface RecalibrationHealth {
+  last_recalibrated_at: string | null
+}
+
+export interface SnapshotAnchor {
+  snapshot_id: number
+  snapshot_at: string
+  anchor_type: "trade" | "roster_change" | "season_start" | "season_end"
+  label: string
+}
+
+export interface DiffRow {
+  field: string
+  field_type:
+    | "direction_label"
+    | "scorecard"
+    | "player_value"
+    | "pick_capital"
+    | "departed"
+    | "added"
+  delta: number | null
+  old_value: string | null
+  new_value: string | null
+  display_string: string
 }

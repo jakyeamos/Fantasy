@@ -73,6 +73,16 @@ _SCHEMA_COMPAT_TABLES: dict[str, str] = {
             UNIQUE (league_id, draft_id, roster_id)
         )
     """,
+    "retrospective_runs": """
+        CREATE TABLE IF NOT EXISTS retrospective_runs (
+            id INTEGER PRIMARY KEY,
+            run_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            run_type VARCHAR NOT NULL,
+            season VARCHAR NOT NULL,
+            grades_json VARCHAR NOT NULL,
+            notes VARCHAR
+        )
+    """,
 }
 
 _SCHEMA_COMPAT_COLUMNS: dict[str, dict[str, str]] = {

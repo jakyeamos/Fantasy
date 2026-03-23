@@ -1,14 +1,20 @@
 import { queryOptions } from "@tanstack/react-query"
 
 import type {
+  CorrelatedRiskRow,
   DashboardLeagueSummary,
+  DiffRow,
   DraftRoomResponse,
+  ExposureRow,
   LeagueDetailResponse,
   ManagerProfile,
   ManagerSummary,
   PickSearchResult,
   PickValue,
+  PortfolioExposureResponse,
+  RecalibrationHealth,
   RookieBoardResponse,
+  SnapshotAnchor,
   SnapshotStatus,
 } from "@/api/types"
 
@@ -117,4 +123,41 @@ export const draftRoomOptions = (leagueId: string, pickSlot: number) =>
     queryFn: () => getJson<DraftRoomResponse>(`/draft-room/${leagueId}/${pickSlot}`),
     staleTime: 15 * 60 * 1000,
     enabled: leagueId.trim().length > 0 && pickSlot > 0,
+  })
+
+export const portfolioExposureOptions = () =>
+  queryOptions({
+    queryKey: ["portfolio", "exposure"],
+    queryFn: () => getJson<PortfolioExposureResponse>("/portfolio/exposure"),
+    staleTime: 5 * 60 * 1000,
+  })
+
+export const portfolioHealthOptions = () =>
+  queryOptions({
+    queryKey: ["portfolio", "health"],
+    queryFn: () => getJson<RecalibrationHealth>("/portfolio/health"),
+    staleTime: 60 * 60 * 1000,
+  })
+
+export const snapshotAnchorsOptions = (leagueId: string) =>
+  queryOptions({
+    queryKey: ["snapshot-anchors", leagueId],
+    queryFn: () => getJson<SnapshotAnchor[]>(`/leagues/${leagueId}/snapshot-anchors`),
+    staleTime: 60 * 1000,
+    enabled: leagueId.trim().length > 0,
+  })
+
+export const snapshotDiffOptions = (
+  leagueId: string,
+  snapshotId: number,
+  rosterId: number,
+) =>
+  queryOptions({
+    queryKey: ["snapshot-diff", leagueId, snapshotId, rosterId],
+    queryFn: () =>
+      getJson<DiffRow[]>(
+        `/leagues/${leagueId}/snapshot-diff?snapshot_id=${snapshotId}&roster_id=${rosterId}`,
+      ),
+    staleTime: 5 * 60 * 1000,
+    enabled: leagueId.trim().length > 0 && snapshotId > 0 && rosterId > 0,
   })

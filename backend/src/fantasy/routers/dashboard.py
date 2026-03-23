@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 import duckdb
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from fantasy.config import get_settings
 from fantasy.intelligence.constants import REBUILD_DIRECTION_LABELS
@@ -116,6 +116,7 @@ class LeagueDetailResponse(BaseModel):
     league_id: str
     league_name: str
     user_roster_id: int | None = None
+    user_roster_player_ids: list[str] = Field(default_factory=list)
     direction_label: str
     confidence_band: Literal["High", "Medium", "Low", "--"]
     primary_weakness: str
@@ -778,6 +779,7 @@ def get_league_detail(
     direction_label = "Analysis not yet run"
     confidence_band: Literal["High", "Medium", "Low", "--"] = "--"
     primary_weakness = "Run Phase 2 intelligence to surface the primary roster weakness."
+    user_roster_player_ids: list[str] = []
 
     if roster_id is not None:
         direction_row = conn.execute(
@@ -806,6 +808,21 @@ def get_league_detail(
             league_id=league_id,
             roster_id=roster_id,
         )
+        roster_players_row = conn.execute(
+            """
+            SELECT players
+            FROM rosters
+            WHERE league_id = ? AND roster_id = ?
+            LIMIT 1
+            """,
+            [league_id, roster_id],
+        ).fetchone()
+        if roster_players_row is not None:
+            user_roster_player_ids = [
+                str(player_id)
+                for player_id in _loads(roster_players_row[0], [])
+                if player_id not in (None, "", 0, "0")
+            ]
 
     risers, fallers = _build_risers_fallers(conn, league_id, roster_id)
     exploit_windows = _build_exploit_windows(conn, league_id, roster_id)
@@ -813,6 +830,7 @@ def get_league_detail(
         league_id=league_id,
         league_name=str(league_row[0]),
         user_roster_id=roster_id,
+        user_roster_player_ids=user_roster_player_ids,
         direction_label=direction_label,
         confidence_band=confidence_band,
         primary_weakness=primary_weakness,

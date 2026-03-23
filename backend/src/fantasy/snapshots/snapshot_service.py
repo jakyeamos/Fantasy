@@ -288,6 +288,7 @@ class SnapshotService:
                     "taxi": taxi,
                     "standing": standings.get(roster_id),
                     "direction": directions.get(roster_id),
+                    "scorecard": scorecard,
                     "primary_weakness": self._derive_primary_weakness(
                         scorecard,
                         starters=starters,
@@ -299,6 +300,23 @@ class SnapshotService:
                     "player_values": player_values.get(roster_id, []),
                 }
             )
+
+        capital_scores: dict[int, float] = {}
+        try:
+            from fantasy.picks.pick_engine import PickEngine
+
+            pick_engine = PickEngine(self.conn)
+            for roster in rosters:
+                current_roster_id = int(roster["roster_id"])
+                capital_scores[current_roster_id] = pick_engine.compute_capital_score(
+                    league_id=league_id,
+                    roster_id=current_roster_id,
+                )
+        except Exception:
+            capital_scores = {}
+
+        for roster in rosters:
+            roster["capital_score"] = capital_scores.get(int(roster["roster_id"]))
 
         traded_pick_rows = self.conn.execute(
             """

@@ -75,6 +75,9 @@ function RootLayout() {
             <Link to="/" className="hover:text-foreground">
               Dashboard
             </Link>
+            <Link to="/portfolio" className="hover:text-foreground">
+              Portfolio
+            </Link>
             <Link to="/trades" className="hover:text-foreground">
               Evaluate Trade
             </Link>

@@ -366,3 +366,10 @@ class PickEngine:
                 )
             )
         return results
+
+    def compute_capital_score(self, league_id: str, roster_id: int) -> float:
+        picks = self._repo.get_all_picks(league_id, current_owner_roster_id=roster_id)
+        if not picks:
+            return 0.0
+        values = self.compute_batch(picks, league_id)
+        return round(sum(float(value.league_adjusted_value) for value in values), 2)

@@ -1,10 +1,14 @@
+import { useState } from "react"
+
 import { useQuery } from "@tanstack/react-query"
 import { Link, Outlet, createFileRoute } from "@tanstack/react-router"
 
 import { leagueDetailOptions } from "@/api/queries"
+import { ConcentrationAlertBanner } from "@/components/ConcentrationAlertBanner"
 import { ExploitWindowPanel } from "@/components/ExploitWindowPanel"
 import { RisersFallersList } from "@/components/RisersFallersList"
 import { SnapshotStatus } from "@/components/SnapshotStatus"
+import { SnapshotComparisonSheet } from "@/components/SnapshotComparisonSheet"
 import { LeaguePickList } from "@/components/picks/LeaguePickList"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonClasses } from "@/components/ui/button"
@@ -25,6 +29,7 @@ function badgeVariant(confidence: "High" | "Medium" | "Low" | "--") {
 function LeagueDetailPage() {
   const { leagueId } = Route.useParams()
   const query = useQuery(leagueDetailOptions(leagueId))
+  const [comparisonOpen, setComparisonOpen] = useState(false)
 
   if (query.isLoading) {
     return (
@@ -99,14 +104,36 @@ function LeagueDetailPage() {
             </Link>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-wrap items-center justify-between gap-3">
           <SnapshotStatus lastSnapshotAt={league.last_snapshot_at} />
+          {league.user_roster_id ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setComparisonOpen(true)}
+            >
+              Compare to snapshot
+            </Button>
+          ) : null}
         </CardContent>
       </Card>
 
+      <ConcentrationAlertBanner
+        leagueId={leagueId}
+        userRosterPlayerIds={league.user_roster_player_ids}
+      />
       <RisersFallersList risers={league.risers} fallers={league.fallers} />
       <LeaguePickList leagueId={leagueId} rosterId={league.user_roster_id} />
       <ExploitWindowPanel leagueId={leagueId} windows={league.exploit_windows} />
+      {league.user_roster_id ? (
+        <SnapshotComparisonSheet
+          leagueId={leagueId}
+          rosterId={league.user_roster_id}
+          open={comparisonOpen}
+          onOpenChange={setComparisonOpen}
+        />
+      ) : null}
       <Outlet />
     </div>
   )

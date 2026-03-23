@@ -312,6 +312,16 @@ SCHEMA_SQL = [
         system_value_slot INTEGER
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS retrospective_runs (
+        id INTEGER PRIMARY KEY,
+        run_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        run_type VARCHAR NOT NULL,
+        season VARCHAR NOT NULL,
+        grades_json VARCHAR NOT NULL,
+        notes VARCHAR
+    )
+    """,
 ]
 
 
