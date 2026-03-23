@@ -5,7 +5,7 @@ subsystem: repository
 tags: [duckdb, nfl_data_py, repository, upsert]
 requires:
   - phase: 01-01
-    provides: domain model dataclasses
+    provides: domain model Pydantic models
 provides:
   - LeagueRepo with upsert methods for leagues, rosters, standings, traded_picks, transactions
   - NflDataPyLoader for weekly stats and fantasy point reconstruction
@@ -42,5 +42,4 @@ completed: 2026-03-22
 
 ## Known Quality Gaps
 
-- `NflDataPyLoader.load_weekly_stats()` and `compute_fantasy_points()` not covered by tests — only LeagueRepo upserts are tested
-- `load_adp_baseline()` requires CSV pre-processed with Sleeper player IDs; silently stores `None` for player_id if column absent — downstream ADP joins return nothing without pre-processing
+- `load_adp_baseline()` still requires CSVs pre-processed with Sleeper player IDs. The loader now fails fast instead of silently loading unusable rows, but name-only CSVs remain unsupported.

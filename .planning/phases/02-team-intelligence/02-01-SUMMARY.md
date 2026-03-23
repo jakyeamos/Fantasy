@@ -31,8 +31,3 @@ completed: 2026-03-22
 # Phase 02-01: ScorecardEngine Summary
 
 **9-dimension team scoring with league-wide normalization and in-memory corrections application.**
-
-## Known Quality Gaps
-
-- `_score_positional_insulation()` checks `starter_position in bench_positions` (a list, O(n)) — does not correctly account for duplicate positions in bench; can undercount insulation
-- `_score_pick_capital()` can double-count a pick that was traded away and received back in certain scenarios

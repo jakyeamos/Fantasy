@@ -10,11 +10,11 @@ provides:
   - RerouteSheet slide-out panel listing reroute suggestions with reasoning
   - PackageBuilderPanel with Aggressive Open and Fair Close offer cards
   - Entry point buttons on league drill-in and manager dossier routes
-  - Trade evaluator fully wired with multi-team third-party leg UI
+  - Trade evaluator UI captures multi-team third-party legs and includes them in the request payload
 affects: [06]
 tech-stack:
   added: []
-  patterns: [shadcn Sheet for reroute slide-out, two-column offer grid for package builder]
+  patterns: [slide-out side panel for reroutes, two-column offer grid for package builder]
 key-files:
   created:
     - frontend/src/components/trade/RerouteSheet.tsx
@@ -30,4 +30,8 @@ completed: 2026-03-22
 
 # Phase 05-04: Trade Frontend Completion Summary
 
-**RerouteSheet, PackageBuilderPanel, and entry point integration completing Phase 5.**
+**RerouteSheet, PackageBuilderPanel, and entry point integration for the Phase 5 trade UI.**
+
+## Known Quality Gaps
+
+- Third-party leg capture is complete in the UI, and the backend now consumes those legs as multi-team context during evaluation. Numeric scoring still remains anchored to the user's net swap and primary counterparty, and reroutes/package output is intentionally disabled for multi-team deals.

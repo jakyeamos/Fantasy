@@ -26,7 +26,7 @@ key-files:
   modified:
     - frontend/src/routes/index.tsx
     - frontend/src/routes/league.$leagueId.tsx
-requirements-completed: [DASH-01, DASH-02, DASH-03, DASH-04, PORT-01]
+requirements-completed: [DASH-01, DASH-02, DASH-03, DASH-04]
 duration: retroactive
 completed: 2026-03-22
 ---
@@ -34,3 +34,8 @@ completed: 2026-03-22
 # Phase 03-03: Frontend Dashboard Views Summary
 
 **League card grid, drill-in views with risers/fallers, exploit windows, and snapshot status.**
+
+## Known Quality Gaps
+
+- Cross-league exposure alerts remain placeholder copy on the dashboard index; no concentration-risk data is rendered yet.
+- `SnapshotStatus` is reused on drill-in views, but "Snapshot now" still triggers a portfolio-wide snapshot rather than a league-scoped one.

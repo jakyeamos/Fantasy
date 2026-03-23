@@ -34,9 +34,3 @@ completed: 2026-03-22
 # Phase 04-02: ProfilingEngine + Router Summary
 
 **Full exploitation classification, exploitability scoring, pitch angles, and HTTP API.**
-
-## Known Quality Gaps
-
-- `manager_name` set to `owner_id` (Sleeper user ID string), not display name — Sleeper `/league/{id}/users` endpoint not called during ingest
-- Pick year in trade history hardcoded as "2026" regardless of actual pick season from transaction payload
-- `get_manager_profile()` endpoint recomputes on every call instead of using cached ProfilingRepo data

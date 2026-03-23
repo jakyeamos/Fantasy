@@ -21,7 +21,7 @@ key-files:
   modified:
     - backend/tests/test_direction_engine.py
 key-decisions:
-  - "8 direction labels: true_contender, contender, transition, true_rebuild, rebuild, asset_accumulator, pick_heavy, unknown"
+  - "8 direction labels: true_contender, fragile_contender, fringe_playoff, productive_struggle, one_year_punt, retool, elite_value_accumulation, hard_rebuild"
   - "Delta computed as sensitivity analysis — how much would score need to change to flip label"
 requirements-completed: [TEAM-02, TEAM-03, TEAM-04, TEAM-05]
 duration: retroactive

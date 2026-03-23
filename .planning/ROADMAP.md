@@ -2,12 +2,12 @@
 
 ## Overview
 
-This project builds a personal dynasty intelligence system in nine focused phases. Phases 1-3 deliver the core ingestion pipeline, team intelligence engines, and dashboard -- the system's foundational thesis. A hard gate between Phase 3 and Phase 4 requires manual direction label validation against all active leagues before trade and manager intelligence is built on top of it. Phases 4-5 add counterparty intelligence and trade evaluation. Phases 6-7 deliver the dynamic pick engine and rookie tooling. Phase 8 builds the historical prospect lab with backtested models. Phase 9 closes the trust loop with portfolio-level exposure tracking and recommendation retrospectives.
+This project builds a personal dynasty intelligence system in sixteen focused phases. Phases 1-3 deliver the core ingestion pipeline, team intelligence engines, and dashboard -- the system's foundational thesis. A hard gate between Phase 3 and Phase 4 requires manual direction label validation against all active leagues before trade and manager intelligence is built on top of it. Phases 4-5 add counterparty intelligence and trade evaluation. Phases 6-7 deliver the dynamic pick engine and rookie tooling. Phase 8 builds the historical prospect lab with backtested models. Phase 9 closes the trust loop with portfolio-level exposure tracking and recommendation retrospectives. Phases 10-16 add fantasy-specific enhancements: draft order accuracy, roster and lineup intelligence, manager market profiling, context awareness, format trust infrastructure, waiver and startup workflows, and thesis-level portfolio expansion.
 
 ## Phases
 
 **Phase Numbering:**
-- Integer phases (1-9): Planned milestone work
+- Integer phases (1-16): Planned milestone work
 - Decimal phases (e.g., 3.1): Urgent insertions (marked with INSERTED)
 
 Decimal phases appear between their surrounding integers in numeric order.
@@ -21,6 +21,13 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Rookie Board & Draft Room** - Format-aware rookie tiers, roster-fit overlays, draft room view
 - [ ] **Phase 8: Historical Prospect Lab** - 10+ year database, backtested position models, archetype clustering
 - [ ] **Phase 9: Portfolio & Retrospectives** - Cross-league exposure, season-over-season snapshots, retrospective grading
+- [ ] **Phase 10: Pick Accuracy & Draft Order** - Draft order rules engine, format-aware pick slot projections (FS-01)
+- [ ] **Phase 11: Roster & Lineup Intelligence** - Optimal lineup calculator, title-window score, roster management layer (FS-02, FS-04)
+- [ ] **Phase 12: Manager Rookie & Pick Profiles** - Rookie-draft behavior mining, pick-premium scoring, profile-aware suggestions (FS-06)
+- [ ] **Phase 13: Context Awareness** - Dynasty calendar state, NFL context freshness, time-aware recommendations (FS-03, FS-08)
+- [ ] **Phase 14: Trust Infrastructure** - League rule support matrix, unsupported-format flagging, fallback behavior (FS-07)
+- [ ] **Phase 15: Waiver & Startup Workflows** - FAAB/waiver intelligence, startup draft mode, orphan intake checklist (FS-05, FS-09)
+- [ ] **Phase 16: Portfolio Thesis Expansion** - Thesis-level exposure tracking, concentration flags, diversification suggestions (FS-10)
 
 ## Phase Details
 
@@ -132,7 +139,7 @@ Plans:
 
 **Known gap:** Multi-team third-party trade legs are parsed and passed through the API but TradeEngine does not score them. UI shows a note acknowledging this. Deferred to Phase 9.
 
-**Known gap:** Trade evaluator only surfaces picks belonging to teams other than the portfolio owner's own rosters. Picks the user holds are not available as tradeable assets in the evaluator input. Deferred to Phase 9.
+**Known gap:** Trade evaluator only surfaces picks for the counterparty — their rostered players are not available to select as assets. Fix required in the counterparty asset lookup. Deferred to Phase 9.
 
 ---
 
@@ -216,10 +223,114 @@ Plans:
 
 ---
 
+---
+
+### Phase 10: Pick Accuracy & Draft Order
+**Goal**: Pick values and projected draft slots are computed from the actual draft-order rules each league uses, not a universal inverse-standings assumption
+**Depends on**: Phase 9
+**Requirements**: FS-01
+**Success Criteria** (what must be TRUE):
+  1. Each connected league has an explicit `LeagueDraftOrderRule` capturing order basis, lottery configuration, playoff-team ordering, tiebreakers, and consolation exceptions
+  2. Pick valuations and projected draft-slot calculations use the stored rule set, not inverse standings by default
+  3. Every surface that shows a projected pick value cites the active draft-order rule explanation
+  4. A per-league manual rule editor covers settings Sleeper does not expose via API
+  5. Regression fixtures pass for: inverse standings, max PF for non-playoff teams, lottery top four, and playoff teams ordered by finish
+**Plans**: 0 plans
+
+---
+
+### Phase 11: Roster & Lineup Intelligence
+**Goal**: The system distinguishes a strong roster in abstract from a lineup that can actually win in the current format, and surfaces actionable low-level roster moves below the trade layer
+**Depends on**: Phase 10
+**Requirements**: FS-02, FS-04
+**Success Criteria** (what must be TRUE):
+  1. An optimal-starting-lineup calculator uses each league's real lineup constraints and scores starter strength by position against replacement-level baselines
+  2. A title-window score weights elite starter ceiling, lineup stability, and playoff-usable depth -- visible on each team screen
+  3. Team direction labels and trade recommendations can cite lineup-level reasons, not just aggregate roster value
+  4. Every team screen includes a roster-hygiene panel with stash, cut, move-to-taxi, and consolidation suggestions
+  5. Taxi eligibility, IR occupancy, and manual exceptions are modeled per league
+**Plans**: 0 plans
+
+---
+
+### Phase 12: Manager Rookie & Pick Profiles
+**Goal**: Manager dossiers extend into rookie-draft and pick-market behavior, enabling the trade and draft views to surface which counterparty is most likely to buy a given prospect or pick profile
+**Depends on**: Phase 11
+**Requirements**: FS-06
+**Success Criteria** (what must be TRUE):
+  1. Historical rookie-draft selections are mined for positional preference, early-vs-late aggression, and repeated archetype bets per manager
+  2. Each manager has a pick-premium score (willingness to pay for early firsts, second-round darts, draft-day trade-ups)
+  3. Package builder, reroute suggestions, and draft-room warnings incorporate rookie/pick-market tendencies
+  4. Low-confidence suppression is applied when historical rookie-draft evidence is too thin
+**Plans**: 0 plans
+
+---
+
+### Phase 13: Context Awareness
+**Goal**: Recommendations change intentionally with the dynasty calendar and react to football reality shifts -- calendar state and NFL context freshness are explicit, visible, and attributable
+**Depends on**: Phase 12
+**Requirements**: FS-03, FS-08
+**Success Criteria** (what must be TRUE):
+  1. A calendar-state service auto-selects the current dynasty state (startup, preseason, early season, trade deadline, playoffs, rookie fever, post-combine, post-NFL Draft) and allows manual override
+  2. Trade, pick, rookie-board, and dashboard recommendation text cites the active calendar state
+  3. The same asset demonstrably receives different guidance in different calendar windows (test-verified)
+  4. Freshness domains (injuries, depth-chart changes, free agency, combine, draft capital, landing spots) are tagged on recommendation surfaces with stale-state warnings
+  5. Major NFL events (Draft, major injuries) trigger an intentional refresh of affected outputs
+**Plans**: 0 plans
+
+---
+
+### Phase 14: Trust Infrastructure
+**Goal**: No connected league silently receives high-confidence advice under rules the tool does not actually model
+**Depends on**: Phase 13
+**Requirements**: FS-07
+**Success Criteria** (what must be TRUE):
+  1. A league scanner flags formats that materially change dynasty value: IDP, devy, salary cap, contracts, best ball, empire, median wins, points per first down, return-yard scoring, and TE-premium variants
+  2. Each league rule is classified as supported, partially supported, or unsupported
+  3. Partially supported rules require manual acknowledgment where recommendations may be distorted
+  4. A league-level warning banner appears when a rule set falls outside the trusted support matrix
+  5. Fallback behavior is defined and applied for every partially supported rule
+**Plans**: 0 plans
+
+---
+
+### Phase 15: Waiver & Startup Workflows
+**Goal**: Waivers and new-team scenarios are first-class dynasty workflows, not afterthoughts
+**Depends on**: Phase 14
+**Requirements**: FS-05, FS-09
+**Success Criteria** (what must be TRUE):
+  1. The app surfaces who to add on waivers and a bid range, or explicitly states a player is only worth a free post-waiver claim
+  2. Bid-range suggestions are tied to team direction, remaining FAAB budget, and urgency
+  3. A startup-draft mode provides startup pick valuation, trade-up/down heuristics, and direction-aware build templates
+  4. An orphan intake checklist evaluates age curve, pick capital, dead roster spots, lineup viability, and liquidation options
+  5. A newly connected team or orphan roster receives a clear first-pass 30-day action plan
+**Plans**: 0 plans
+
+---
+
+### Phase 16: Portfolio Thesis Expansion
+**Goal**: Portfolio analysis explains what football bets are overexposed across leagues, not just which players appear in multiple rosters
+**Depends on**: Phase 15
+**Requirements**: FS-10
+**Success Criteria** (what must be TRUE):
+  1. Exposure tracking extends from player names to rookie classes, archetypes, age buckets, NFL teams, offenses, and strategic labels
+  2. Concentration flags surface thesis-level bets (too much of one rookie class, too many fragile contender rosters)
+  3. Diversification suggestions recommend what kind of asset or direction would reduce overexposure
+  4. Trade-impact previews show how a proposed move changes thesis exposure, not just player overlap
+**Plans**: 0 plans
+
+---
+
+## Cross-Cutting Backlog
+
+The items in `.planning/FANTASY-BACKLOG.md` have been sequenced into Phases 10-16 above. The backlog file is retained as the source-of-truth for the original task breakdowns and validation criteria.
+
+---
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> [GATE] -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
+Phases execute in numeric order: 1 -> 2 -> 3 -> [GATE] -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -232,3 +343,10 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> [GATE] -> 4 -> 5 -> 6 -> 7 -> 8 
 | 7. Rookie Board & Draft Room | 4/4 | Complete | 2026-03-22 |
 | 8. Historical Prospect Lab | 0/5 | Planned | - |
 | 9. Portfolio & Retrospectives | 0/5 | Planned | - |
+| 10. Pick Accuracy & Draft Order | 0/0 | Unplanned | - |
+| 11. Roster & Lineup Intelligence | 0/0 | Unplanned | - |
+| 12. Manager Rookie & Pick Profiles | 0/0 | Unplanned | - |
+| 13. Context Awareness | 0/0 | Unplanned | - |
+| 14. Trust Infrastructure | 0/0 | Unplanned | - |
+| 15. Waiver & Startup Workflows | 0/0 | Unplanned | - |
+| 16. Portfolio Thesis Expansion | 0/0 | Unplanned | - |

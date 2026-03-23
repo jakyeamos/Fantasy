@@ -30,7 +30,7 @@ key-files:
     - backend/src/fantasy/main.py
 key-decisions:
   - "One full snapshot per calendar month, deltas thereafter to keep storage manageable"
-requirements-completed: [DASH-01, DASH-02, DASH-03, DASH-04, PORT-01]
+requirements-completed: [DASH-01, DASH-02, DASH-03, DASH-04]
 duration: retroactive
 completed: 2026-03-22
 ---
@@ -39,7 +39,8 @@ completed: 2026-03-22
 
 **Full-state snapshots and dashboard API with risers/fallers and exploit windows.**
 
-## Known Quality Gap
+## Known Quality Gaps
 
 - Dashboard exploit windows (`_build_exploit_windows()`) derived entirely from raw transaction patterns — does not use pre-computed `manager_profiles` / `manager_pitch_angles` from Phase 4
-- PORT-01 (cross-league concentration risk alerts) not implemented; behavioral triggers present but player ownership concentration surface deferred to Phase 9
+- Manual `POST /snapshots/trigger` snapshots all connected leagues, not just the league currently in view. The league detail "Snapshot now" affordance is therefore portfolio-wide, not league-scoped.
+- Cross-league concentration risk alerts (PORT-01) not implemented; dashboard ships behavioral exploit windows only, and the portfolio concentration surface is deferred to Phase 9

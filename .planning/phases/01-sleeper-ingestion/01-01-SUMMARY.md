@@ -2,12 +2,12 @@
 phase: 01-sleeper-ingestion
 plan: "01"
 subsystem: ingestion
-tags: [sleeper, mapper, pydantic, dataclasses]
+tags: [sleeper, mapper, pydantic, models]
 requires:
   - phase: 01-00
     provides: package layout and DuckDB schema
 provides:
-  - SleeperMapper with typed conversion for LeagueSettings, RosterRow, StandingRow, TradedPickRow, TransactionRow
+  - SleeperMapper with typed conversion for LeagueSettings, RosterSnapshot, StandingRow, TradedPick, TransactionRecord
   - All downstream layers consume only these domain models — never raw dicts
 affects: [01-02, 01-03, 02, 03, 04, 05]
 tech-stack:
@@ -29,10 +29,10 @@ completed: 2026-03-22
 
 # Phase 01-01: SleeperMapper Summary
 
-**Adapter-first isolation layer that converts raw Sleeper API JSON into typed domain dataclasses.**
+**Adapter-first isolation layer that converts raw Sleeper API JSON into typed Pydantic domain models.**
 
 ## Accomplishments
 
-- `SleeperMapper` maps all Sleeper API payloads to typed dataclasses: `LeagueSettings`, `RosterRow`, `StandingRow`, `TradedPickRow`, `TransactionRow`
+- `SleeperMapper` maps all Sleeper API payloads to typed models: `LeagueSettings`, `RosterSnapshot`, `StandingRow`, `TradedPick`, `TransactionRecord`
 - All field mapping validated via `test_sleeper_mapper.py`
 - No raw dict leaks past this boundary — all downstream layers typed

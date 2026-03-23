@@ -42,5 +42,5 @@ completed: 2026-03-22
 
 ## Known Quality Gaps
 
-- Multi-team third-party trade legs (`third_party_trades`) are parsed in `TradeRequest` but `TradeEngine.evaluate()` does not consume them — third-party legs are invisible to all 7 dimension scores
+- Multi-team third-party trade legs (`third_party_trades`) now reduce confidence and annotate reasoning across the 7 dimensions. Numeric scoring still anchors to the user's net swap and primary counterparty, and reroutes/package generation are intentionally suppressed for multi-team deals.
 - Roster ID/league ID cross-validation not performed — mismatched pair silently returns degraded results

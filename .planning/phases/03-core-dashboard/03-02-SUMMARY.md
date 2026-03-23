@@ -7,7 +7,7 @@ requires:
   - phase: 03-01
     provides: dashboard and snapshot API endpoints
 provides:
-  - Vite + React 18 + TypeScript frontend scaffold
+  - Vite + React 19 + TypeScript frontend scaffold
   - TanStack Router with file-based route generation
   - TanStack Query with staleTime caching
   - shadcn/ui primitives (badge, button, card, separator, skeleton)
@@ -17,7 +17,7 @@ provides:
   - Vite /api proxy to localhost:8000
 affects: [03-03, 04, 05]
 tech-stack:
-  added: [react 18, vite, typescript, tanstack-router, tanstack-query, shadcn/ui, tailwindcss]
+  added: [react 19, vite, typescript, tanstack-router, tanstack-query, shadcn/ui, tailwindcss]
   patterns: [file-based routing, TanStack Query for all data fetching, /api proxy to backend]
 key-files:
   created:
