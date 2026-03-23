@@ -9,10 +9,10 @@ export function DimensionScoreRow({
 }) {
   const scoreColor =
     score.score >= 80
-      ? "text-green-600"
+      ? "text-green-600 dark:text-green-400"
       : score.score >= 50
         ? "text-foreground"
-        : "text-red-600"
+        : "text-red-600 dark:text-red-400"
 
   return (
     <div className="space-y-2 border-t border-border/60 py-3 first:border-t-0">

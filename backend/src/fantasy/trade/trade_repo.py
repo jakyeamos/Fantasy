@@ -17,9 +17,31 @@ def _loads(raw: str | None, fallback: Any) -> Any:
         return fallback
 
 
+def _valid_player_ids(values: Sequence[Any]) -> list[str]:
+    return [str(value) for value in values if value not in (None, "", 0, "0")]
+
+
 class TradeRepo:
     def __init__(self, conn: duckdb.DuckDBPyConnection):
         self._conn = conn
+
+    def get_rosters(self, league_id: str) -> list[dict[str, Any]]:
+        rows = self._conn.execute(
+            """
+            SELECT roster_id, owner_id, owner_display_name
+            FROM rosters
+            WHERE league_id = ?
+            ORDER BY roster_id
+            """,
+            [league_id],
+        ).fetchall()
+        return [
+            {
+                "roster_id": int(row[0]),
+                "roster_name": str(row[2] or row[1] or f"Roster {int(row[0])}"),
+            }
+            for row in rows
+        ]
 
     def get_player_values(
         self, player_ids: Sequence[str], league_id: str, roster_id: int
@@ -128,88 +150,217 @@ class TradeRepo:
     def search_players(
         self, league_id: str, q: str, roster_id: int | None = None
     ) -> list[dict[str, Any]]:
-        roster_params: list[Any] = [league_id]
-        roster_sql = """
-            SELECT roster_id, owner_id, players
+        roster_rows = self._conn.execute(
+            """
+            SELECT roster_id, owner_id, owner_display_name, players
             FROM rosters
             WHERE league_id = ?
-        """
-        if roster_id is not None:
-            roster_sql += " AND roster_id = ?"
-            roster_params.append(roster_id)
-        roster_rows = self._conn.execute(roster_sql, roster_params).fetchall()
+              AND (? IS NULL OR roster_id = ?)
+            ORDER BY roster_id
+            """,
+            [league_id, roster_id, roster_id],
+        ).fetchall()
 
-        q_lower = q.lower()
+        q_lower = q.strip().lower()
         results: list[dict[str, Any]] = []
         for row in roster_rows:
             current_roster_id = int(row[0])
-            roster_name = str(row[1] or f"Roster {current_roster_id}")
-            player_ids = _loads(row[2], [])
+            roster_name = str(row[2] or row[1] or f"Roster {current_roster_id}")
+            player_ids = _valid_player_ids(_loads(row[3], []))
             if not player_ids:
                 continue
-            placeholders = ",".join("?" for _ in player_ids)
-            players = self._conn.execute(
-                f"""
-                SELECT player_id, full_name, position, team
-                FROM players
-                WHERE player_id IN ({placeholders})
-                """,
-                player_ids,
-            ).fetchall()
-            for player in players:
-                full_name = str(player[1] or player[0])
-                position = str(player[2] or "UNKNOWN")
-                if q_lower not in full_name.lower() and q_lower not in position.lower():
+
+            player_rows = {
+                str(player[0]): {
+                    "full_name": str(player[1] or player[0]),
+                    "position": str(player[2] or "UNKNOWN"),
+                    "team": str(player[3]) if player[3] is not None else None,
+                }
+                for player in self._conn.execute(
+                    """
+                    SELECT player_id, full_name, position, team
+                    FROM players
+                    WHERE player_id IN (
+                        SELECT UNNEST(?)
+                    )
+                    """,
+                    [player_ids],
+                ).fetchall()
+            }
+
+            for player_id in player_ids:
+                player = player_rows.get(
+                    str(player_id),
+                    {
+                        "full_name": str(player_id),
+                        "position": "UNKNOWN",
+                        "team": None,
+                    },
+                )
+                full_name = player["full_name"]
+                position = player["position"]
+                team = player["team"]
+                if q_lower and (
+                    q_lower not in full_name.lower()
+                    and q_lower not in position.lower()
+                    and q_lower not in str(player_id).lower()
+                    and (team is None or q_lower not in team.lower())
+                ):
                     continue
                 results.append(
                     {
-                        "player_id": str(player[0]),
+                        "player_id": str(player_id),
                         "full_name": full_name,
                         "position": position,
-                        "team": str(player[3]) if player[3] is not None else None,
+                        "team": team,
                         "roster_id": current_roster_id,
                         "roster_name": roster_name,
                     }
                 )
-        results.sort(key=lambda item: (item["full_name"], item["roster_id"]))
+        results.sort(key=lambda item: (item["full_name"], item["roster_id"], item["player_id"]))
+        if roster_id is not None:
+            return results
         return results[:PLAYER_SEARCH_LIMIT]
 
     def get_picks_for_league(
         self, league_id: str, roster_id: int | None = None
     ) -> list[dict[str, Any]]:
-        sql = """
-            SELECT roster_id, owner_id, season, round
-            FROM traded_picks
-            WHERE league_id = ?
-        """
-        params: list[Any] = [league_id]
-        if roster_id is not None:
-            sql += " AND owner_id = ?"
-            params.append(str(roster_id))
-        sql += " ORDER BY season, round"
         owner_map = {
-            int(row[0]): str(row[1] or f"Roster {int(row[0])}")
+            int(row[0]): str(row[2] or row[1] or f"Roster {int(row[0])}")
             for row in self._conn.execute(
                 """
-                SELECT roster_id, owner_id
+                SELECT roster_id, owner_id, owner_display_name
                 FROM rosters
                 WHERE league_id = ?
                 """,
                 [league_id],
             ).fetchall()
         }
-        rows = self._conn.execute(sql, params).fetchall()
-        return [
-            {
-                "original_owner_id": int(row[0]),
-                "current_owner_id": int(row[1]),
-                "pick_year": int(row[2]),
-                "round": int(row[3]),
-                "projected_slot": f"{int(row[3])}.mid",
-                "current_owner_name": owner_map.get(int(row[1]), f"Roster {int(row[1])}"),
-            }
-            for row in rows
+        league_row = self._conn.execute(
+            """
+            SELECT season, settings_blob
+            FROM leagues
+            WHERE league_id = ?
+            LIMIT 1
+            """,
+            [league_id],
+        ).fetchone()
+        if league_row is None:
+            return []
+
+        current_season = int(league_row[0])
+        league_settings = _loads(league_row[1], {})
+        draft_rounds = max(int(league_settings.get("draft_rounds", 3) or 3), 1)
+        future_seasons = [current_season + offset for offset in range(3)]
+
+        traded_rows = [
+            (int(row[0]), int(row[1]), int(row[2]), int(row[3]))
+            for row in self._conn.execute(
+                """
+                SELECT roster_id, owner_id, season, round
+                FROM traded_picks
+                WHERE league_id = ?
+                  AND CAST(season AS INTEGER) >= ?
+                """,
+                [league_id, current_season],
+            ).fetchall()
         ]
+        traded_by_original = {
+            (pick_year, round_no, original_owner_id): current_owner_id
+            for original_owner_id, current_owner_id, pick_year, round_no in traded_rows
+        }
+
+        slot_by_pick = {
+            (int(row[0]), int(row[1]), int(row[2])): float(row[3])
+            for row in self._conn.execute(
+                """
+                SELECT pick_owner_roster_id, pick_year, pick_round, expected_draft_slot
+                FROM pick_values
+                WHERE league_id = ?
+                """,
+                [league_id],
+            ).fetchall()
+        }
+
+        confirmed_by_roster_season: dict[tuple[int, int], int] = {}
+        for row in self._conn.execute(
+            """
+            SELECT roster_id, season, confirmed_slot
+            FROM draft_slots
+            WHERE league_id = ?
+            ORDER BY
+                CASE status
+                    WHEN 'complete'  THEN 0
+                    WHEN 'drafting'  THEN 1
+                    WHEN 'paused'    THEN 2
+                    ELSE 3
+                END,
+                roster_id
+            """,
+            [league_id],
+        ).fetchall():
+            key = (int(row[0]), int(row[1]))
+            if key not in confirmed_by_roster_season:
+                confirmed_by_roster_season[key] = int(row[2])
+
+        inventory: list[dict[str, Any]] = []
+        for original_owner_id in sorted(owner_map):
+            for pick_year in future_seasons:
+                for round_no in range(1, draft_rounds + 1):
+                    current_owner_id = traded_by_original.get(
+                        (pick_year, round_no, original_owner_id), original_owner_id
+                    )
+                    if roster_id is not None and current_owner_id != roster_id:
+                        continue
+                    confirmed = confirmed_by_roster_season.get((original_owner_id, pick_year))
+                    if confirmed is not None:
+                        projected_slot = f"{round_no}.{confirmed:02d}"
+                    else:
+                        raw_slot = slot_by_pick.get((original_owner_id, pick_year, round_no))
+                        projected_slot = (
+                            f"~{round_no}.{int(round(raw_slot)):02d}"
+                            if raw_slot is not None
+                            else f"{round_no}.mid"
+                        )
+                    inventory.append(
+                        {
+                            "original_owner_id": original_owner_id,
+                            "current_owner_id": current_owner_id,
+                            "original_owner_name": owner_map.get(
+                                original_owner_id, f"Roster {original_owner_id}"
+                            ),
+                            "pick_year": pick_year,
+                            "round": round_no,
+                            "projected_slot": projected_slot,
+                            "current_owner_name": owner_map.get(
+                                current_owner_id, f"Roster {current_owner_id}"
+                            ),
+                        }
+                    )
+
+        inventory.sort(
+            key=lambda item: (
+                item["pick_year"],
+                item["round"],
+                item["current_owner_id"],
+                item["original_owner_id"],
+            )
+        )
+        return inventory
+
+    def get_pick_value(
+        self,
+        pick: dict[str, Any] | Any,
+        league_id: str,
+        target_roster_id: int | None = None,
+    ):
+        from fantasy.picks.pick_engine import PickEngine
+
+        return PickEngine(self._conn).compute(
+            pick,
+            league_id,
+            target_manager_id=target_roster_id,
+        )
 
     def get_roster_players(self, league_id: str, roster_id: int) -> list[dict[str, Any]]:
         row = self._conn.execute(
@@ -223,23 +374,30 @@ class TradeRepo:
         ).fetchone()
         if row is None:
             return []
-        player_ids = _loads(row[0], [])
+        player_ids = _valid_player_ids(_loads(row[0], []))
         if not player_ids:
             return []
-        placeholders = ",".join("?" for _ in player_ids)
-        rows = self._conn.execute(
-            f"""
-            SELECT player_id, full_name, position
-            FROM players
-            WHERE player_id IN ({placeholders})
-            """,
-            player_ids,
-        ).fetchall()
-        return [
-            {
-                "player_id": str(item[0]),
+        player_rows = {
+            str(item[0]): {
                 "full_name": str(item[1] or item[0]),
                 "position": str(item[2] or "UNKNOWN"),
             }
-            for item in rows
+            for item in self._conn.execute(
+                """
+                SELECT player_id, full_name, position
+                FROM players
+                WHERE player_id IN (
+                    SELECT UNNEST(?)
+                )
+                """,
+                [player_ids],
+            ).fetchall()
+        }
+        return [
+            {
+                "player_id": str(player_id),
+                "full_name": player_rows.get(str(player_id), {}).get("full_name", str(player_id)),
+                "position": player_rows.get(str(player_id), {}).get("position", "UNKNOWN"),
+            }
+            for player_id in player_ids
         ]

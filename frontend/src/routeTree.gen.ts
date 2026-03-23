@@ -10,14 +10,21 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TradesRouteImport } from './routes/trades'
+import { Route as DraftRoomRouteImport } from './routes/draft-room'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LeagueLeagueIdRouteImport } from './routes/league.$leagueId'
+import { Route as LeagueLeagueIdRookieBoardRouteImport } from './routes/league.$leagueId.rookie-board'
 import { Route as LeagueLeagueIdManagersRouteImport } from './routes/league.$leagueId.managers'
 import { Route as LeagueLeagueIdManagersManagerIdRouteImport } from './routes/league.$leagueId.managers.$managerId'
 
 const TradesRoute = TradesRouteImport.update({
   id: '/trades',
   path: '/trades',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DraftRoomRoute = DraftRoomRouteImport.update({
+  id: '/draft-room',
+  path: '/draft-room',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -30,6 +37,12 @@ const LeagueLeagueIdRoute = LeagueLeagueIdRouteImport.update({
   path: '/league/$leagueId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LeagueLeagueIdRookieBoardRoute =
+  LeagueLeagueIdRookieBoardRouteImport.update({
+    id: '/rookie-board',
+    path: '/rookie-board',
+    getParentRoute: () => LeagueLeagueIdRoute,
+  } as any)
 const LeagueLeagueIdManagersRoute = LeagueLeagueIdManagersRouteImport.update({
   id: '/managers',
   path: '/managers',
@@ -44,52 +57,65 @@ const LeagueLeagueIdManagersManagerIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/draft-room': typeof DraftRoomRoute
   '/trades': typeof TradesRoute
   '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
   '/league/$leagueId/managers': typeof LeagueLeagueIdManagersRouteWithChildren
+  '/league/$leagueId/rookie-board': typeof LeagueLeagueIdRookieBoardRoute
   '/league/$leagueId/managers/$managerId': typeof LeagueLeagueIdManagersManagerIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/draft-room': typeof DraftRoomRoute
   '/trades': typeof TradesRoute
   '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
   '/league/$leagueId/managers': typeof LeagueLeagueIdManagersRouteWithChildren
+  '/league/$leagueId/rookie-board': typeof LeagueLeagueIdRookieBoardRoute
   '/league/$leagueId/managers/$managerId': typeof LeagueLeagueIdManagersManagerIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/draft-room': typeof DraftRoomRoute
   '/trades': typeof TradesRoute
   '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
   '/league/$leagueId/managers': typeof LeagueLeagueIdManagersRouteWithChildren
+  '/league/$leagueId/rookie-board': typeof LeagueLeagueIdRookieBoardRoute
   '/league/$leagueId/managers/$managerId': typeof LeagueLeagueIdManagersManagerIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/draft-room'
     | '/trades'
     | '/league/$leagueId'
     | '/league/$leagueId/managers'
+    | '/league/$leagueId/rookie-board'
     | '/league/$leagueId/managers/$managerId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/draft-room'
     | '/trades'
     | '/league/$leagueId'
     | '/league/$leagueId/managers'
+    | '/league/$leagueId/rookie-board'
     | '/league/$leagueId/managers/$managerId'
   id:
     | '__root__'
     | '/'
+    | '/draft-room'
     | '/trades'
     | '/league/$leagueId'
     | '/league/$leagueId/managers'
+    | '/league/$leagueId/rookie-board'
     | '/league/$leagueId/managers/$managerId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DraftRoomRoute: typeof DraftRoomRoute
   TradesRoute: typeof TradesRoute
   LeagueLeagueIdRoute: typeof LeagueLeagueIdRouteWithChildren
 }
@@ -101,6 +127,13 @@ declare module '@tanstack/react-router' {
       path: '/trades'
       fullPath: '/trades'
       preLoaderRoute: typeof TradesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/draft-room': {
+      id: '/draft-room'
+      path: '/draft-room'
+      fullPath: '/draft-room'
+      preLoaderRoute: typeof DraftRoomRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -116,6 +149,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/league/$leagueId'
       preLoaderRoute: typeof LeagueLeagueIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/league/$leagueId/rookie-board': {
+      id: '/league/$leagueId/rookie-board'
+      path: '/rookie-board'
+      fullPath: '/league/$leagueId/rookie-board'
+      preLoaderRoute: typeof LeagueLeagueIdRookieBoardRouteImport
+      parentRoute: typeof LeagueLeagueIdRoute
     }
     '/league/$leagueId/managers': {
       id: '/league/$leagueId/managers'
@@ -150,10 +190,12 @@ const LeagueLeagueIdManagersRouteWithChildren =
 
 interface LeagueLeagueIdRouteChildren {
   LeagueLeagueIdManagersRoute: typeof LeagueLeagueIdManagersRouteWithChildren
+  LeagueLeagueIdRookieBoardRoute: typeof LeagueLeagueIdRookieBoardRoute
 }
 
 const LeagueLeagueIdRouteChildren: LeagueLeagueIdRouteChildren = {
   LeagueLeagueIdManagersRoute: LeagueLeagueIdManagersRouteWithChildren,
+  LeagueLeagueIdRookieBoardRoute: LeagueLeagueIdRookieBoardRoute,
 }
 
 const LeagueLeagueIdRouteWithChildren = LeagueLeagueIdRoute._addFileChildren(
@@ -162,6 +204,7 @@ const LeagueLeagueIdRouteWithChildren = LeagueLeagueIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DraftRoomRoute: DraftRoomRoute,
   TradesRoute: TradesRoute,
   LeagueLeagueIdRoute: LeagueLeagueIdRouteWithChildren,
 }

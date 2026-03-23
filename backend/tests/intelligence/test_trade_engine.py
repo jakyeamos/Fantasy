@@ -1,4 +1,4 @@
-from fantasy.trade.models import DimensionScore, TradeAsset, TradeRequest
+from fantasy.trade.models import DimensionScore, ThirdPartyTrade, TradeAsset, TradeRequest
 from fantasy.trade.trade_engine import TradeEngine
 
 
@@ -83,3 +83,26 @@ def test_no_manager_profile_returns_low_confidence(trade_seed_data):
     engine = TradeEngine(trade_seed_data)
     evaluation = engine.evaluate(_request())
     assert evaluation.manager_exploit_quality.confidence == "LOW"
+
+
+def test_multi_team_context_reduces_dimension_confidence(trade_seed_data):
+    engine = TradeEngine(trade_seed_data)
+    request = _request()
+    request.third_party_trades = [
+        ThirdPartyTrade(
+            roster_id=3,
+            sends=[TradeAsset(asset_type="player", player_id="vet1")],
+            receives=[TradeAsset(asset_type="pick", pick_year=2026, pick_round=2)],
+        )
+    ]
+    evaluation = engine.evaluate(request)
+    assert evaluation.market_fairness.confidence == "MEDIUM"
+    assert "Multi-team context:" in evaluation.market_fairness.reasoning
+
+
+def test_rebuild_pick_proxy_supports_current_labels(trade_seed_data):
+    engine = TradeEngine(trade_seed_data)
+    pick_asset = TradeAsset(asset_type="pick", pick_year=2026, pick_round=1)
+    one_year_punt = engine._build_pick_proxy(pick_asset, "one_year_punt")
+    retool = engine._build_pick_proxy(pick_asset, "retool")
+    assert one_year_punt["lens_direction"] > retool["lens_direction"]

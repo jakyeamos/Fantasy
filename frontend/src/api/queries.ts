@@ -2,13 +2,17 @@ import { queryOptions } from "@tanstack/react-query"
 
 import type {
   DashboardLeagueSummary,
+  DraftRoomResponse,
   LeagueDetailResponse,
   ManagerProfile,
   ManagerSummary,
+  PickSearchResult,
+  PickValue,
+  RookieBoardResponse,
   SnapshotStatus,
 } from "@/api/types"
 
-async function getJson<T>(path: string): Promise<T> {
+export async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(`/api${path}`)
   if (!response.ok) {
     throw new Error(`Request failed: ${path}`)
@@ -51,4 +55,66 @@ export const managerProfileOptions = (leagueId: string, managerId: string) =>
         `/profiling/leagues/${leagueId}/managers/${managerId}`,
       ),
     staleTime: 60_000,
+  })
+
+export const pickValuesOptions = (
+  leagueId: string,
+  options?: {
+    targetManagerId?: number | null
+    currentOwnerRosterId?: number | null
+  },
+) =>
+  queryOptions({
+    queryKey: [
+      "picks",
+      leagueId,
+      options?.targetManagerId ?? "neutral",
+      options?.currentOwnerRosterId ?? "all",
+    ],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (options?.targetManagerId) {
+        params.set("target_manager_id", String(options.targetManagerId))
+      }
+      if (options?.currentOwnerRosterId) {
+        params.set("current_owner_roster_id", String(options.currentOwnerRosterId))
+      }
+      const suffix = params.size ? `?${params.toString()}` : ""
+      return getJson<PickValue[]>(`/picks/${leagueId}${suffix}`)
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: leagueId.trim().length > 0,
+  })
+
+export const pickInventoryOptions = (
+  leagueId: string,
+  rosterId?: number | null,
+) =>
+  queryOptions({
+    queryKey: ["trade", "picks", "inventory", leagueId, rosterId ?? "all"],
+    queryFn: () => {
+      const params = new URLSearchParams({ league_id: leagueId })
+      if (rosterId) {
+        params.set("roster_id", String(rosterId))
+      }
+      return getJson<PickSearchResult[]>(`/trade/picks/search?${params.toString()}`)
+    },
+    staleTime: 60_000,
+    enabled: leagueId.trim().length > 0,
+  })
+
+export const rookieBoardOptions = (leagueId: string) =>
+  queryOptions({
+    queryKey: ["rookie-board", leagueId],
+    queryFn: () => getJson<RookieBoardResponse>(`/rookie-board/${leagueId}`),
+    staleTime: 15 * 60 * 1000,
+    enabled: leagueId.trim().length > 0,
+  })
+
+export const draftRoomOptions = (leagueId: string, pickSlot: number) =>
+  queryOptions({
+    queryKey: ["draft-room", leagueId, pickSlot],
+    queryFn: () => getJson<DraftRoomResponse>(`/draft-room/${leagueId}/${pickSlot}`),
+    staleTime: 15 * 60 * 1000,
+    enabled: leagueId.trim().length > 0 && pickSlot > 0,
   })

@@ -1,0 +1,1 @@
+"""Rookie package tests."""

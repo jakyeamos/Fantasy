@@ -1,6 +1,7 @@
 # Python cache artifacts
 __pycache__/
 *.pyc
+.env
 
 # Local test/cache folders
 backend/.pytest_cache/

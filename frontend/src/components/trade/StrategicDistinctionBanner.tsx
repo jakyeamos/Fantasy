@@ -20,13 +20,13 @@ export function StrategicDistinctionBanner({
       className={`flex items-start gap-3 rounded-xl border-l-4 p-4 ${
         isNeutral
           ? "border-muted-foreground/30 bg-muted"
-          : "border-amber-500 bg-amber-50 text-amber-900"
+          : "border-amber-500 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200"
       }`}
     >
-      <Icon className={isNeutral ? "text-muted-foreground" : "text-amber-600"} />
+      <Icon className={isNeutral ? "text-muted-foreground" : "text-amber-600 dark:text-amber-300"} />
       <div className="space-y-1">
         <p className="text-xl font-semibold">{distinction.headline}</p>
-        <p className={`text-sm ${isNeutral ? "text-muted-foreground" : "text-amber-800"}`}>
+        <p className={`text-sm ${isNeutral ? "text-muted-foreground" : "text-amber-800 dark:text-amber-200"}`}>
           {distinction.explanation}
         </p>
       </div>

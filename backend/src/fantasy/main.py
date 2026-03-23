@@ -6,24 +6,30 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from fantasy.config import get_settings
 from fantasy.db.connection import get_write_connection
 from fantasy.ingestion.nfl_data_loader import load_adp_baseline
 from fantasy.routers import (
     corrections,
     dashboard,
+    draft_room,
     health,
     ingest,
     intelligence,
+    picks,
     profiling,
+    rookie_board,
     snapshots,
     trade,
 )
+from fantasy.startup_tasks import maybe_run_dev_refresh
 
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    settings = get_settings()
     conn = get_write_connection()
     try:
         loaded = load_adp_baseline(conn)
@@ -35,6 +41,10 @@ async def lifespan(_: FastAPI):
             )
     except Exception:
         logger.exception("Failed ADP baseline load during startup.")
+    try:
+        await maybe_run_dev_refresh(conn, settings)
+    except Exception:
+        logger.exception("Failed dev auto-refresh during startup.")
     finally:
         conn.close()
 
@@ -60,6 +70,9 @@ def create_app() -> FastAPI:
     app.include_router(snapshots.router)
     app.include_router(profiling.router)
     app.include_router(trade.router)
+    app.include_router(picks.router)
+    app.include_router(rookie_board.router)
+    app.include_router(draft_room.router)
     return app
 
 

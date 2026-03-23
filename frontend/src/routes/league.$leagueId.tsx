@@ -1,14 +1,16 @@
 import { useQuery } from "@tanstack/react-query"
-import { Link, createFileRoute } from "@tanstack/react-router"
+import { Link, Outlet, createFileRoute } from "@tanstack/react-router"
 
 import { leagueDetailOptions } from "@/api/queries"
 import { ExploitWindowPanel } from "@/components/ExploitWindowPanel"
 import { RisersFallersList } from "@/components/RisersFallersList"
 import { SnapshotStatus } from "@/components/SnapshotStatus"
+import { LeaguePickList } from "@/components/picks/LeaguePickList"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Button, buttonClasses } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { formatModelLabel } from "@/lib/utils"
 
 export const Route = createFileRoute("/league/$leagueId")({
   component: LeagueDetailPage,
@@ -55,18 +57,45 @@ function LeagueDetailPage() {
               </Badge>
             </div>
             <div>
-              <p className="text-xl font-semibold">{league.direction_label}</p>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="text-xl font-semibold">
+                {formatModelLabel(league.direction_label)}
+              </p>
+              <p className="mt-3 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Roster note
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
                 {league.primary_weakness}
               </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Link to="/league/$leagueId/managers" params={{ leagueId }}>
-              <Button variant="outline">View Managers</Button>
+            <Link
+              to="/league/$leagueId/managers"
+              params={{ leagueId }}
+              className={buttonClasses({ variant: "outline" })}
+            >
+              View Managers
             </Link>
-            <Link to="/trades" search={{ leagueId }}>
-              <Button>Evaluate Trade</Button>
+            <Link
+              to="/league/$leagueId/rookie-board"
+              params={{ leagueId }}
+              className={buttonClasses({ variant: "outline" })}
+            >
+              Rookie Board
+            </Link>
+            <Link
+              to="/draft-room"
+              search={{ leagueId, pickSlot: 1 }}
+              className={buttonClasses({ variant: "outline" })}
+            >
+              Enter Draft Room
+            </Link>
+            <Link
+              to="/trades"
+              search={{ leagueId }}
+              className={buttonClasses({})}
+            >
+              Evaluate Trade
             </Link>
           </div>
         </CardHeader>
@@ -76,7 +105,9 @@ function LeagueDetailPage() {
       </Card>
 
       <RisersFallersList risers={league.risers} fallers={league.fallers} />
+      <LeaguePickList leagueId={leagueId} rosterId={league.user_roster_id} />
       <ExploitWindowPanel leagueId={leagueId} windows={league.exploit_windows} />
+      <Outlet />
     </div>
   )
 }

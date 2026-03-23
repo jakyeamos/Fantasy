@@ -7,6 +7,7 @@ from fantasy.routers.deps import get_read_db_conn, get_write_db_conn
 from fantasy.trade.models import (
     PickSearchResult,
     PlayerSearchResult,
+    TradeRosterResult,
     TradeEvaluation,
     TradeRequest,
 )
@@ -25,17 +26,23 @@ def evaluate_trade(
 ) -> TradeEvaluation:
     engine = TradeEngine(conn)
     evaluation = engine.evaluate(request)
-    if request.include_reroutes:
+    has_multi_team_context = bool(request.third_party_trades)
+    if request.include_reroutes and not has_multi_team_context:
         evaluation.reroutes = RerouteEngine(conn).generate(request, evaluation)
-    if request.include_package:
+    if request.include_package and not has_multi_team_context:
         evaluation.package = PackageBuilder(conn).build(request, evaluation)
+    if has_multi_team_context:
+        evaluation.strategic_distinction.explanation += (
+            " Reroutes and package builder are disabled for multi-team deals until "
+            "those helpers can model sidecar legs explicitly."
+        )
     return evaluation
 
 
 @router.get("/players/search", response_model=list[PlayerSearchResult])
 def search_players(
     league_id: str,
-    q: str,
+    q: str = "",
     roster_id: int | None = None,
     conn: duckdb.DuckDBPyConnection = Depends(get_read_db_conn),
 ) -> list[PlayerSearchResult]:
@@ -51,3 +58,12 @@ def search_picks(
 ) -> list[PickSearchResult]:
     repo = TradeRepo(conn)
     return [PickSearchResult(**row) for row in repo.get_picks_for_league(league_id, roster_id)]
+
+
+@router.get("/rosters", response_model=list[TradeRosterResult])
+def list_rosters(
+    league_id: str,
+    conn: duckdb.DuckDBPyConnection = Depends(get_read_db_conn),
+) -> list[TradeRosterResult]:
+    repo = TradeRepo(conn)
+    return [TradeRosterResult(**row) for row in repo.get_rosters(league_id)]

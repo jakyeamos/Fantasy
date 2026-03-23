@@ -1,36 +1,42 @@
-"""PickRepo: DuckDB data access layer for Phase 6 pick valuation.
+"""PickRepo: DuckDB data access layer for dynamic pick valuation.
 
-Reads picks, standings, team_directions, and trades tables.
-Writes computed values to pick_values table.
+Reads league settings, standings, traded pick ownership, transactions, and
+Phase 7 rookie board cache. Writes computed values to pick_values.
 """
 
 from __future__ import annotations
 
 import json
+from typing import Any
 
 import duckdb
 
 from fantasy.picks.constants import (
-    DIRECTION_DEMAND_MAP,
-    DIRECTION_DEMAND_WEIGHT,
-    HISTORY_DEMAND_WEIGHT,
-    DEMAND_HISTORY_SIGMOID_K,
     DEMAND_HISTORY_SIGMOID_CENTER,
+    DEMAND_HISTORY_SIGMOID_K,
+    DIRECTION_DEMAND_MAP,
+    HISTORY_DEMAND_WEIGHT,
     MIN_TRADE_EVIDENCE_THRESHOLD,
     NEUTRAL_REBUILDER_RATIO,
     TOTAL_SEASON_GAMES,
 )
-from fantasy.picks.models import (
-    LeaguePickContext,
-    PickValue,
-    TeamStandingsRow,
-)
+from fantasy.picks.models import LeaguePickContext, PickValue, TeamStandingsRow
 from fantasy.trade.models import TradeAsset
+
+
+def _loads(raw: str | None, fallback: Any) -> Any:
+    if raw is None:
+        return fallback
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return fallback
 
 
 def _sigmoid(k: float, center: float, x: float) -> float:
     """Logistic sigmoid normalized to [0.0, 1.0]."""
     import math
+
     return 1.0 / (1.0 + math.exp(-k * (x - center)))
 
 
@@ -38,32 +44,69 @@ class PickRepo:
     def __init__(self, conn: duckdb.DuckDBPyConnection):
         self._conn = conn
 
-    def get_standings(self, roster_id: int, league_id: str) -> TeamStandingsRow:
-        """Return standings row with last-4-game trend window.
+    def get_current_season(self, league_id: str) -> int:
+        row = self._conn.execute(
+            """
+            SELECT season
+            FROM leagues
+            WHERE league_id = ?
+            LIMIT 1
+            """,
+            [league_id],
+        ).fetchone()
+        if row is None or row[0] is None:
+            return 2026
+        return int(row[0])
 
-        Guards against remaining_games=0 (Pitfall 1).
-        Falls back to neutral (0.5 win_pct, 0 recent_wins) if row missing.
+    def get_confirmed_slot(
+        self, league_id: str, roster_id: int, pick_year: int
+    ) -> int | None:
+        """Return confirmed draft slot for a roster in a given season, or None if not known.
+
+        Prefers complete drafts > drafting > pre_draft when multiple entries exist.
         """
-        # Try to get standings with weekly trend using window function
+        row = self._conn.execute(
+            """
+            SELECT confirmed_slot
+            FROM draft_slots
+            WHERE league_id = ? AND roster_id = ? AND season = ?
+            ORDER BY
+                CASE status
+                    WHEN 'complete'   THEN 0
+                    WHEN 'drafting'   THEN 1
+                    WHEN 'paused'     THEN 2
+                    ELSE 3
+                END
+            LIMIT 1
+            """,
+            [league_id, roster_id, pick_year],
+        ).fetchone()
+        return int(row[0]) if row is not None else None
+
+    def get_standings(self, roster_id: int, league_id: str) -> TeamStandingsRow:
+        """Return standings row with safe fallbacks.
+
+        Guards against missing standings rows and missing weekly trend data.
+        """
+
         row = self._conn.execute(
             """
             SELECT
-                s.roster_id,
-                s.wins,
-                s.losses,
-                s.wins::FLOAT / NULLIF(s.wins + s.losses, 0) AS win_pct,
-                GREATEST(0, (? - s.wins - s.losses)) AS remaining_games,
-                s.wins + s.losses AS total_games
-            FROM standings s
-            WHERE s.league_id = ?
-              AND s.roster_id = ?
+                roster_id,
+                wins,
+                losses,
+                wins::DOUBLE / NULLIF(wins + losses, 0) AS win_pct,
+                GREATEST(0, (? - wins - losses)) AS remaining_games,
+                wins + losses AS total_games
+            FROM standings
+            WHERE league_id = ?
+              AND roster_id = ?
             LIMIT 1
             """,
             [TOTAL_SEASON_GAMES, league_id, roster_id],
         ).fetchone()
 
         if row is None:
-            # Fallback to neutral — no standings data for this manager
             return TeamStandingsRow(
                 roster_id=roster_id,
                 wins=0,
@@ -75,15 +118,8 @@ class PickRepo:
                 draft_in_progress=False,
             )
 
-        roster_id_val = int(row[0])
-        wins = int(row[1])
-        losses = int(row[2])
-        win_pct = float(row[3]) if row[3] is not None else 0.5
-        remaining_games = int(row[4])
-        total_games = int(row[5])
-
-        # Try to fetch recent_wins from weekly_results if table exists
         recent_wins = 0
+        total_games = int(row[5] or 0)
         try:
             recent_row = self._conn.execute(
                 """
@@ -97,83 +133,67 @@ class PickRepo:
                 [league_id, roster_id, total_games],
             ).fetchone()
             if recent_row is not None:
-                recent_wins = int(recent_row[0])
+                recent_wins = int(recent_row[0] or 0)
         except duckdb.Error:
-            # weekly_results table may not exist — use 0 as fallback
             recent_wins = 0
 
         return TeamStandingsRow(
-            roster_id=roster_id_val,
-            wins=wins,
-            losses=losses,
-            win_pct=win_pct,
-            remaining_games=remaining_games,
+            roster_id=int(row[0]),
+            wins=int(row[1]),
+            losses=int(row[2]),
+            win_pct=float(row[3]) if row[3] is not None else 0.5,
+            remaining_games=int(row[4] or 0),
             recent_wins=recent_wins,
             total_games=total_games,
             draft_in_progress=False,
         )
 
     def get_league_pick_context(self, league_id: str) -> LeaguePickContext:
-        """Return league-level pick context with rebuilder count.
+        """Return league-level pick context with rebuilder count."""
 
-        Counts teams whose direction label is hard_rebuild, elite_value_accumulation,
-        or one_year_punt. Falls back to neutral ratio if no team_directions data (Pitfall 3).
-        """
+        league_size_row = self._conn.execute(
+            "SELECT COUNT(*) FROM rosters WHERE league_id = ?",
+            [league_id],
+        ).fetchone()
+        league_size = max(2, int(league_size_row[0] or 0)) if league_size_row else 12
+
         row = self._conn.execute(
             """
             SELECT
-                league_id,
                 COUNT(*) FILTER (
                     WHERE primary_label IN ('hard_rebuild', 'elite_value_accumulation', 'one_year_punt')
                 ) AS rebuilder_count,
-                COUNT(*) AS total_teams,
-                COUNT(*) FILTER (
-                    WHERE primary_label IN ('hard_rebuild', 'elite_value_accumulation', 'one_year_punt')
-                )::FLOAT / NULLIF(COUNT(*), 0) AS rebuilder_ratio
+                COUNT(*) AS total_teams
             FROM team_directions
             WHERE league_id = ?
-            GROUP BY league_id
             """,
             [league_id],
         ).fetchone()
 
-        if row is None:
-            # No team_directions data — use neutral ratio fallback (Pitfall 3)
-            # Estimate league size from rosters table
-            league_size_row = self._conn.execute(
-                "SELECT COUNT(*) FROM rosters WHERE league_id = ? LIMIT 1",
-                [league_id],
-            ).fetchone()
-            league_size = int(league_size_row[0]) if league_size_row else 12
+        if row is None or int(row[1] or 0) == 0:
             rebuilder_count = int(round(NEUTRAL_REBUILDER_RATIO * league_size))
             return LeaguePickContext(
                 league_id=league_id,
-                league_size=max(2, league_size),
+                league_size=league_size,
                 rebuilder_count=rebuilder_count,
                 rebuilder_ratio=NEUTRAL_REBUILDER_RATIO,
-                total_teams=max(1, league_size),
+                total_teams=league_size,
             )
 
-        total_teams = int(row[2])
-        rebuilder_count = int(row[1])
-        rebuilder_ratio = float(row[3]) if row[3] is not None else NEUTRAL_REBUILDER_RATIO
-
+        total_teams = max(1, int(row[1] or 0))
+        rebuilder_count = int(row[0] or 0)
         return LeaguePickContext(
             league_id=league_id,
-            league_size=max(2, total_teams),
+            league_size=league_size,
             rebuilder_count=rebuilder_count,
-            rebuilder_ratio=rebuilder_ratio,
-            total_teams=max(1, total_teams),
+            rebuilder_ratio=rebuilder_count / total_teams,
+            total_teams=total_teams,
         )
 
     def get_manager_demand_factor(self, roster_id: int, league_id: str) -> float:
-        """Compute per-manager demand factor from direction label + trade history.
+        """Compute per-manager pick demand from direction plus trade history."""
 
-        Returns float in [0.0, 1.0]. Falls back to 0.5 (neutral) if no data (Pitfall 3).
-        Suppresses history signal below MIN_TRADE_EVIDENCE_THRESHOLD (D-09).
-        """
-        # Signal 1: direction label demand score
-        direction_demand_score = 0.5  # neutral default
+        direction_demand_score = 0.5
         try:
             dir_row = self._conn.execute(
                 """
@@ -188,90 +208,270 @@ class PickRepo:
             if dir_row and dir_row[0]:
                 direction_demand_score = DIRECTION_DEMAND_MAP.get(str(dir_row[0]), 0.5)
         except duckdb.Error:
-            pass
+            direction_demand_score = 0.5
 
-        # Signal 2: pick reception rate from trade history
-        demand_from_history = 0.5  # neutral default (will be suppressed if low evidence)
-        history_weight = 0.0  # will be set to HISTORY_DEMAND_WEIGHT if evidence threshold met
         try:
-            hist_row = self._conn.execute(
+            rows = self._conn.execute(
                 """
-                SELECT
-                    COUNT(*) FILTER (WHERE pick_received = TRUE) AS picks_received_count,
-                    COUNT(*) AS total_trades,
-                    COUNT(*) FILTER (WHERE pick_received = TRUE)::FLOAT
-                        / NULLIF(COUNT(*), 0) AS pick_reception_rate
-                FROM (
-                    SELECT
-                        t.id,
-                        MAX(CASE WHEN ta.asset_type = 'pick' AND ta.direction = 'received'
-                            THEN 1 ELSE 0 END) = 1 AS pick_received
-                    FROM trades t
-                    JOIN trade_assets ta ON ta.trade_id = t.id
-                    WHERE t.league_id = ?
-                    GROUP BY t.id
-                ) sub
-                JOIN trades t2 ON t2.id = sub.id AND t2.receiver_roster_id = ?
+                SELECT roster_ids, draft_picks
+                FROM transactions
+                WHERE league_id = ?
+                  AND type = 'trade'
                 """,
-                [league_id, roster_id],
-            ).fetchone()
-
-            if hist_row and hist_row[1] is not None:
-                total_trades = int(hist_row[1])
-                if total_trades >= MIN_TRADE_EVIDENCE_THRESHOLD:
-                    pick_reception_rate = float(hist_row[2]) if hist_row[2] is not None else 0.4
-                    demand_from_history = _sigmoid(
-                        DEMAND_HISTORY_SIGMOID_K,
-                        DEMAND_HISTORY_SIGMOID_CENTER,
-                        pick_reception_rate,
-                    )
-                    history_weight = HISTORY_DEMAND_WEIGHT
-                # Below threshold: history signal suppressed — direction label only
+                [league_id],
+            ).fetchall()
         except duckdb.Error:
-            pass
-
-        # Combine signals — re-normalize when history is suppressed
-        if history_weight == 0.0:
             return direction_demand_score
-        else:
-            direction_weight = DIRECTION_DEMAND_WEIGHT
-            return direction_weight * direction_demand_score + history_weight * demand_from_history
 
-    def get_all_picks(self, league_id: str) -> list[TradeAsset]:
-        """Return all future picks owned in the league from the picks table."""
-        rows = self._conn.execute(
+        total_trades = 0
+        trades_with_received_pick = 0
+        for roster_ids_raw, draft_picks_raw in rows:
+            roster_ids = [int(value) for value in _loads(roster_ids_raw, [])]
+            if roster_id not in roster_ids:
+                continue
+            total_trades += 1
+            draft_picks = _loads(draft_picks_raw, [])
+            if any(int(pick.get("owner_id", -1)) == roster_id for pick in draft_picks):
+                trades_with_received_pick += 1
+
+        if total_trades < MIN_TRADE_EVIDENCE_THRESHOLD:
+            return direction_demand_score
+
+        pick_reception_rate = trades_with_received_pick / max(total_trades, 1)
+        demand_from_history = _sigmoid(
+            DEMAND_HISTORY_SIGMOID_K,
+            DEMAND_HISTORY_SIGMOID_CENTER,
+            pick_reception_rate,
+        )
+        direction_weight = 1.0 - HISTORY_DEMAND_WEIGHT
+        return direction_weight * direction_demand_score + HISTORY_DEMAND_WEIGHT * demand_from_history
+
+    def _get_pick_inventory_rows(self, league_id: str) -> list[dict[str, Any]]:
+        owner_rows = self._conn.execute(
             """
-            SELECT owner_roster_id, original_roster_id, pick_year, round
-            FROM picks
+            SELECT roster_id, owner_id, owner_display_name
+            FROM rosters
             WHERE league_id = ?
-            ORDER BY pick_year, round, owner_roster_id
+            ORDER BY roster_id
             """,
             [league_id],
         ).fetchall()
+        if not owner_rows:
+            return []
 
-        result: list[TradeAsset] = []
-        for row in rows:
-            result.append(
-                TradeAsset(
-                    asset_type="pick",
-                    pick_owner_roster_id=int(row[0]),
-                    pick_year=int(row[2]),
-                    pick_round=int(row[3]),
-                )
+        owner_name_by_roster = {
+            int(row[0]): str(row[2] or row[1] or f"Roster {int(row[0])}") for row in owner_rows
+        }
+        original_owner_ids = sorted(owner_name_by_roster)
+
+        league_row = self._conn.execute(
+            """
+            SELECT season, settings_blob
+            FROM leagues
+            WHERE league_id = ?
+            LIMIT 1
+            """,
+            [league_id],
+        ).fetchone()
+        if league_row is None:
+            return []
+
+        current_season = int(league_row[0] or 2026)
+        league_settings = _loads(league_row[1], {})
+        draft_rounds = max(int(league_settings.get("draft_rounds", 3) or 3), 1)
+        future_seasons = [current_season + offset for offset in range(3)]
+
+        traded_rows = self._conn.execute(
+            """
+            SELECT roster_id, owner_id, season, round
+            FROM traded_picks
+            WHERE league_id = ?
+              AND CAST(season AS INTEGER) >= ?
+            """,
+            [league_id, current_season],
+        ).fetchall()
+        current_owner_by_pick = {
+            (int(row[2]), int(row[3]), int(row[0])): int(row[1])
+            for row in traded_rows
+        }
+
+        slot_by_pick = {
+            (int(row[0]), int(row[1]), int(row[2])): float(row[3])
+            for row in self._conn.execute(
+                """
+                SELECT pick_owner_roster_id, pick_year, pick_round, expected_draft_slot
+                FROM pick_values
+                WHERE league_id = ?
+                """,
+                [league_id],
+            ).fetchall()
+        }
+
+        confirmed_by_roster_season: dict[tuple[int, int], int] = {}
+        for row in self._conn.execute(
+            """
+            SELECT roster_id, season, confirmed_slot
+            FROM draft_slots
+            WHERE league_id = ?
+            ORDER BY
+                CASE status
+                    WHEN 'complete'  THEN 0
+                    WHEN 'drafting'  THEN 1
+                    WHEN 'paused'    THEN 2
+                    ELSE 3
+                END,
+                roster_id
+            """,
+            [league_id],
+        ).fetchall():
+            key = (int(row[0]), int(row[1]))
+            if key not in confirmed_by_roster_season:
+                confirmed_by_roster_season[key] = int(row[2])
+
+        inventory: list[dict[str, Any]] = []
+        for original_owner_id in original_owner_ids:
+            for pick_year in future_seasons:
+                for round_no in range(1, draft_rounds + 1):
+                    current_owner_id = current_owner_by_pick.get(
+                        (pick_year, round_no, original_owner_id),
+                        original_owner_id,
+                    )
+                    confirmed = confirmed_by_roster_season.get((original_owner_id, pick_year))
+                    if confirmed is not None:
+                        projected_slot = f"{round_no}.{confirmed:02d}"
+                    else:
+                        raw_slot = slot_by_pick.get((original_owner_id, pick_year, round_no))
+                        projected_slot = (
+                            f"~{round_no}.{int(round(raw_slot)):02d}"
+                            if raw_slot is not None
+                            else f"{round_no}.mid"
+                        )
+                    inventory.append(
+                        {
+                            "original_owner_id": original_owner_id,
+                            "current_owner_id": current_owner_id,
+                            "pick_year": pick_year,
+                            "round": round_no,
+                            "original_owner_name": owner_name_by_roster.get(
+                                original_owner_id,
+                                f"Roster {original_owner_id}",
+                            ),
+                            "current_owner_name": owner_name_by_roster.get(
+                                current_owner_id,
+                                f"Roster {current_owner_id}",
+                            ),
+                            "projected_slot": projected_slot,
+                        }
+                    )
+        inventory.sort(
+            key=lambda item: (
+                item["pick_year"],
+                item["round"],
+                item["current_owner_id"],
+                item["original_owner_id"],
             )
-        return result
+        )
+        return inventory
+
+    def get_all_picks(
+        self,
+        league_id: str,
+        current_owner_roster_id: int | None = None,
+    ) -> list[TradeAsset]:
+        """Return all future picks for the league.
+
+        Pick identity is keyed by original owner roster id, year, and round.
+        """
+
+        return [
+            TradeAsset(
+                asset_type="pick",
+                pick_owner_roster_id=int(row["original_owner_id"]),
+                pick_year=int(row["pick_year"]),
+                pick_round=int(row["round"]),
+                projected_slot=str(row["projected_slot"]),
+            )
+            for row in self._get_pick_inventory_rows(league_id)
+            if current_owner_roster_id is None
+            or int(row["current_owner_id"]) == current_owner_roster_id
+        ]
+
+    def has_pick(
+        self,
+        league_id: str,
+        owner_roster_id: int,
+        pick_year: int,
+        pick_round: int,
+    ) -> bool:
+        return any(
+            row["original_owner_id"] == owner_roster_id
+            and row["pick_year"] == pick_year
+            and row["round"] == pick_round
+            for row in self._get_pick_inventory_rows(league_id)
+        )
+
+    def get_pick_owner_name(self, league_id: str, owner_roster_id: int) -> str | None:
+        row = self._conn.execute(
+            """
+            SELECT owner_display_name, owner_id
+            FROM rosters
+            WHERE league_id = ?
+              AND roster_id = ?
+            LIMIT 1
+            """,
+            [league_id, owner_roster_id],
+        ).fetchone()
+        if row is None:
+            return None
+        return str(row[0] or row[1] or f"Roster {owner_roster_id}")
+
+    def get_class_strength_signal(self, league_id: str) -> float | None:
+        try:
+            row = self._conn.execute(
+                """
+                SELECT class_strength_signal
+                FROM rookie_board_cache
+                WHERE league_id = ?
+                ORDER BY computed_at DESC
+                LIMIT 1
+                """,
+                [league_id],
+            ).fetchone()
+        except duckdb.Error:
+            return None
+
+        if row is None or row[0] is None:
+            return None
+        return float(row[0])
 
     def save_pick_values(self, league_id: str, values: list[PickValue]) -> None:
-        """Upsert computed pick values into pick_values table.
+        """Upsert computed pick values into pick_values."""
 
-        Uses UNIQUE constraint on (league_id, pick_owner_roster_id, pick_year, pick_round)
-        via INSERT OR REPLACE to handle repeated computations.
-        """
         for pv in values:
             pick = pv.pick
+            next_id_row = self._conn.execute(
+                "SELECT COALESCE(MAX(id), 0) + 1 FROM pick_values"
+            ).fetchone()
+            next_id = int(next_id_row[0] or 1) if next_id_row else 1
             self._conn.execute(
                 """
-                INSERT OR REPLACE INTO pick_values (
+                DELETE FROM pick_values
+                WHERE league_id = ?
+                  AND pick_owner_roster_id = ?
+                  AND pick_year = ?
+                  AND pick_round = ?
+                """,
+                [
+                    league_id,
+                    pick.pick_owner_roster_id,
+                    pick.pick_year,
+                    pick.pick_round,
+                ],
+            )
+            self._conn.execute(
+                """
+                INSERT INTO pick_values (
+                    id,
                     league_id,
                     pick_owner_roster_id,
                     pick_year,
@@ -285,10 +485,12 @@ class PickRepo:
                     timing_label,
                     timing_reasoning,
                     class_strength_signal,
+                    years_out,
                     computation_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 [
+                    next_id,
                     league_id,
                     pick.pick_owner_roster_id,
                     pick.pick_year,
@@ -302,6 +504,7 @@ class PickRepo:
                     pv.timing_label.value,
                     pv.timing_reasoning,
                     pv.class_strength_signal,
+                    pv.years_out,
                     json.dumps({}),
                 ],
             )

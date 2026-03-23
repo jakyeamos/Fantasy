@@ -31,6 +31,7 @@ def upgrade() -> None:
             timing_label            VARCHAR NOT NULL,
             timing_reasoning        VARCHAR NOT NULL,
             class_strength_signal   FLOAT NOT NULL DEFAULT 0.0,
+            years_out               INTEGER NOT NULL DEFAULT 0,
             computation_json        VARCHAR,
             UNIQUE (league_id, pick_owner_roster_id, pick_year, pick_round)
         )

@@ -20,7 +20,9 @@ class PackageBuilder:
         self,
         request: TradeRequest,
         evaluation: TradeEvaluation,
-    ) -> PackageBuilderResult:
+    ) -> PackageBuilderResult | None:
+        if request.third_party_trades:
+            return None
         manager_profile = (
             self._repo.get_manager_profile(request.league_id, request.counterparty_roster_id)
             if request.counterparty_roster_id is not None

@@ -1,1 +1,44 @@
 # Fantasy backend
+
+## Dev Auto-Refresh
+
+When you are iterating on backend logic and want the local league data rebuilt on
+every FastAPI reload, start the backend with `FANTASY_DEV_AUTO_REFRESH=1`.
+
+Example:
+
+```bash
+cd backend
+FANTASY_DEV_AUTO_REFRESH=1 \
+FANTASY_DEV_AUTO_REFRESH_INGEST_MODE=incremental \
+.venv/bin/uvicorn fantasy.main:app --reload
+```
+
+Behavior:
+
+- If `FANTASY_DEV_AUTO_REFRESH_LEAGUES` is empty, the startup hook refreshes every
+  league already present in the local DuckDB file.
+- Set `FANTASY_DEV_AUTO_REFRESH_LEAGUES` to a comma-separated list when you want
+  to force a specific league on a fresh DB.
+- `FANTASY_DEV_AUTO_REFRESH_INGEST_MODE` accepts `incremental`, `full`, or
+  `skip`.
+- After ingest, the backend also recomputes intelligence, manager profiles, and
+  snapshots so the UI is reading rebuilt artifacts instead of stale cached data.
+
+## Personalizing The Dashboard
+
+Set one of these environment variables when you want the dashboard to use your
+roster perspective instead of guessing:
+
+- `FANTASY_PORTFOLIO_OWNER_DISPLAY_NAME`
+- `FANTASY_PORTFOLIO_OWNER_ID`
+
+Example:
+
+```bash
+FANTASY_PORTFOLIO_OWNER_DISPLAY_NAME=jakye \
+.venv/bin/uvicorn fantasy.main:app --reload
+```
+
+The backend also reads a repo-root `.env`, so local personalization can live
+there instead of being repeated in every shell session.

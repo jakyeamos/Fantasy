@@ -78,4 +78,5 @@ class PickValue(BaseModel):
     timing_label: TimingLabel
     timing_reasoning: str
     class_strength_signal: float = Field(ge=-1.0, le=1.0)
+    years_out: int = Field(default=0, ge=0)
     computed_at: datetime

@@ -62,6 +62,41 @@ def test_player_search_endpoint(trade_seed_data):
     assert response.json()
 
 
+def test_player_search_blank_query_returns_scoped_roster_inventory(trade_seed_data):
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(trade_seed_data)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(trade_seed_data)
+    client = TestClient(app)
+
+    response = client.get(
+        "/trade/players/search",
+        params={"league_id": "league_x", "roster_id": 1, "q": ""},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload) == 6
+    assert payload[0]["roster_id"] == 1
+    assert {item["full_name"] for item in payload} >= {"QB One", "RB One", "WR One"}
+
+
+def test_player_search_falls_back_to_roster_ids_when_player_catalog_is_missing(trade_seed_data):
+    trade_seed_data.execute("DELETE FROM players")
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(trade_seed_data)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(trade_seed_data)
+    client = TestClient(app)
+
+    response = client.get(
+        "/trade/players/search",
+        params={"league_id": "league_x", "roster_id": 1, "q": ""},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload) == 6
+    assert {item["player_id"] for item in payload} >= {"qb1", "rb1", "wr1"}
+    assert {item["full_name"] for item in payload} >= {"qb1", "rb1", "wr1"}
+
+
 def test_pick_search_endpoint(trade_seed_data):
     app = create_app()
     app.dependency_overrides[get_read_db_conn] = _override_conn(trade_seed_data)
@@ -70,4 +105,78 @@ def test_pick_search_endpoint(trade_seed_data):
 
     response = client.get("/trade/picks/search", params={"league_id": "league_x"})
     assert response.status_code == 200
-    assert response.json()
+    payload = response.json()
+    assert len(payload) == 18
+    assert any(
+        item["current_owner_id"] == 1
+        and item["original_owner_id"] == 1
+        and item["pick_year"] == 2027
+        and item["round"] == 3
+        for item in payload
+    )
+
+
+def test_pick_search_endpoint_returns_full_scoped_pick_inventory(trade_seed_data):
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(trade_seed_data)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(trade_seed_data)
+    client = TestClient(app)
+
+    response = client.get(
+        "/trade/picks/search",
+        params={"league_id": "league_x", "roster_id": 1},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload) == 11
+    assert any(
+        item["current_owner_id"] == 1
+        and item["original_owner_id"] == 2
+        and item["pick_year"] == 2025
+        and item["round"] == 1
+        for item in payload
+    )
+    assert any(
+        item["current_owner_id"] == 1
+        and item["original_owner_id"] == 1
+        and item["pick_year"] == 2027
+        and item["round"] == 3
+        for item in payload
+    )
+
+
+def test_roster_list_endpoint(trade_seed_data):
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(trade_seed_data)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(trade_seed_data)
+    client = TestClient(app)
+
+    response = client.get("/trade/rosters", params={"league_id": "league_x"})
+    assert response.status_code == 200
+    assert response.json() == [
+        {"roster_id": 1, "roster_name": "user_a"},
+        {"roster_id": 2, "roster_name": "user_b"},
+    ]
+
+
+def test_multi_team_trade_suppresses_reroutes_and_package(trade_seed_data):
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(trade_seed_data)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(trade_seed_data)
+    client = TestClient(app)
+
+    request = _request(include_reroutes=True, include_package=True)
+    request["third_party_trades"] = [
+        {
+            "roster_id": 3,
+            "sends": [{"asset_type": "player", "player_id": "vet1"}],
+            "receives": [{"asset_type": "pick", "pick_year": 2026, "pick_round": 2}],
+        }
+    ]
+
+    response = client.post("/trade/evaluate", json=request)
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["reroutes"] is None
+    assert payload["package"] is None
+    assert "disabled for multi-team deals" in payload["strategic_distinction"]["explanation"]

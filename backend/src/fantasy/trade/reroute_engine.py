@@ -21,6 +21,8 @@ class RerouteEngine:
         self, request: TradeRequest, evaluation: TradeEvaluation
     ) -> list[RerouteResult]:
         reroutes: list[RerouteResult] = []
+        if request.third_party_trades:
+            return reroutes
         primary_target = self._primary_target(request)
         if primary_target is None or request.counterparty_roster_id is None:
             return reroutes

@@ -4,6 +4,7 @@ from typing import Any
 
 import duckdb
 
+from fantasy.intelligence.constants import REBUILD_DIRECTION_LABELS
 from fantasy.trade.constants import (
     DIRECTION_ADVANCING_THRESHOLD,
     DIRECTION_NEGATIVE_THRESHOLD,
@@ -36,10 +37,49 @@ class TradeEngine:
         ]
 
     def _build_pick_proxy(
-        self, asset: TradeAsset, direction_label: str | None
+        self,
+        asset: TradeAsset,
+        direction_label: str | None,
+        league_id: str | None = None,
+        target_roster_id: int | None = None,
     ) -> dict[str, Any]:
+        if (
+            league_id is not None
+            and asset.pick_owner_roster_id is not None
+            and asset.pick_year is not None
+            and asset.pick_round is not None
+        ):
+            try:
+                pick_value = self._repo.get_pick_value(
+                    asset,
+                    league_id,
+                    target_roster_id=target_roster_id,
+                )
+                demand_value = max(float(pick_value.demand_adjusted_value), 0.01)
+                league_value = max(float(pick_value.league_adjusted_value), 0.01)
+                normalized_market = min(demand_value / 100.0, 1.0)
+                normalized_league = min(league_value / 100.0, 1.0)
+                return {
+                    "player_id": None,
+                    "full_name": f"{asset.pick_year} Round {asset.pick_round}",
+                    "position": "PICK",
+                    "comp_insulation": min(normalized_league + 0.1, 1.0),
+                    "comp_market_liquidity": min(normalized_market + 0.1, 1.0),
+                    "comp_age_curve": 1.0,
+                    "comp_positional_scarcity": normalized_league,
+                    "comp_short_term": min(pick_value.timed_value / 100.0, 1.0),
+                    "lens_market": normalized_market,
+                    "lens_insulation": min(normalized_league + 0.05, 1.0),
+                    "lens_team_fit": normalized_league,
+                    "lens_direction": normalized_market,
+                    "lens_production": 0.0,
+                    "pick_value": pick_value,
+                }
+            except Exception:
+                pass
+
         base = PICK_MARKET_VALUES.get(int(asset.pick_round or 4), 0.05)
-        direction_bonus = 0.25 if direction_label in {"hard_rebuild", "productive_struggle", "future_build"} else -0.10
+        direction_bonus = 0.25 if direction_label in REBUILD_DIRECTION_LABELS else -0.10
         return {
             "player_id": None,
             "full_name": f"{asset.pick_year} Round {asset.pick_round}",
@@ -56,12 +96,61 @@ class TradeEngine:
             "lens_production": 0.0,
         }
 
+    def _apply_multi_team_context(
+        self,
+        request: TradeRequest,
+        dimensions: list[DimensionScore],
+    ) -> None:
+        third_party_trades = request.third_party_trades or []
+        if not third_party_trades:
+            return
+
+        leg_summaries: list[str] = []
+        max_imbalance = 0.0
+        for i, leg in enumerate(third_party_trades, start=1):
+            sends_resolved = self._resolve_assets(
+                leg.sends, request.league_id, leg.roster_id, None
+            )
+            receives_resolved = self._resolve_assets(
+                leg.receives, request.league_id, leg.roster_id, None
+            )
+            sent_val = sum(float(v.get("lens_market") or 0.0) for v in sends_resolved)
+            recv_val = sum(float(v.get("lens_market") or 0.0) for v in receives_resolved)
+            baseline = max(sent_val, recv_val, 0.01)
+            net = recv_val - sent_val
+            pct = abs(net) / baseline * 100
+            max_imbalance = max(max_imbalance, pct)
+            direction = "gains" if net > 0 else "gives up" if net < 0 else "breaks even on"
+            leg_summaries.append(
+                f"Sidecar leg {i} (roster {leg.roster_id}) {direction} "
+                f"{round(pct, 1)}% net market value."
+            )
+
+        sidecar_note = " ".join(leg_summaries)
+        note = (
+            f" Multi-team context: {len(third_party_trades)} sidecar leg(s) scored. "
+            f"{sidecar_note} Scoring anchors to your net swap; sidecar fairness is informational."
+        )
+        for dimension in dimensions:
+            if max_imbalance > 25:
+                # Highly imbalanced sidecar — a participant may reject the deal
+                if dimension.confidence == "HIGH":
+                    dimension.confidence = "MEDIUM"
+                elif dimension.confidence == "MEDIUM":
+                    dimension.confidence = "LOW"
+            else:
+                # Roughly balanced sidecar — light touch
+                if dimension.confidence == "HIGH":
+                    dimension.confidence = "MEDIUM"
+            dimension.reasoning += note
+
     def _resolve_assets(
         self,
         assets: list[TradeAsset],
         league_id: str,
         roster_id: int,
         direction_label: str | None,
+        target_roster_id: int | None = None,
     ) -> list[dict[str, Any]]:
         player_ids = self._extract_player_ids(assets)
         player_rows = {
@@ -71,7 +160,14 @@ class TradeEngine:
         resolved: list[dict[str, Any]] = []
         for asset in assets:
             if asset.asset_type == "pick":
-                resolved.append(self._build_pick_proxy(asset, direction_label))
+                resolved.append(
+                    self._build_pick_proxy(
+                        asset,
+                        direction_label,
+                        league_id=league_id,
+                        target_roster_id=target_roster_id,
+                    )
+                )
                 continue
             if asset.player_id is None:
                 continue
@@ -289,12 +385,14 @@ class TradeEngine:
             request.league_id,
             request.user_roster_id,
             direction_label,
+            target_roster_id=request.counterparty_roster_id,
         )
         receiving_values = self._resolve_assets(
             request.user_receives,
             request.league_id,
             request.user_roster_id,
             direction_label,
+            target_roster_id=request.user_roster_id,
         )
         market_fairness = self._score_market_fairness(sending_values, receiving_values)
         roster_fit = self._score_roster_fit(sending_values, receiving_values)
@@ -312,6 +410,18 @@ class TradeEngine:
             manager_profile,
             market_fairness,
             direction_fit,
+        )
+        self._apply_multi_team_context(
+            request,
+            [
+                market_fairness,
+                roster_fit,
+                direction_fit,
+                timing_quality,
+                insulation_delta,
+                liquidity_delta,
+                manager_exploit_quality,
+            ],
         )
         return TradeEvaluation(
             market_fairness=market_fairness,

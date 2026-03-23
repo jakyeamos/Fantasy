@@ -109,7 +109,15 @@ class PickSearchResult(BaseModel):
 
     original_owner_id: int
     current_owner_id: int
+    original_owner_name: str
     pick_year: int
     round: int
     projected_slot: str
     current_owner_name: str
+
+
+class TradeRosterResult(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    roster_id: int
+    roster_name: str

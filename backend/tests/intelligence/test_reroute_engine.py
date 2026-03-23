@@ -1,4 +1,4 @@
-from fantasy.trade.models import TradeAsset, TradeRequest
+from fantasy.trade.models import ThirdPartyTrade, TradeAsset, TradeRequest
 from fantasy.trade.reroute_engine import RerouteEngine
 from fantasy.trade.trade_engine import TradeEngine
 
@@ -40,3 +40,17 @@ def test_reroute_has_reasoning(trade_seed_data):
     reroutes = RerouteEngine(trade_seed_data).generate(request, evaluation)
     assert reroutes
     assert all(reroute.reasoning for reroute in reroutes)
+
+
+def test_multi_team_trade_disables_reroutes(trade_seed_data):
+    request = _request()
+    request.third_party_trades = [
+        ThirdPartyTrade(
+            roster_id=3,
+            sends=[TradeAsset(asset_type="player", player_id="vet1")],
+            receives=[TradeAsset(asset_type="pick", pick_year=2026, pick_round=2)],
+        )
+    ]
+    evaluation = TradeEngine(trade_seed_data).evaluate(request)
+    reroutes = RerouteEngine(trade_seed_data).generate(request, evaluation)
+    assert reroutes == []
