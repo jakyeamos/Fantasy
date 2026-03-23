@@ -235,7 +235,13 @@ Plans:
   3. Every surface that shows a projected pick value cites the active draft-order rule explanation
   4. A per-league manual rule editor covers settings Sleeper does not expose via API
   5. Regression fixtures pass for: inverse standings, max PF for non-playoff teams, lottery top four, and playoff teams ordered by finish
-**Plans**: 0 plans
+**Plans**: 4 plans
+
+Plans:
+- [ ] 10-01-PLAN.md -- Backend foundation: enums, LeagueDraftOrderRule model, migration 012, triple-managed schema, PickRepo CRUD, API endpoints
+- [ ] 10-02-PLAN.md -- Pick engine: rule-dispatching expected_draft_slot, blocked state, citation rendering, batch optimization
+- [ ] 10-03-PLAN.md -- Backend regression tests: inverse standings, max PF, tiebreaker, playoff ordering fixtures + integration tests
+- [ ] 10-04-PLAN.md -- Frontend: DraftOrderRuleForm, RuleCitation component, pick surface updates, blocked state rendering
 
 ---
 
@@ -343,7 +349,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> [GATE] -> 4 -> 5 -> 6 -> 7 -> 8 
 | 7. Rookie Board & Draft Room | 4/4 | Complete | 2026-03-22 |
 | 8. Historical Prospect Lab | 0/5 | Planned | - |
 | 9. Portfolio & Retrospectives | 0/5 | Planned | - |
-| 10. Pick Accuracy & Draft Order | 0/0 | Unplanned | - |
+| 10. Pick Accuracy & Draft Order | 0/4 | Planned | - |
 | 11. Roster & Lineup Intelligence | 0/0 | Unplanned | - |
 | 12. Manager Rookie & Pick Profiles | 0/0 | Unplanned | - |
 | 13. Context Awareness | 0/0 | Unplanned | - |
