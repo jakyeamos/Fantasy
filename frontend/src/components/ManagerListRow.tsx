@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router"
 import type { ManagerSummary } from "@/api/types"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { formatModelLabel } from "@/lib/utils"
 
 export function ManagerListRow({
   leagueId,
@@ -23,7 +24,9 @@ export function ManagerListRow({
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-sm font-semibold">{summary.manager_name}</p>
               {summary.direction_label ? (
-                <Badge variant="secondary">{summary.direction_label}</Badge>
+                <Badge variant="secondary">
+                  {formatModelLabel(summary.direction_label)}
+                </Badge>
               ) : null}
             </div>
             <div
@@ -48,7 +51,7 @@ export function ManagerListRow({
             {summary.top_pitch_angle ? (
               <>
                 <span className="font-medium text-primary">
-                  {summary.top_pitch_angle.deal_archetype}
+                  {formatModelLabel(summary.top_pitch_angle.deal_archetype)}
                 </span>{" "}
                 {summary.top_pitch_angle.reasoning}
               </>

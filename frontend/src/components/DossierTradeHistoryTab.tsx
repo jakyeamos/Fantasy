@@ -49,7 +49,9 @@ export function DossierTradeHistoryTab({
                     </td>
                     <td
                       className={`px-2 py-3 text-right text-xs ${
-                        trade.value_delta >= 0 ? "text-green-600" : "text-red-600"
+                        trade.value_delta >= 0
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-red-600 dark:text-red-400"
                       }`}
                     >
                       {trade.value_delta > 0 ? "+" : ""}

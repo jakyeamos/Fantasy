@@ -25,16 +25,28 @@ export interface ButtonProps
   size?: ButtonSize
 }
 
+export function buttonClasses({
+  className,
+  variant = "default",
+  size = "default",
+}: {
+  className?: string
+  variant?: ButtonVariant
+  size?: ButtonSize
+}) {
+  return cn(
+    "inline-flex items-center justify-center rounded-lg font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+    variantClasses[variant],
+    sizeClasses[size],
+    className,
+  )
+}
+
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "default", ...props }, ref) => (
     <button
       ref={ref}
-      className={cn(
-        "inline-flex items-center justify-center rounded-lg font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
-        variantClasses[variant],
-        sizeClasses[size],
-        className,
-      )}
+      className={buttonClasses({ className, variant, size })}
       {...props}
     />
   ),

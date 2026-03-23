@@ -8,9 +8,10 @@ import { DossierOverviewTab } from "@/components/DossierOverviewTab"
 import { DossierPitchAnglesTab } from "@/components/DossierPitchAnglesTab"
 import { DossierTradeHistoryTab } from "@/components/DossierTradeHistoryTab"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Button, buttonClasses } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { formatModelLabel } from "@/lib/utils"
 
 export const Route = createFileRoute("/league/$leagueId/managers/$managerId")({
   component: ManagerDossierPlaceholderPage,
@@ -52,7 +53,9 @@ function ManagerDossierPlaceholderPage() {
                 {profile.manager_name ?? `Roster ${profile.roster_id}`}
               </CardTitle>
               {profile.direction_label ? (
-                <Badge variant="secondary">{profile.direction_label}</Badge>
+                <Badge variant="secondary">
+                  {formatModelLabel(profile.direction_label)}
+                </Badge>
               ) : null}
             </div>
             <div
@@ -73,8 +76,12 @@ function ManagerDossierPlaceholderPage() {
               | {profile.evidence_count} trades
             </div>
           </div>
-          <Link to="/trades" search={{ leagueId }}>
-            <Button>Evaluate Trade</Button>
+          <Link
+            to="/trades"
+            search={{ leagueId }}
+            className={buttonClasses({})}
+          >
+            Evaluate Trade
           </Link>
         </CardHeader>
       </Card>

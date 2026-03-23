@@ -2,10 +2,11 @@ import type { ManagerProfile } from "@/api/types"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { formatModelLabel } from "@/lib/utils"
 
 function label(type: string | null) {
   if (!type) return "No clear type"
-  return type.replaceAll("_", " ")
+  return formatModelLabel(type)
 }
 
 export function DossierOverviewTab({
@@ -18,7 +19,7 @@ export function DossierOverviewTab({
   return (
     <div className="space-y-4">
       {profile.low_confidence ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
           <p className="text-xs font-semibold tracking-[0.18em]">LOW CONFIDENCE</p>
           <p className="mt-2 text-sm">
             Based on {profile.evidence_count} trades (minimum 10 for reliable profiling). Treat all conclusions with skepticism.
@@ -51,7 +52,7 @@ export function DossierOverviewTab({
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Direction: {profile.direction_label ?? "Unknown"}
+            Direction: {formatModelLabel(profile.direction_label) ?? "Unknown"}
           </p>
           <Separator />
           <div className="space-y-2">

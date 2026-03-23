@@ -45,6 +45,75 @@ class IngestService:
         except json.JSONDecodeError:
             return {}
 
+    def _normalize_player_record(
+        self, player_id: str, raw_player: dict[str, Any] | None
+    ) -> dict[str, Any]:
+        raw_player = raw_player or {}
+        full_name = (
+            raw_player.get("full_name")
+            or " ".join(
+                part
+                for part in [raw_player.get("first_name"), raw_player.get("last_name")]
+                if part
+            )
+            or raw_player.get("search_full_name")
+            or str(player_id)
+        )
+        return {
+            **raw_player,
+            "player_id": str(player_id),
+            "full_name": full_name,
+            "position": raw_player.get("position"),
+            "team": raw_player.get("team"),
+            "age": raw_player.get("age"),
+        }
+
+    async def _backfill_roster_players(self, rosters_raw: list[dict[str, Any]]) -> None:
+        roster_player_ids = sorted(
+            {
+                str(player_id)
+                for roster_raw in rosters_raw
+                for player_id in (roster_raw.get("players") or [])
+                if player_id not in (None, "", 0, "0")
+            }
+        )
+        if not roster_player_ids:
+            return
+
+        existing_player_ids = {
+            str(row[0])
+            for row in self.conn.execute(
+                """
+                SELECT player_id
+                FROM players
+                WHERE player_id IN (
+                    SELECT UNNEST(?)
+                )
+                """,
+                [roster_player_ids],
+            ).fetchall()
+        }
+        missing_player_ids = [
+            player_id
+            for player_id in roster_player_ids
+            if player_id not in existing_player_ids
+        ]
+        if not missing_player_ids:
+            return
+
+        player_catalog: dict[str, dict[str, Any]] = {}
+        fetch_players = getattr(self.client, "fetch_players", None)
+        if callable(fetch_players):
+            try:
+                player_catalog = dict(await fetch_players())
+            except Exception:
+                player_catalog = {}
+
+        for player_id in missing_player_ids:
+            self.repo.upsert_player(
+                self._normalize_player_record(player_id, player_catalog.get(player_id))
+            )
+
     async def run(self, league_id: str, run_type: str = "full") -> int:
         running = self.conn.execute(
             "SELECT COUNT(*) FROM ingest_runs WHERE league_id = ? AND status = 'running'",
@@ -67,16 +136,40 @@ class IngestService:
             league = SleeperMapper.map_league(league_raw)
             self.repo.upsert_league(league)
 
+            users_raw = await self.client.fetch_users(league_id)
+            owner_display_names = {
+                str(user.get("user_id")): str(
+                    user.get("display_name")
+                    or (user.get("metadata") or {}).get("team_name")
+                    or user.get("username")
+                    or user.get("user_id")
+                )
+                for user in users_raw
+                if user.get("user_id") is not None
+            }
+
             rosters_raw = await self.client.fetch_rosters(league_id)
             for roster_raw in rosters_raw:
-                roster = SleeperMapper.map_roster(roster_raw)
+                roster = SleeperMapper.map_roster(
+                    {
+                        **roster_raw,
+                        "owner_display_name": owner_display_names.get(
+                            str(roster_raw.get("owner_id"))
+                        ),
+                    }
+                )
                 self.repo.upsert_roster(roster, league_id)
                 standing = SleeperMapper.map_standing(roster_raw, league_id)
                 self.repo.upsert_standing(standing)
+            await self._backfill_roster_players(rosters_raw)
 
             traded_picks_raw = await self.client.fetch_traded_picks(league_id)
-            traded_picks = SleeperMapper.map_traded_picks(traded_picks_raw)
+            traded_picks = SleeperMapper.map_traded_picks(traded_picks_raw, league_id)
             self.repo.upsert_traded_picks(traded_picks)
+
+            drafts_raw = await self.client.fetch_drafts(league_id)
+            draft_slots = SleeperMapper.map_draft_slots(drafts_raw, league_id)
+            self.repo.upsert_draft_slots(draft_slots)
 
             latest_cursor = self._get_latest_complete_cursor(league_id)
             state = await self.client.fetch_nfl_state()

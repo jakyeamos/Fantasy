@@ -1,8 +1,10 @@
 export interface DashboardLeagueSummary {
   league_id: string
   league_name: string
+  user_roster_id: number | null
   direction_label: string
   confidence_band: "High" | "Medium" | "Low" | "--"
+  summary_signal: string
   primary_weakness: string
   top_exploit_window: string | null
   last_snapshot_at: string | null
@@ -42,6 +44,7 @@ export interface ExploitWindowManager {
 export interface LeagueDetailResponse {
   league_id: string
   league_name: string
+  user_roster_id: number | null
   direction_label: string
   confidence_band: "High" | "Medium" | "Low" | "--"
   primary_weakness: string
@@ -180,8 +183,85 @@ export interface PlayerSearchResult {
 export interface PickSearchResult {
   original_owner_id: number
   current_owner_id: number
+  original_owner_name: string
   pick_year: number
   round: number
   projected_slot: string
   current_owner_name: string
+}
+
+export interface TradeRosterResult {
+  roster_id: number
+  roster_name: string
+}
+
+export type TimingLabel =
+  | "sell_now"
+  | "hold_until_rookie_fever"
+  | "use_on_the_clock"
+
+export interface PickValue {
+  pick: {
+    asset_type: "pick"
+    pick_owner_roster_id: number
+    pick_year: number
+    pick_round: number
+    projected_slot?: string | null
+  }
+  base_value: number
+  timed_value: number
+  league_adjusted_value: number
+  demand_adjusted_value: number
+  expected_draft_slot: number
+  timing_label: TimingLabel
+  timing_reasoning: string
+  class_strength_signal: number
+  years_out: number
+  computed_at: string
+}
+
+export interface RookiePlayer {
+  player_id: string
+  full_name: string
+  position: string
+  archetype_label: string
+  risk_band: "Low" | "Moderate" | "High"
+  composite_score: number
+  tier_number: number
+  available_probability_by_slot: Record<string, number>
+}
+
+export interface RookieTier {
+  tier_number: number
+  label: string
+  players: RookiePlayer[]
+}
+
+export interface RookieBoardResponse {
+  league_id: string
+  league_format: string
+  class_strength_signal: number
+  tiers: RookieTier[]
+  computed_at: string
+}
+
+export interface TradeVerdict {
+  verdict: "trade" | "use"
+  label: string
+  reasoning: string
+}
+
+export interface TendencyWarning {
+  warning_type: "positional_run" | "value_gap"
+  title: string
+  description: string
+}
+
+export interface DraftRoomResponse {
+  league_id: string
+  pick_slot: number
+  pick_slot_display: string
+  trade_verdict: TradeVerdict
+  best_in_abstract: RookiePlayer | null
+  tendency_warnings: TendencyWarning[]
 }

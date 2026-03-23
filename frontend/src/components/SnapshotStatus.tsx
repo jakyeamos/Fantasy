@@ -49,7 +49,9 @@ export function SnapshotStatus({
         {mutation.isPending ? "Saving..." : "Snapshot now"}
       </Button>
       {mutation.isError ? (
-        <span className="text-red-600">Snapshot failed. Try again in a moment.</span>
+        <span className="text-red-600 dark:text-red-400">
+          Snapshot failed. Try again in a moment.
+        </span>
       ) : null}
     </div>
   )

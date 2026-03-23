@@ -40,12 +40,29 @@ def test_map_roster(mock_roster_response):
 
 
 def test_map_traded_picks(mock_traded_pick_response):
-    picks = SleeperMapper.map_traded_picks(mock_traded_pick_response)
+    picks = SleeperMapper.map_traded_picks(mock_traded_pick_response, "test_league_001")
 
     assert len(picks) == 2
     assert picks[0].season == "2025"
     assert picks[0].round == 1
     assert picks[1].previous_owner_id is None
+
+
+def test_map_traded_picks_defaults_league_id():
+    picks = SleeperMapper.map_traded_picks(
+        [
+            {
+                "season": "2025",
+                "round": 1,
+                "roster_id": 3,
+                "owner_id": 7,
+                "previous_owner_id": 3,
+            }
+        ],
+        "test_league_001",
+    )
+
+    assert picks[0].league_id == "test_league_001"
 
 
 def test_partial_response_handling():

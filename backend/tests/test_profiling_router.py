@@ -49,3 +49,24 @@ def test_get_manager_profile_endpoint(profiling_seed_data):
     assert payload["roster_id"] == 1
     assert payload["pitch_angles"]
     assert payload["trade_history"]
+
+
+def test_get_manager_profile_endpoint_persists_on_cache_miss(profiling_seed_data):
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(profiling_seed_data)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(profiling_seed_data)
+    client = TestClient(app)
+
+    profiling_seed_data.execute("DELETE FROM manager_profiles WHERE league_id = 'league_x'")
+    profiling_seed_data.execute("DELETE FROM manager_pitch_angles WHERE league_id = 'league_x'")
+
+    response = client.get("/profiling/leagues/league_x/managers/1")
+    assert response.status_code == 200
+    count = profiling_seed_data.execute(
+        """
+        SELECT COUNT(*)
+        FROM manager_profiles
+        WHERE league_id = 'league_x' AND roster_id = 1
+        """
+    ).fetchone()[0]
+    assert count == 1

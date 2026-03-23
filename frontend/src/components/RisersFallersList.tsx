@@ -27,7 +27,9 @@ function Column({
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs text-muted-foreground">{item.player_name}</p>
                   <span
-                    className={`text-xs ${positive ? "text-green-600" : "text-red-600"}`}
+                    className={`text-xs ${
+                      positive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                    }`}
                   >
                     {item.delta > 0 ? "+" : ""}
                     {item.delta.toFixed(1)}

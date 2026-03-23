@@ -128,6 +128,19 @@ DIRECTION_MOVE_MATRIX: dict[str, dict[str, list[str]]] = {
     },
 }
 
+CONTENDER_DIRECTION_LABELS = (
+    "true_contender",
+    "fragile_contender",
+    "fringe_playoff",
+)
+
+REBUILD_DIRECTION_LABELS = (
+    "productive_struggle",
+    "one_year_punt",
+    "elite_value_accumulation",
+    "hard_rebuild",
+)
+
 # Source: Phase 2 RESEARCH.md Pattern 5 / ESPN age curve analysis 2023.
 POSITIONAL_PEAK_AGE = {"RB": 26, "WR": 28, "TE": 30, "QB": 32}
 

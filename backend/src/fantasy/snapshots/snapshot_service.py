@@ -12,7 +12,7 @@ WEAKNESS_LABELS: dict[str, str] = {
     "future_value": "Your roster lacks enough insulated long-term value.",
     "depth": "You need more playable depth behind your starters.",
     "pick_capital": "You need more draft capital to unlock flexible moves.",
-    "flexibility": "Your roster construction limits strategic flexibility.",
+    "flexibility": "Position mix is skewed toward one position group.",
     "fragility": "Your weekly outcomes are too brittle to injuries or misses.",
     "age_risk": "Your core is carrying too much age-related downside.",
     "liquidity": "Your roster lacks enough liquid market assets to move.",
@@ -39,6 +39,23 @@ def _loads(raw: str | None, fallback: Any) -> Any:
         return json.loads(raw)
     except json.JSONDecodeError:
         return fallback
+
+
+def _position_group_phrase(position: str, count: int) -> tuple[str, str]:
+    labels = {
+        "QB": ("QB", "QBs"),
+        "RB": ("RB", "RBs"),
+        "WR": ("WR", "WRs"),
+        "TE": ("TE", "TEs"),
+        "K": ("K", "Ks"),
+        "DEF": ("DEF", "DEFs"),
+        "DL": ("DL", "DLs"),
+        "LB": ("LB", "LBs"),
+        "DB": ("DB", "DBs"),
+        "UNKNOWN": ("Unknown-position player", "Unknown-position players"),
+    }
+    singular, plural = labels.get(position, (position, f"{position}s"))
+    return (singular, "is") if count == 1 else (plural, "are")
 
 
 class SnapshotService:
@@ -210,6 +227,12 @@ class SnapshotService:
             }
             for row in scorecard_rows
         }
+        player_positions = {
+            str(row[0]): str(row[1] or "UNKNOWN")
+            for row in self.conn.execute(
+                "SELECT player_id, position FROM players"
+            ).fetchall()
+        }
 
         player_value_rows = self.conn.execute(
             """
@@ -251,17 +274,28 @@ class SnapshotService:
         for row in roster_rows:
             roster_id = int(row[0])
             scorecard = scorecards.get(roster_id, {})
+            starters = _loads(row[2], [])
+            players = _loads(row[3], [])
+            reserve = _loads(row[4], [])
+            taxi = _loads(row[5], [])
             rosters.append(
                 {
                     "roster_id": roster_id,
                     "owner_id": row[1],
-                    "starters": _loads(row[2], []),
-                    "players": _loads(row[3], []),
-                    "reserve": _loads(row[4], []),
-                    "taxi": _loads(row[5], []),
+                    "starters": starters,
+                    "players": players,
+                    "reserve": reserve,
+                    "taxi": taxi,
                     "standing": standings.get(roster_id),
                     "direction": directions.get(roster_id),
-                    "primary_weakness": self._derive_primary_weakness(scorecard),
+                    "primary_weakness": self._derive_primary_weakness(
+                        scorecard,
+                        starters=starters,
+                        players=players,
+                        reserve=reserve,
+                        taxi=taxi,
+                        player_positions=player_positions,
+                    ),
                     "player_values": player_values.get(roster_id, []),
                 }
             )
@@ -293,10 +327,62 @@ class SnapshotService:
             "traded_picks": traded_picks,
         }
 
-    def _derive_primary_weakness(self, scorecard: dict[str, float]) -> str:
+    def _build_flexibility_note(
+        self,
+        starters: list[Any],
+        players: list[Any],
+        reserve: list[Any],
+        taxi: list[Any],
+        player_positions: dict[str, str],
+    ) -> str | None:
+        starter_ids = [str(player_id) for player_id in starters]
+        excluded = set(starter_ids) | {str(player_id) for player_id in reserve} | {
+            str(player_id) for player_id in taxi
+        }
+        roster = starter_ids + [
+            str(player_id) for player_id in players if str(player_id) not in excluded
+        ]
+        if not roster:
+            return None
+
+        counts: dict[str, int] = {}
+        for player_id in roster:
+            position = player_positions.get(player_id, "UNKNOWN")
+            counts[position] = counts.get(position, 0) + 1
+
+        dominant_position, dominant_count = max(
+            counts.items(), key=lambda item: (item[1], item[0])
+        )
+        label, verb = _position_group_phrase(dominant_position, dominant_count)
+        share = round((dominant_count / len(roster)) * 100)
+        return f"{label} {verb} {dominant_count} of {len(roster)} starters/bench players ({share}%)."
+
+    def _derive_primary_weakness(
+        self,
+        scorecard: dict[str, float],
+        *,
+        starters: list[Any] | None = None,
+        players: list[Any] | None = None,
+        reserve: list[Any] | None = None,
+        taxi: list[Any] | None = None,
+        player_positions: dict[str, str] | None = None,
+    ) -> str:
         if not scorecard:
             return "Run Phase 2 intelligence to surface the primary roster weakness."
         weakest = min(scorecard.items(), key=lambda item: item[1])[0]
+        if (
+            weakest == "flexibility"
+            and starters is not None
+            and players is not None
+            and reserve is not None
+            and taxi is not None
+            and player_positions is not None
+        ):
+            flexibility_note = self._build_flexibility_note(
+                starters, players, reserve, taxi, player_positions
+            )
+            if flexibility_note is not None:
+                return flexibility_note
         return WEAKNESS_LABELS.get(
             weakest, "This roster needs more clarity before surfacing a weakness."
         )

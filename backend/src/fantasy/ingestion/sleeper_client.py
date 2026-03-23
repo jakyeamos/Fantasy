@@ -47,6 +47,9 @@ class SleeperClient:
     async def fetch_rosters(self, league_id: str) -> list[dict[str, Any]]:
         return list(await self._get(f"/league/{league_id}/rosters"))
 
+    async def fetch_users(self, league_id: str) -> list[dict[str, Any]]:
+        return list(await self._get(f"/league/{league_id}/users"))
+
     async def fetch_traded_picks(self, league_id: str) -> list[dict[str, Any]]:
         return list(await self._get(f"/league/{league_id}/traded_picks"))
 
@@ -62,6 +65,15 @@ class SleeperClient:
 
     async def fetch_nfl_state(self) -> dict[str, Any]:
         return dict(await self._get("/state/nfl"))
+
+    async def fetch_drafts(self, league_id: str) -> list[dict[str, Any]]:
+        try:
+            result = await self._get(f"/league/{league_id}/drafts")
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 404:
+                return []
+            raise
+        return list(result or [])
 
     async def fetch_players(self) -> dict[str, dict[str, Any]]:
         data = await self._get("/players/nfl")

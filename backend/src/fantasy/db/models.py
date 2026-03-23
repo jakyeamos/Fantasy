@@ -35,6 +35,7 @@ rosters = Table(
     Column("league_id", String, nullable=False),
     Column("roster_id", Integer, nullable=False),
     Column("owner_id", String),
+    Column("owner_display_name", String),
     Column("starters", String, nullable=False),
     Column("players", String, nullable=False),
     Column("reserve", String),
@@ -56,6 +57,20 @@ standings = Table(
     Column("fpts_against", Float, nullable=False, server_default=text("0.0")),
     Column("ingested_at", TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP")),
     UniqueConstraint("league_id", "roster_id", name="uq_standings_league_roster"),
+)
+
+draft_slots = Table(
+    "draft_slots",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("league_id", String, nullable=False),
+    Column("draft_id", String, nullable=False),
+    Column("season", Integer, nullable=False),
+    Column("roster_id", Integer, nullable=False),
+    Column("confirmed_slot", Integer, nullable=False),
+    Column("status", String, nullable=False),
+    Column("ingested_at", TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP")),
+    UniqueConstraint("league_id", "draft_id", "roster_id", name="uq_draft_slots_identity"),
 )
 
 traded_picks = Table(

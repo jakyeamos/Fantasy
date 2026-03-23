@@ -21,6 +21,7 @@ class LeagueSettings(BaseModel):
 class RosterSnapshot(BaseModel):
     roster_id: int
     owner_id: str | None = None
+    owner_display_name: str | None = None
     league_id: str
     starters: list[str]
     bench: list[str]
@@ -35,6 +36,15 @@ class TradedPick(BaseModel):
     roster_id: int
     owner_id: int
     previous_owner_id: int | None = None
+
+
+class DraftSlot(BaseModel):
+    league_id: str
+    draft_id: str
+    season: int
+    roster_id: int
+    confirmed_slot: int
+    status: str
 
 
 class StandingRow(BaseModel):
@@ -85,10 +95,17 @@ class SleeperMapper:
 
     @staticmethod
     def map_roster(raw: dict[str, Any]) -> RosterSnapshot:
-        starters = [str(player) for player in (raw.get("starters") or [])]
-        players = [str(player) for player in (raw.get("players") or [])]
-        reserve = [str(player) for player in (raw.get("reserve") or [])]
-        taxi = [str(player) for player in (raw.get("taxi") or [])]
+        def _valid_player_ids(values: list[Any] | None) -> list[str]:
+            return [
+                str(player)
+                for player in (values or [])
+                if player not in (None, "", 0, "0")
+            ]
+
+        starters = _valid_player_ids(raw.get("starters"))
+        players = _valid_player_ids(raw.get("players"))
+        reserve = _valid_player_ids(raw.get("reserve"))
+        taxi = _valid_player_ids(raw.get("taxi"))
 
         excluded = set(starters) | set(reserve) | set(taxi)
         bench = [player for player in players if player not in excluded]
@@ -96,6 +113,7 @@ class SleeperMapper:
         payload = {
             "roster_id": raw.get("roster_id"),
             "owner_id": raw.get("owner_id"),
+            "owner_display_name": raw.get("owner_display_name"),
             "league_id": raw.get("league_id"),
             "starters": starters,
             "bench": bench,
@@ -105,11 +123,11 @@ class SleeperMapper:
         return RosterSnapshot.model_validate(payload)
 
     @staticmethod
-    def map_traded_picks(raw: list[dict[str, Any]]) -> list[TradedPick]:
+    def map_traded_picks(raw: list[dict[str, Any]], league_id: str) -> list[TradedPick]:
         return [
             TradedPick.model_validate(
                 {
-                    "league_id": item.get("league_id"),
+                    "league_id": item.get("league_id") or league_id,
                     "season": item.get("season"),
                     "round": item.get("round"),
                     "roster_id": item.get("roster_id"),
@@ -119,6 +137,32 @@ class SleeperMapper:
             )
             for item in (raw or [])
         ]
+
+    @staticmethod
+    def map_draft_slots(raw: list[dict[str, Any]], league_id: str) -> list[DraftSlot]:
+        slots: list[DraftSlot] = []
+        for draft in raw or []:
+            draft_id = draft.get("draft_id")
+            season = draft.get("season")
+            status = str(draft.get("status") or "pre_draft")
+            slot_to_roster = draft.get("slot_to_roster_id") or {}
+            if not draft_id or not season or not slot_to_roster:
+                continue
+            for slot_str, roster_id in slot_to_roster.items():
+                try:
+                    slots.append(
+                        DraftSlot(
+                            league_id=league_id,
+                            draft_id=str(draft_id),
+                            season=int(season),
+                            roster_id=int(roster_id),
+                            confirmed_slot=int(slot_str),
+                            status=status,
+                        )
+                    )
+                except (ValueError, TypeError):
+                    continue
+        return slots
 
     @staticmethod
     def map_standing(raw: dict[str, Any], league_id: str) -> StandingRow:

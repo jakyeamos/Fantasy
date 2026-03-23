@@ -1,5 +1,6 @@
 import type { PitchAngle } from "@/api/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { formatModelLabel } from "@/lib/utils"
 
 export function DossierPitchAnglesTab({
   pitchAngles,
@@ -26,7 +27,9 @@ export function DossierPitchAnglesTab({
       {pitchAngles.map((angle) => (
         <Card key={angle.rank}>
           <CardHeader>
-            <CardTitle className="text-primary">{angle.deal_archetype}</CardTitle>
+            <CardTitle className="text-primary">
+              {formatModelLabel(angle.deal_archetype)}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm">

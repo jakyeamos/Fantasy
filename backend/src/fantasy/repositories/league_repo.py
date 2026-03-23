@@ -6,6 +6,7 @@ from typing import Any
 import duckdb
 
 from fantasy.ingestion.sleeper_mapper import (
+    DraftSlot,
     LeagueSettings,
     RosterSnapshot,
     StandingRow,
@@ -66,11 +67,12 @@ class LeagueRepo:
         self.conn.execute(
             """
             INSERT INTO rosters (
-                id, league_id, roster_id, owner_id, starters, players, reserve, taxi
+                id, league_id, roster_id, owner_id, owner_display_name, starters, players, reserve, taxi
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (league_id, roster_id) DO UPDATE SET
                 owner_id = EXCLUDED.owner_id,
+                owner_display_name = EXCLUDED.owner_display_name,
                 starters = EXCLUDED.starters,
                 players = EXCLUDED.players,
                 reserve = EXCLUDED.reserve,
@@ -81,6 +83,7 @@ class LeagueRepo:
                 league_id,
                 roster.roster_id,
                 roster.owner_id,
+                roster.owner_display_name,
                 _dumps(roster.starters),
                 _dumps(roster.starters + roster.bench + roster.ir + roster.taxi),
                 _dumps(roster.ir),
@@ -153,6 +156,38 @@ class LeagueRepo:
                 ],
             )
 
+    def upsert_draft_slots(self, slots: list[DraftSlot]) -> None:
+        for slot in slots:
+            existing = self.conn.execute(
+                """
+                SELECT id FROM draft_slots
+                WHERE league_id = ? AND draft_id = ? AND roster_id = ?
+                """,
+                [slot.league_id, slot.draft_id, slot.roster_id],
+            ).fetchone()
+            row_id = int(existing[0]) if existing else self._next_id("draft_slots")
+            self.conn.execute(
+                """
+                INSERT INTO draft_slots (
+                    id, league_id, draft_id, season, roster_id, confirmed_slot, status
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (league_id, draft_id, roster_id) DO UPDATE SET
+                    confirmed_slot = EXCLUDED.confirmed_slot,
+                    status = EXCLUDED.status,
+                    ingested_at = CURRENT_TIMESTAMP
+                """,
+                [
+                    row_id,
+                    slot.league_id,
+                    slot.draft_id,
+                    slot.season,
+                    slot.roster_id,
+                    slot.confirmed_slot,
+                    slot.status,
+                ],
+            )
+
     def upsert_player(self, player_dict: dict[str, Any]) -> None:
         self.conn.execute(
             """
@@ -163,8 +198,7 @@ class LeagueRepo:
                 position = EXCLUDED.position,
                 team = EXCLUDED.team,
                 age = EXCLUDED.age,
-                metadata_blob = EXCLUDED.metadata_blob,
-                refreshed_at = CURRENT_TIMESTAMP
+                metadata_blob = EXCLUDED.metadata_blob
             """,
             [
                 player_dict.get("player_id"),

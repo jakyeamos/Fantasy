@@ -27,10 +27,16 @@ def list_managers(
 def get_manager_profile(
     league_id: str,
     roster_id: int,
-    conn: duckdb.DuckDBPyConnection = Depends(get_read_db_conn),
+    conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
 ) -> ManagerProfile:
-    engine = ProfilingEngine(conn)
-    profile = engine.compute_profile(league_id, roster_id)
+    repo = ProfilingRepo(conn)
+    profile = repo.get_profile(league_id, roster_id)
+    if profile is None:
+        engine = ProfilingEngine(conn)
+        profile = engine.compute_profile(league_id, roster_id)
+        if profile.evidence_count > 0:
+            repo.upsert_profile(profile)
+            repo.replace_pitch_angles(profile.league_id, profile.roster_id, profile.pitch_angles)
     if profile.evidence_count == 0:
         raise HTTPException(status_code=404, detail="Manager profile not found")
     return profile

@@ -15,8 +15,12 @@ from fantasy.profiling.constants import (
     EXPLOITATION_TYPE_WEIGHTS,
     MIN_TRADE_EVIDENCE_THRESHOLD,
     PICK_VALUE_NORMALIZED,
-    PITCH_ARCHETYPES,
+    PITCH_ANGLE_VARIANTS,
     SECONDARY_TYPE_THRESHOLD_RATIO,
+)
+from fantasy.intelligence.constants import (
+    CONTENDER_DIRECTION_LABELS,
+    REBUILD_DIRECTION_LABELS,
 )
 from fantasy.profiling.models import (
     ExploitationClassification,
@@ -32,6 +36,20 @@ def _loads(raw: str | None, fallback: Any) -> Any:
         return json.loads(raw)
     except json.JSONDecodeError:
         return fallback
+
+
+def _is_rebuild_direction(direction: str | None) -> bool:
+    return direction in REBUILD_DIRECTION_LABELS
+
+
+def _is_contender_direction(direction: str | None) -> bool:
+    return direction in CONTENDER_DIRECTION_LABELS
+
+
+def _format_label(label: str | None, fallback: str) -> str:
+    if label is None:
+        return fallback
+    return label.replace("_", " ")
 
 
 class ProfilingEngine:
@@ -290,10 +308,10 @@ class ProfilingEngine:
                 sent_pick_trades += 1
             if direction is not None:
                 received_ages = [ages.get(player_id, 0) for player_id in received]
-                if direction in {"hard_rebuild", "productive_struggle", "future_build"}:
+                if _is_rebuild_direction(direction):
                     if sent_picks or any(age >= 27 for age in received_ages):
                         directional_incoherence += 1
-                if direction in {"true_contender", "win_now", "hold_and_buy"}:
+                if _is_contender_direction(direction):
                     sent_ages = [ages.get(player_id, 0) for player_id in sent]
                     if any(age <= 23 for age in sent_ages) and not received:
                         directional_incoherence += 1
@@ -357,6 +375,7 @@ class ProfilingEngine:
                 "win_rate": win_rate,
                 "focus_position": overpay_position,
                 "sent_pick_trades": sent_pick_trades,
+                "trade_count": total_trades,
             },
         )
 
@@ -374,6 +393,183 @@ class ProfilingEngine:
             ) * weight
         return round(min(weighted * 100.0, 100.0), 2)
 
+    def _pitch_angle_context(
+        self,
+        exploitation: ExploitationClassification,
+        direction: str | None,
+    ) -> dict[str, str | int | float]:
+        focus_position = str(exploitation.metadata.get("focus_position") or "").upper()
+        focus_position_label = (
+            focus_position if focus_position and focus_position != "UNKNOWN" else "position-specific"
+        )
+        if focus_position == "QB":
+            focus_asset_phrase = "QB2 or volatile quarterback depth"
+        elif focus_position and focus_position != "UNKNOWN":
+            focus_asset_phrase = f"{focus_position} depth with insulation attached"
+        else:
+            focus_asset_phrase = "depth at the spot they keep chasing"
+
+        trade_count = int(exploitation.metadata.get("trade_count", 0))
+        negative_count = int(exploitation.evidence_counts.get("value_loss", 0))
+        sent_pick_trades = int(exploitation.metadata.get("sent_pick_trades", 0))
+        avg_delta = float(exploitation.metadata.get("avg_delta", 0.0))
+        return {
+            "direction_label": _format_label(direction, "current roster path"),
+            "focus_position_label": focus_position_label,
+            "focus_asset_phrase": focus_asset_phrase,
+            "trade_count": trade_count,
+            "negative_count": negative_count,
+            "negative_trade_phrase": f"{negative_count} of {trade_count}",
+            "sent_pick_trades": sent_pick_trades,
+            "avg_delta": round(avg_delta, 3),
+        }
+
+    def _candidate_pitch_families(
+        self,
+        exploitation: ExploitationClassification,
+        direction: str | None,
+    ) -> list[str]:
+        rebuild = _is_rebuild_direction(direction)
+        avg_delta = float(exploitation.metadata.get("avg_delta", 0.0))
+        sent_pick_trades = int(exploitation.metadata.get("sent_pick_trades", 0))
+        focus_position = str(exploitation.metadata.get("focus_position") or "").upper()
+        primary = exploitation.primary_type
+        secondary = exploitation.secondary_type
+        families: list[str] = []
+
+        if primary == "value_loss":
+            if rebuild:
+                if sent_pick_trades >= 2:
+                    families.append("value_loss_rebuild_pick_pressure")
+                families.append("value_loss_rebuild_insulation")
+                families.append(
+                    "directional_incoherence_pick_drift"
+                    if secondary == "directional_incoherence"
+                    else "timing_error_rebuild_patience"
+                )
+                families.append("timing_error_rebuild_trough_buyback")
+            else:
+                families.append(
+                    "value_loss_contender_points_patch"
+                    if avg_delta <= -0.10
+                    else "value_loss_contender_future_leak"
+                )
+                families.append(
+                    "timing_error_contender_box_score"
+                    if secondary == "timing_error"
+                    else "directional_incoherence_reset"
+                )
+                families.append("timing_error_contender_spike_sale")
+                families.append("value_loss_contender_future_leak")
+        elif primary == "timing_error":
+            if rebuild:
+                families.append(
+                    "timing_error_rebuild_patience"
+                    if sent_pick_trades >= 1
+                    else "timing_error_rebuild_trough_buyback"
+                )
+                families.append(
+                    "value_loss_rebuild_pick_pressure"
+                    if sent_pick_trades >= 2
+                    else "value_loss_rebuild_insulation"
+                )
+                families.append("directional_incoherence_pick_drift")
+            else:
+                families.extend(
+                    [
+                        "timing_error_contender_spike_sale",
+                        "timing_error_contender_box_score",
+                        "value_loss_contender_points_patch",
+                    ]
+                )
+        elif primary == "directional_incoherence":
+            if rebuild:
+                families.extend(
+                    [
+                        "directional_incoherence_pick_drift",
+                        "value_loss_rebuild_pick_pressure"
+                        if sent_pick_trades >= 1
+                        else "value_loss_rebuild_insulation",
+                        "timing_error_rebuild_patience",
+                    ]
+                )
+            else:
+                families.extend(
+                    [
+                        "directional_incoherence_reset",
+                        "value_loss_contender_points_patch",
+                        "timing_error_contender_box_score",
+                    ]
+                )
+        else:
+            if focus_position == "QB":
+                families.extend(["archetype_overpay_qb_patch", "archetype_overpay_qb_ceiling"])
+            else:
+                families.append("archetype_overpay_position")
+            families.append(
+                "value_loss_rebuild_insulation" if rebuild else "value_loss_contender_points_patch"
+            )
+            families.append(
+                "timing_error_rebuild_patience" if rebuild else "timing_error_contender_spike_sale"
+            )
+
+        if secondary == "timing_error":
+            families.append(
+                "timing_error_rebuild_trough_buyback"
+                if rebuild
+                else "timing_error_contender_box_score"
+            )
+        elif secondary == "directional_incoherence":
+            families.append(
+                "directional_incoherence_pick_drift"
+                if rebuild
+                else "directional_incoherence_reset"
+            )
+        elif secondary == "value_loss":
+            families.append(
+                "value_loss_rebuild_insulation"
+                if rebuild
+                else "value_loss_contender_future_leak"
+            )
+        elif secondary == "archetype_overpay":
+            families.append(
+                "archetype_overpay_qb_patch"
+                if focus_position == "QB"
+                else "archetype_overpay_position"
+            )
+
+        ordered: list[str] = []
+        for family in families:
+            if family not in ordered:
+                ordered.append(family)
+        return ordered
+
+    def _render_pitch_angle(
+        self,
+        family: str,
+        rank: int,
+        context: dict[str, str | int | float],
+    ) -> PitchAngle | None:
+        variants = PITCH_ANGLE_VARIANTS.get(family)
+        if not variants:
+            return None
+        seed = (
+            int(abs(float(context["avg_delta"])) * 1000)
+            + int(context["trade_count"]) * 3
+            + int(context["negative_count"]) * 5
+            + int(context["sent_pick_trades"]) * 7
+            + len(family)
+            + rank
+        )
+        template = variants[seed % len(variants)]
+        return PitchAngle(
+            rank=rank,
+            deal_archetype=template["deal_archetype"].format(**context),
+            send_description=template["send_template"].format(**context),
+            avoid_description=template["avoid_template"].format(**context),
+            reasoning=template["reasoning_template"].format(**context),
+        )
+
     def _compute_pitch_angles(
         self,
         exploitation: ExploitationClassification,
@@ -382,41 +578,33 @@ class ProfilingEngine:
         if exploitation.primary_type is None:
             return []
 
-        keys: list[str]
-        if exploitation.primary_type == "value_loss":
-            if direction in {"hard_rebuild", "productive_struggle", "future_build"}:
-                keys = ["value_loss_rebuild", "timing_error_rebuild", "incoherent_seller"]
-            else:
-                keys = ["value_loss_win_now", "timing_error_contender", "incoherent_seller"]
-        elif exploitation.primary_type == "timing_error":
-            if direction in {"hard_rebuild", "productive_struggle", "future_build"}:
-                keys = ["timing_error_rebuild", "value_loss_rebuild", "incoherent_seller"]
-            else:
-                keys = ["timing_error_contender", "value_loss_win_now", "incoherent_seller"]
-        elif exploitation.primary_type == "directional_incoherence":
-            keys = ["incoherent_seller", "value_loss_rebuild", "value_loss_win_now"]
-        else:
-            focus_position = exploitation.metadata.get("focus_position")
-            if focus_position == "QB":
-                keys = ["archetype_overpayer_qb", "value_loss_win_now", "incoherent_seller"]
-            else:
-                keys = ["value_loss_win_now", "incoherent_seller", "timing_error_contender"]
-
+        keys = self._candidate_pitch_families(exploitation, direction)
+        context = self._pitch_angle_context(exploitation, direction)
         angles: list[PitchAngle] = []
         for rank, key in enumerate(keys, start=1):
-            template = PITCH_ARCHETYPES.get(key)
-            if template is None:
+            angle = self._render_pitch_angle(key, rank, context)
+            if angle is None:
                 continue
-            angles.append(
-                PitchAngle(
-                    rank=rank,
-                    deal_archetype=template["deal_archetype"],
-                    send_description=template["send_template"],
-                    avoid_description=template["avoid_template"],
-                    reasoning=template["reasoning_template"],
-                )
-            )
+            angles.append(angle)
         return angles[:3]
+
+    def _pick_descriptions(
+        self, transaction: dict[str, Any], roster_id: int
+    ) -> tuple[list[str], list[str]]:
+        sent: list[str] = []
+        received: list[str] = []
+        for pick in transaction.get("draft_picks", []):
+            season = str(pick.get("season") or "Unknown")
+            round_number = int(pick.get("round") or 0)
+            label = f"{season} Round {round_number} pick"
+            if pick.get("owner_id") is not None and int(pick.get("owner_id")) == roster_id:
+                received.append(label)
+            if (
+                pick.get("previous_owner_id") is not None
+                and int(pick.get("previous_owner_id")) == roster_id
+            ):
+                sent.append(label)
+        return sent, received
 
     def _build_trade_history(
         self,
@@ -445,12 +633,11 @@ class ProfilingEngine:
                 sent_pick_rounds=sent_picks,
                 adp_map=adp_map,
             )
-            sent_assets = [names.get(player_id, player_id) for player_id in sent] + [
-                f"2026 Round {round_number} pick" for round_number in sent_picks
-            ]
-            received_assets = [names.get(player_id, player_id) for player_id in received] + [
-                f"2026 Round {round_number} pick" for round_number in received_picks
-            ]
+            sent_pick_assets, received_pick_assets = self._pick_descriptions(
+                trade, roster_id
+            )
+            sent_assets = [names.get(player_id, player_id) for player_id in sent] + sent_pick_assets
+            received_assets = [names.get(player_id, player_id) for player_id in received] + received_pick_assets
             created_at = trade.get("created_at")
             history.append(
                 {
@@ -501,15 +688,19 @@ class ProfilingEngine:
 
         roster_row = self._conn.execute(
             """
-            SELECT owner_id, players
+            SELECT owner_id, owner_display_name, players
             FROM rosters
             WHERE league_id = ? AND roster_id = ?
             LIMIT 1
             """,
             [league_id, roster_id],
         ).fetchone()
-        manager_name = str(roster_row[0]) if roster_row and roster_row[0] else f"Roster {roster_id}"
-        roster_players = _loads(roster_row[1], []) if roster_row else []
+        manager_name = (
+            str(roster_row[1] or roster_row[0])
+            if roster_row and (roster_row[1] or roster_row[0])
+            else f"Roster {roster_id}"
+        )
+        roster_players = _loads(roster_row[2], []) if roster_row else []
         position_counts = Counter(
             str(row[0] or "UNKNOWN")
             for row in self._conn.execute(

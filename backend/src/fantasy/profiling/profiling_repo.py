@@ -42,9 +42,9 @@ class ProfilingRepo:
             INSERT INTO manager_profiles (
                 id, league_id, roster_id, evidence_count, low_confidence,
                 exploitability_score, exploitation_primary, exploitation_secondary,
-                exploitation_evidence, roster_summary, aggregate_trade_stats
+                exploitation_evidence, roster_summary, aggregate_trade_stats, trade_history
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (league_id, roster_id) DO UPDATE SET
                 evidence_count = EXCLUDED.evidence_count,
                 low_confidence = EXCLUDED.low_confidence,
@@ -53,7 +53,8 @@ class ProfilingRepo:
                 exploitation_secondary = EXCLUDED.exploitation_secondary,
                 exploitation_evidence = EXCLUDED.exploitation_evidence,
                 roster_summary = EXCLUDED.roster_summary,
-                aggregate_trade_stats = EXCLUDED.aggregate_trade_stats
+                aggregate_trade_stats = EXCLUDED.aggregate_trade_stats,
+                trade_history = EXCLUDED.trade_history
             """,
             [
                 row_id,
@@ -67,6 +68,7 @@ class ProfilingRepo:
                 json.dumps(profile.exploitation_evidence, separators=(",", ":")),
                 json.dumps(profile.roster_summary or {}, separators=(",", ":")),
                 json.dumps(profile.aggregate_trade_stats, separators=(",", ":")),
+                json.dumps(profile.trade_history, separators=(",", ":")),
             ],
         )
 
@@ -130,7 +132,7 @@ class ProfilingRepo:
                    mp.evidence_count, mp.low_confidence, mp.exploitability_score,
                    mp.exploitation_primary, mp.exploitation_secondary,
                    mp.exploitation_evidence, mp.aggregate_trade_stats,
-                   mp.roster_summary, r.owner_id, td.primary_label
+                   mp.trade_history, mp.roster_summary, r.owner_id, r.owner_display_name, td.primary_label
             FROM manager_profiles mp
             LEFT JOIN rosters r
               ON r.league_id = mp.league_id AND r.roster_id = mp.roster_id
@@ -154,9 +156,10 @@ class ProfilingRepo:
             exploitation_secondary=str(row[7]) if row[7] is not None else None,
             exploitation_evidence=_loads(row[8], {}),
             aggregate_trade_stats=_loads(row[9], {}),
-            roster_summary=_loads(row[10], {}),
-            manager_name=str(row[11]) if row[11] is not None else None,
-            direction_label=str(row[12]) if row[12] is not None else None,
+            trade_history=_loads(row[10], []),
+            roster_summary=_loads(row[11], {}),
+            manager_name=str(row[13] or row[12]) if (row[13] or row[12]) is not None else None,
+            direction_label=str(row[14]) if row[14] is not None else None,
             pitch_angles=self.get_pitch_angles(league_id, roster_id),
         )
 
@@ -165,6 +168,7 @@ class ProfilingRepo:
             """
             SELECT r.roster_id,
                    r.owner_id,
+                   r.owner_display_name,
                    td.primary_label,
                    mp.exploitability_score,
                    mp.evidence_count,
@@ -187,11 +191,11 @@ class ProfilingRepo:
                 ManagerSummary(
                     league_id=league_id,
                     roster_id=roster_id,
-                    manager_name=str(row[1] or f"Roster {roster_id}"),
-                    direction_label=str(row[2]) if row[2] is not None else None,
-                    exploitability_score=float(row[3]) if row[3] is not None else 0.0,
-                    evidence_count=int(row[4]) if row[4] is not None else 0,
-                    low_confidence=bool(row[5]) if row[5] is not None else True,
+                    manager_name=str(row[2] or row[1] or f"Roster {roster_id}"),
+                    direction_label=str(row[3]) if row[3] is not None else None,
+                    exploitability_score=float(row[4]) if row[4] is not None else 0.0,
+                    evidence_count=int(row[5]) if row[5] is not None else 0,
+                    low_confidence=bool(row[6]) if row[6] is not None else True,
                     top_pitch_angle=angles[0] if angles else None,
                 )
             )

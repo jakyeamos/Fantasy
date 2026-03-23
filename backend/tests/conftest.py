@@ -25,6 +25,7 @@ SCHEMA_SQL = [
         league_id VARCHAR NOT NULL,
         roster_id INTEGER NOT NULL,
         owner_id VARCHAR,
+        owner_display_name VARCHAR,
         starters VARCHAR NOT NULL,
         players VARCHAR NOT NULL,
         reserve VARCHAR,
@@ -45,6 +46,19 @@ SCHEMA_SQL = [
         fpts_against DOUBLE NOT NULL DEFAULT 0.0,
         ingested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         UNIQUE (league_id, roster_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS draft_slots (
+        id INTEGER PRIMARY KEY,
+        league_id VARCHAR NOT NULL,
+        draft_id VARCHAR NOT NULL,
+        season INTEGER NOT NULL,
+        roster_id INTEGER NOT NULL,
+        confirmed_slot INTEGER NOT NULL,
+        status VARCHAR NOT NULL,
+        ingested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (league_id, draft_id, roster_id)
     )
     """,
     """
@@ -236,6 +250,7 @@ SCHEMA_SQL = [
         exploitation_evidence VARCHAR NOT NULL,
         roster_summary VARCHAR,
         aggregate_trade_stats VARCHAR NOT NULL,
+        trade_history VARCHAR NOT NULL DEFAULT '[]',
         UNIQUE (league_id, roster_id)
     )
     """,
@@ -251,6 +266,50 @@ SCHEMA_SQL = [
         reasoning VARCHAR NOT NULL,
         computed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         UNIQUE (league_id, roster_id, rank)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS pick_values (
+        id INTEGER PRIMARY KEY,
+        league_id VARCHAR NOT NULL,
+        pick_owner_roster_id INTEGER NOT NULL,
+        pick_year INTEGER NOT NULL,
+        pick_round INTEGER NOT NULL,
+        computed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        expected_draft_slot DOUBLE NOT NULL,
+        base_value DOUBLE NOT NULL,
+        timed_value DOUBLE NOT NULL,
+        league_adjusted_value DOUBLE NOT NULL,
+        demand_adjusted_value DOUBLE NOT NULL,
+        timing_label VARCHAR NOT NULL,
+        timing_reasoning VARCHAR NOT NULL,
+        class_strength_signal DOUBLE NOT NULL DEFAULT 0.0,
+        years_out INTEGER NOT NULL DEFAULT 0,
+        computation_json VARCHAR,
+        UNIQUE (league_id, pick_owner_roster_id, pick_year, pick_round)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS rookie_board_cache (
+        id INTEGER PRIMARY KEY,
+        league_id VARCHAR NOT NULL,
+        computed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        class_strength_signal DOUBLE NOT NULL,
+        board_json VARCHAR NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS league_draft_tendencies (
+        id INTEGER PRIMARY KEY,
+        league_id VARCHAR NOT NULL,
+        computed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        tendency_type VARCHAR NOT NULL,
+        position VARCHAR,
+        player_id VARCHAR,
+        player_name VARCHAR,
+        early_draft_slots DOUBLE,
+        adp_delta DOUBLE,
+        system_value_slot INTEGER
     )
     """,
 ]

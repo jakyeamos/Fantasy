@@ -4,6 +4,7 @@ import type { DashboardLeagueSummary } from "@/api/types"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { formatModelLabel } from "@/lib/utils"
 
 function badgeVariant(confidenceBand: DashboardLeagueSummary["confidence_band"]) {
   if (confidenceBand === "High") return "default"
@@ -23,6 +24,9 @@ function formatSnapshot(snapshot: string | null) {
 }
 
 export function LeagueCard(props: DashboardLeagueSummary) {
+  const leadLabel = props.top_exploit_window ? "Live market" : "Top edge"
+  const leadCopy = props.top_exploit_window ?? props.summary_signal
+
   return (
     <Link
       to="/league/$leagueId"
@@ -36,7 +40,7 @@ export function LeagueCard(props: DashboardLeagueSummary) {
           </CardTitle>
           <div className="flex items-center gap-2">
             <p className="text-xl font-semibold tracking-tight">
-              {props.direction_label}
+              {formatModelLabel(props.direction_label)}
             </p>
             <Badge variant={badgeVariant(props.confidence_band)}>
               {props.confidence_band}
@@ -45,11 +49,21 @@ export function LeagueCard(props: DashboardLeagueSummary) {
         </CardHeader>
         <Separator />
         <CardContent className="space-y-3">
-          <p className="text-sm leading-6">{props.primary_weakness}</p>
-          {props.top_exploit_window ? (
-            <p className="border-t border-border/60 pt-2 text-xs text-muted-foreground">
-              {props.top_exploit_window}
+          <div className="space-y-1">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              {leadLabel}
             </p>
+            <p className="text-sm leading-6">{leadCopy}</p>
+          </div>
+          {props.top_exploit_window ? (
+            <div className="border-t border-border/60 pt-2">
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Top edge
+              </p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                {props.summary_signal}
+              </p>
+            </div>
           ) : null}
           <p className="text-xs text-muted-foreground">
             {formatSnapshot(props.last_snapshot_at)}

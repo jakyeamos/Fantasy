@@ -1,7 +1,7 @@
 import { useEffect } from "react"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { createFileRoute } from "@tanstack/react-router"
+import { Outlet, createFileRoute } from "@tanstack/react-router"
 
 import { managerSummariesOptions } from "@/api/queries"
 import { ManagerListRow } from "@/components/ManagerListRow"
@@ -99,6 +99,7 @@ function ManagersPlaceholderPage() {
           </p>
         </CardContent>
       </Card>
+      <Outlet />
     </div>
   )
 }
