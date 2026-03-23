@@ -7,6 +7,7 @@ import {
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { RouterProvider, createRouter } from "@tanstack/react-router"
 
+import { applyTheme, getPreferredTheme } from "@/lib/theme"
 import { routeTree } from "./routeTree.gen"
 import "./index.css"
 
@@ -24,6 +25,8 @@ const router = createRouter({
   routeTree,
   context: { queryClient },
 })
+
+applyTheme(getPreferredTheme())
 
 declare module "@tanstack/react-router" {
   interface Register {

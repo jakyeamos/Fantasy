@@ -1,6 +1,8 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  color-scheme: light;
   --background: 44 28% 96%;
   --foreground: 214 26% 14%;
   --card: 0 0% 100%;
@@ -20,9 +22,13 @@
   --input: 34 18% 84%;
   --ring: 204 78% 38%;
   --radius: 18px;
+  --background-glow-left: hsla(188, 44%, 88%, 0.6);
+  --background-glow-right: hsla(42, 34%, 88%, 0.8);
+  --background-end: color-mix(in srgb, hsl(var(--background)) 88%, white);
 }
 
 .dark {
+  color-scheme: dark;
   --background: 214 26% 10%;
   --foreground: 44 28% 96%;
   --card: 214 24% 14%;
@@ -41,6 +47,9 @@
   --border: 214 17% 24%;
   --input: 214 17% 24%;
   --ring: 193 71% 61%;
+  --background-glow-left: hsla(193, 71%, 61%, 0.12);
+  --background-glow-right: hsla(204, 74%, 38%, 0.22);
+  --background-end: color-mix(in srgb, hsl(var(--background)) 88%, black);
 }
 
 @theme inline {
@@ -72,14 +81,19 @@
   border-color: hsl(var(--border));
 }
 
+html {
+  background-color: hsl(var(--background));
+}
+
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, hsla(188, 44%, 88%, 0.6), transparent 32%),
-    radial-gradient(circle at top right, hsla(42, 34%, 88%, 0.8), transparent 28%),
-    linear-gradient(180deg, hsl(var(--background)), color-mix(in srgb, hsl(var(--background)) 88%, white));
+    radial-gradient(circle at top left, var(--background-glow-left), transparent 32%),
+    radial-gradient(circle at top right, var(--background-glow-right), transparent 28%),
+    linear-gradient(180deg, hsl(var(--background)), var(--background-end));
   color: hsl(var(--foreground));
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  transition: background 180ms ease, color 180ms ease;
 }
 
 #root {
