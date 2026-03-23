@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 from fantasy.intelligence.constants import (
     DIRECTION_MOVE_MATRIX,
     DIRECTION_WEIGHTS,
@@ -11,6 +13,10 @@ from fantasy.intelligence.models import DirectionResult, TeamScorecard
 
 def _clamp01(value: float) -> float:
     return max(0.0, min(1.0, value))
+
+
+_CONFIDENCE_SOFTMAX_TEMPERATURE = 0.032
+_LOW_CONFIDENCE_THRESHOLD = 0.4
 
 
 class DirectionEngine:
@@ -34,7 +40,7 @@ class DirectionEngine:
         alternates = self._compute_alternates(ranked, primary_score)
         delta = self._compute_delta(scores, ranked)
         reasoning = self._build_reasoning(primary_label, scores, primary_score)
-        if confidence < 0.10:
+        if confidence < _LOW_CONFIDENCE_THRESHOLD:
             reasoning = f"Low confidence — {reasoning}"
         return DirectionResult(
             primary_label=primary_label,
@@ -63,12 +69,23 @@ class DirectionEngine:
     def _compute_confidence(self, label_scores: dict[str, float]) -> float:
         if len(label_scores) < 2:
             return 1.0
+
         sorted_scores = sorted(label_scores.values(), reverse=True)
-        top, second = sorted_scores[0], sorted_scores[1]
-        span = sorted_scores[0] - sorted_scores[-1]
-        if span < 1e-9:
+        scaled_scores = [
+            score / _CONFIDENCE_SOFTMAX_TEMPERATURE for score in sorted_scores
+        ]
+        max_scaled = max(scaled_scores)
+        exp_scores = [math.exp(score - max_scaled) for score in scaled_scores]
+        total = sum(exp_scores)
+        if total < 1e-9:
             return 0.0
-        return _clamp01((top - second) / span)
+
+        top_probability = max(exp_score / total for exp_score in exp_scores)
+        uniform_probability = 1.0 / len(sorted_scores)
+        return _clamp01(
+            (top_probability - uniform_probability)
+            / max(1.0 - uniform_probability, 1e-9)
+        )
 
     def _compute_alternates(
         self, ranked: list[tuple[str, float]], primary_score: float

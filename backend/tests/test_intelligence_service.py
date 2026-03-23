@@ -16,3 +16,11 @@ def test_scorecard_triggers_direction_recompute(phase2_seed_data):
     )
     updated = service.compute_league("league_x")["directions"][1]
     assert initial.primary_label != "" and updated.primary_label != ""
+
+
+def test_compute_league_tolerates_missing_player_rows(phase2_seed_data):
+    phase2_seed_data.execute("DELETE FROM players")
+
+    result = IntelligenceService(phase2_seed_data).compute_league("league_x")
+
+    assert result["values"][1]["qb1"].player_id == "qb1"

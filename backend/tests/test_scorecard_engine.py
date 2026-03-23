@@ -80,3 +80,27 @@ def test_fragility_availability_proxy(phase2_seed_data):
     )
     scorecards = ScorecardEngine(phase2_seed_data).compute_all("league_x")
     assert scorecards[1].fragility > scorecards[2].fragility
+
+
+def test_positional_insulation_requires_distinct_bench_cover(phase2_seed_data):
+    phase2_seed_data.execute(
+        """
+        UPDATE leagues
+        SET roster_positions = '["QB","RB","RB","WR","TE","BN"]'
+        WHERE league_id = 'league_x'
+        """
+    )
+    phase2_seed_data.execute(
+        """
+        UPDATE rosters
+        SET starters = '["qb1","rb1","rbb1","wr1","te1"]',
+            players = '["qb1","rb1","rbb1","wr1","te1","vet1"]'
+        WHERE league_id = 'league_x' AND roster_id = 1
+        """
+    )
+
+    engine = ScorecardEngine(phase2_seed_data)
+    inputs = engine._gather_inputs("league_x", 1)
+    score = engine._score_positional_insulation(inputs, {1: inputs})
+
+    assert score == pytest.approx(0.2)

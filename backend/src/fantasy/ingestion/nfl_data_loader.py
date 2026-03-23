@@ -137,14 +137,23 @@ def load_adp_baseline(conn: duckdb.DuckDBPyConnection, csv_path: str = "data/adp
     position_col = lower_to_original.get("position") or lower_to_original.get("pos")
     adp_col = lower_to_original.get("adp") or lower_to_original.get("overall")
 
+    if player_id_col is None:
+        raise ValueError(
+            "ADP CSV must include a Sleeper player ID column ('player_id' or 'id')."
+        )
     if player_name_col is None or adp_col is None:
         raise ValueError("ADP CSV must include player name and ADP columns.")
 
     rows: list[tuple[Any, Any, Any, Any, str]] = []
-    for record in df.to_dicts():
+    for index, record in enumerate(df.to_dicts(), start=1):
+        player_id = record.get(player_id_col)
+        if player_id in (None, ""):
+            raise ValueError(
+                f"ADP CSV row {index} is missing a Sleeper player ID."
+            )
         rows.append(
             (
-                record.get(player_id_col) if player_id_col else None,
+                str(player_id),
                 record.get(player_name_col),
                 record.get(position_col) if position_col else None,
                 float(record.get(adp_col)) if record.get(adp_col) not in (None, "") else None,

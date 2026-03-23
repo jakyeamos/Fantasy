@@ -30,7 +30,7 @@ class ValuationEngine:
             [player_id],
         ).fetchone()
         if player_row is None:
-            raise ValueError(f"player not found: {player_id}")
+            player_row = (player_id, "UNKNOWN", 24)
 
         league_row = self._conn.execute(
             """

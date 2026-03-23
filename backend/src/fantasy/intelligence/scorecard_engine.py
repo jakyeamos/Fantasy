@@ -298,32 +298,28 @@ class ScorecardEngine:
         self, inputs: ScorecardInputs, all_inputs: dict[int, ScorecardInputs]
     ) -> float:
         current_season = inputs.season
-        traded = self._conn.execute(
-            """
-            SELECT season, round FROM traded_picks
-            WHERE league_id = ? AND owner_id = CAST(? AS VARCHAR)
-              AND CAST(season AS INTEGER) >= ?
-            """,
-            [inputs.league_id, inputs.roster_id, current_season],
-        ).fetchall()
-        traded_away = self._conn.execute(
-            """
-            SELECT DISTINCT season, round FROM traded_picks
-            WHERE league_id = ? AND roster_id = ?
-              AND CAST(season AS INTEGER) >= ?
-            """,
-            [inputs.league_id, inputs.roster_id, current_season],
-        ).fetchall()
-        traded_away_set = {(str(row[0]), int(row[1])) for row in traded_away}
+        owned_traded_keys = {
+            (season, round_no, original_roster_id)
+            for season, round_no, original_roster_id, owner_id in inputs.pick_rows
+            if int(season) >= current_season and owner_id == str(inputs.roster_id)
+        }
+        routed_original_keys = {
+            (season, round_no, original_roster_id)
+            for season, round_no, original_roster_id, _owner_id in inputs.pick_rows
+            if int(season) >= current_season and original_roster_id == inputs.roster_id
+        }
         future_seasons = [str(current_season + offset) for offset in range(3)]
-        untouched = [
-            (season, rnd)
+        untouched_original_keys = {
+            (season, rnd, inputs.roster_id)
             for season in future_seasons
             for rnd in (1, 2, 3)
-            if (season, rnd) not in traded_away_set
-        ]
-        all_picks = list(traded) + untouched
-        return sum(ROUND_WEIGHTS.get(int(round_no), 0.5) for _, round_no in all_picks)
+            if (season, rnd, inputs.roster_id) not in routed_original_keys
+        }
+        all_owned_picks = owned_traded_keys | untouched_original_keys
+        return sum(
+            ROUND_WEIGHTS.get(int(round_no), 0.5)
+            for _season, round_no, _original_roster_id in all_owned_picks
+        )
 
     def _score_flexibility(
         self, inputs: ScorecardInputs, all_inputs: dict[int, ScorecardInputs]
@@ -426,10 +422,17 @@ class ScorecardEngine:
         if not required_slots:
             return 0.0
 
-        bench_positions = [inputs.player_positions.get(player_id, "UNKNOWN") for player_id in inputs.bench]
-        filled = 0
-        for player_id in inputs.starters[: len(required_slots)]:
-            starter_position = inputs.player_positions.get(player_id, "UNKNOWN")
-            if starter_position in bench_positions:
-                filled += 1
+        required_counts: dict[str, int] = {}
+        for slot in required_slots:
+            required_counts[slot] = required_counts.get(slot, 0) + 1
+
+        bench_counts: dict[str, int] = {}
+        for player_id in inputs.bench:
+            position = inputs.player_positions.get(player_id, "UNKNOWN")
+            bench_counts[position] = bench_counts.get(position, 0) + 1
+
+        filled = sum(
+            min(required_count, bench_counts.get(position, 0))
+            for position, required_count in required_counts.items()
+        )
         return filled / len(required_slots)

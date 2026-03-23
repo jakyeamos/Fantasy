@@ -67,13 +67,49 @@ def test_minimum_alternates():
 
 def test_low_confidence_reasoning():
     result = DirectionEngine().classify(make_scorecard())
-    assert result.confidence < 0.20
+    assert result.confidence < 0.40
     assert result.reasoning.startswith("Low confidence")
 
 
 def test_delta_present():
     result = DirectionEngine().classify(make_scorecard(win_now=0.8, future_value=0.2))
     assert {"flip_to", "dimension", "change_needed", "direction"} <= set(result.delta)
+
+
+def test_clear_contender_signal_has_high_confidence():
+    result = DirectionEngine().classify(
+        make_scorecard(
+            win_now=0.9,
+            future_value=0.2,
+            depth=0.8,
+            pick_capital=0.2,
+            flexibility=0.4,
+            fragility=0.1,
+            age_risk=0.1,
+            liquidity=0.2,
+            positional_insulation=0.8,
+        )
+    )
+    assert result.confidence >= 0.7
+    assert not result.reasoning.startswith("Low confidence")
+
+
+def test_rebuild_signal_with_close_alternates_is_medium_confidence():
+    result = DirectionEngine().classify(
+        make_scorecard(
+            win_now=0.1,
+            future_value=0.9,
+            depth=0.3,
+            pick_capital=0.9,
+            flexibility=0.7,
+            fragility=0.3,
+            age_risk=0.8,
+            liquidity=0.8,
+            positional_insulation=0.3,
+        )
+    )
+    assert 0.4 <= result.confidence < 0.7
+    assert not result.reasoning.startswith("Low confidence")
 
 
 def test_move_matrix_completeness():
