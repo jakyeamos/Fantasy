@@ -61,7 +61,7 @@ Source: Existing button/card spacing patterns in `frontend/src/components/ui/` �
 Notes:
 - The `terminal-label` utility class (10px / weight 700 / uppercase / Space Grotesk / tracking-[0.16em]) is used for all section eyebrows (e.g., "Title Window", "Roster Hygiene", "Taxi / IR Slots").
 - Hygiene suggestion reasoning text: 14px (text-sm), weight 400, Inter, line-height 1.5, `text-muted-foreground` — matches secondary description pattern without introducing a new size.
-- Numeric values (starter scores, occupancy counts): JetBrains Mono 12px (text-xs), weight 400, uppercase, tracking-[0.16em].
+- Numeric values (starter scores, occupancy counts): JetBrains Mono 14px (text-sm), weight 400, uppercase, tracking-[0.16em].
 
 Source: `frontend/src/index.css`, `frontend/src/components/ui/card.tsx`, `frontend/src/components/ui/badge.tsx` — pre-populated.
 
