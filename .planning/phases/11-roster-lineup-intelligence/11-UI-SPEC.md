@@ -21,7 +21,7 @@ created: 2026-03-23
 | Preset | not applicable |
 | Component library | Custom Radix-free components — Card, Badge, Button, Label, Skeleton, Separator, RadioGroup in `frontend/src/components/ui/` |
 | Icon library | lucide-react ^0.511.0 |
-| Font | Body: Inter 400/500; Label/UI: Space Grotesk 500/700; Headline: Manrope 500/700/800; Mono: JetBrains Mono 400/500 |
+| Font | Body: Inter 400/700; Label/UI: Space Grotesk 700; Headline: Manrope 700; Mono: JetBrains Mono 400 |
 
 Source: `frontend/src/index.css`, `frontend/package.json`, `frontend/src/components/ui/`
 
@@ -56,12 +56,12 @@ Source: Existing button/card spacing patterns in `frontend/src/components/ui/` �
 | Body | 14px (text-sm) | 400 (regular) | 1.5 (leading-6) | Inter |
 | Label / terminal | 10px | 700 (bold) | 1.2 | Space Grotesk, uppercase, tracking-[0.16em] |
 | Heading (card title) | 18px (text-lg) | 700 (bold) | 1.2 (tracking-tight) | Manrope |
-| Display (direction / window label) | 24px (text-2xl) or 28px (text-3xl) | 800 (extrabold) | 1.1 | Manrope |
+| Display (direction / window label) | 24px (text-2xl) | 700 (bold) | 1.1 | Manrope |
 
 Notes:
 - The `terminal-label` utility class (10px / weight 700 / uppercase / Space Grotesk / tracking-[0.16em]) is used for all section eyebrows (e.g., "Title Window", "Roster Hygiene", "Taxi / IR Slots").
-- Hygiene suggestion reasoning text: 12px (text-xs), weight 400, Inter, line-height 1.5 — matches existing secondary description pattern.
-- Numeric values (starter scores, occupancy counts): JetBrains Mono 11px, uppercase, tracking-[0.16em].
+- Hygiene suggestion reasoning text: 14px (text-sm), weight 400, Inter, line-height 1.5, `text-muted-foreground` — matches secondary description pattern without introducing a new size.
+- Numeric values (starter scores, occupancy counts): JetBrains Mono 12px (text-xs), weight 400, uppercase, tracking-[0.16em].
 
 Source: `frontend/src/index.css`, `frontend/src/components/ui/card.tsx`, `frontend/src/components/ui/badge.tsx` — pre-populated.
 
