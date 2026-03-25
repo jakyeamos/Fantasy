@@ -110,6 +110,7 @@ def test_ensure_runtime_schema_creates_missing_phase_tables(db):
         "pick_values",
         "rookie_board_cache",
         "league_draft_tendencies",
+        "league_draft_order_rules",
     ]:
         db.execute(f"DROP TABLE {table_name}")
 
@@ -129,6 +130,34 @@ def test_ensure_runtime_schema_creates_missing_phase_tables(db):
     assert "pick_values" in tables
     assert "rookie_board_cache" in tables
     assert "league_draft_tendencies" in tables
+    assert "league_draft_order_rules" in tables
+
+
+def test_league_draft_order_rules_table_created_by_startup(db):
+    db.execute("DROP TABLE IF EXISTS league_draft_order_rules")
+
+    ensure_runtime_schema(db)
+
+    db.execute(
+        """
+        INSERT INTO league_draft_order_rules (
+            id,
+            league_id,
+            non_playoff_basis,
+            playoff_ordering,
+            tiebreaker
+        )
+        VALUES (1, 'test_league', 'inverse_standings', 'by_finish', 'points_against')
+        """
+    )
+    row = db.execute(
+        """
+        SELECT league_id
+        FROM league_draft_order_rules
+        WHERE id = 1
+        """
+    ).fetchone()
+    assert row == ("test_league",)
 
 
 def test_refresh_league_artifacts_rebuilds_cached_outputs(phase2_seed_data):
