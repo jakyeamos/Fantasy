@@ -313,6 +313,54 @@ SCHEMA_SQL = [
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS league_draft_order_rules (
+        id                INTEGER PRIMARY KEY,
+        league_id         VARCHAR NOT NULL UNIQUE,
+        non_playoff_basis VARCHAR NOT NULL,
+        playoff_ordering  VARCHAR NOT NULL,
+        tiebreaker        VARCHAR NOT NULL,
+        created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS league_taxi_configs (
+        id                  INTEGER PRIMARY KEY,
+        league_id           VARCHAR NOT NULL UNIQUE,
+        taxi_slots          INTEGER NOT NULL,
+        taxi_years_eligible INTEGER NOT NULL,
+        years_pro_cutoff    INTEGER NOT NULL,
+        created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS lineup_scores (
+        id                      INTEGER PRIMARY KEY,
+        league_id               VARCHAR NOT NULL,
+        roster_id               INTEGER NOT NULL,
+        computed_at             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        total_lineup_score      FLOAT NOT NULL,
+        title_window_label      VARCHAR NOT NULL,
+        title_window_composite  FLOAT NOT NULL,
+        ceiling_score           FLOAT NOT NULL,
+        stability_score         FLOAT NOT NULL,
+        depth_score             FLOAT NOT NULL,
+        slot_scores_json        VARCHAR NOT NULL,
+        UNIQUE (league_id, roster_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS hygiene_suggestions (
+        id                      INTEGER PRIMARY KEY,
+        league_id               VARCHAR NOT NULL,
+        roster_id               INTEGER NOT NULL,
+        computed_at             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        suggestions_json        VARCHAR NOT NULL,
+        UNIQUE (league_id, roster_id)
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS retrospective_runs (
         id INTEGER PRIMARY KEY,
         run_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
