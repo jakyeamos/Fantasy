@@ -33,7 +33,8 @@ export function PackageBuilderPanel({
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-lg font-semibold">Package Builder</h3>
+        <p className="terminal-label text-primary/80">Suggested framing</p>
+        <h3 className="font-headline text-2xl font-bold">Package Builder</h3>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {offers.map((offer) => (
@@ -42,12 +43,12 @@ export function PackageBuilderPanel({
               <CardTitle>{offer.label}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-sm">
-                <span className="text-xs text-muted-foreground">Send:</span>{" "}
+              <p className="rounded-lg border border-border/35 bg-card/45 px-3 py-3 text-sm">
+                <span className="terminal-label text-muted-foreground">Send</span>{" "}
                 {renderAssets(offer.send_assets)}
               </p>
-              <p className="text-sm">
-                <span className="text-xs text-muted-foreground">Receive:</span>{" "}
+              <p className="rounded-lg border border-border/35 bg-card/45 px-3 py-3 text-sm">
+                <span className="terminal-label text-muted-foreground">Receive</span>{" "}
                 {renderAssets(offer.receive_assets)}
               </p>
               <p className="border-t border-border/60 pt-3 text-sm italic text-muted-foreground">

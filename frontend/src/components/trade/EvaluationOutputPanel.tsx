@@ -17,6 +17,7 @@ const DIMENSIONS: Array<[keyof TradeEvaluation, string]> = [
 
 export function EvaluationOutputPanel({
   evaluation,
+  leagueId,
   userSends,
   userReceives,
   pickValuesByKey,
@@ -25,6 +26,7 @@ export function EvaluationOutputPanel({
   onOpenPackage,
 }: {
   evaluation: TradeEvaluation
+  leagueId: string
   userSends: TradeAsset[]
   userReceives: TradeAsset[]
   pickValuesByKey: Map<string, PickValue>
@@ -57,10 +59,13 @@ export function EvaluationOutputPanel({
     <Card>
       <CardHeader>
         <CardTitle>Evaluation</CardTitle>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Seven-dimension trade scoring, strategic framing, and pick context.
+        </p>
       </CardHeader>
       <CardContent className="space-y-6">
         <StrategicDistinctionBanner distinction={evaluation.strategic_distinction} />
-        <div>
+        <div className="rounded-xl border border-border/40 bg-card/45 p-4">
           {DIMENSIONS.map(([key, label]) => (
             <DimensionScoreRow
               key={String(key)}
@@ -71,14 +76,15 @@ export function EvaluationOutputPanel({
         </div>
         {pickSummaryRows.length ? (
           <div className="space-y-3">
-            <p className="text-sm font-semibold">Pick Context</p>
+            <p className="terminal-label text-muted-foreground">Pick Context</p>
             {pickSummaryRows.map((row, index) => (
               <div key={`${row.side}-${index}`} className="space-y-2">
-                <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                <p className="terminal-label text-muted-foreground">
                   {row.side}
                 </p>
                 <PickValueSummaryRow
                   pickValue={row.value}
+                  leagueId={leagueId}
                   managerName={counterpartyName}
                 />
               </div>

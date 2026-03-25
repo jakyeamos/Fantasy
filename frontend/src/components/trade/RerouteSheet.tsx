@@ -15,10 +15,11 @@ export function RerouteSheet({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/25 backdrop-blur-sm">
-      <div className="h-full w-[360px] max-w-full border-l border-border bg-background p-6 shadow-2xl sm:w-[420px]">
+      <div className="glass-panel h-full w-[360px] max-w-full border-l border-border bg-background/95 p-6 shadow-2xl sm:w-[420px]">
         <div className="mb-6 flex items-start justify-between gap-3">
           <div>
-            <p className="text-lg font-semibold">Better Options</p>
+            <p className="terminal-label text-primary/85">Alternative paths</p>
+            <p className="mt-2 font-headline text-2xl font-bold">Better Options</p>
             <p className="text-xs text-muted-foreground">Up to 3 reroute paths</p>
           </div>
           <Button variant="ghost" onClick={onClose}>

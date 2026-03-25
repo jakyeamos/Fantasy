@@ -123,6 +123,7 @@ function AssetBucketPanel({
   buttonLabel,
   isActive,
   assets,
+  leagueId,
   pickValuesByKey,
   onSelect,
   onRemove,
@@ -132,13 +133,21 @@ function AssetBucketPanel({
   buttonLabel: string
   isActive: boolean
   assets: TradeAsset[]
+  leagueId: string
   pickValuesByKey: Map<string, PickValue>
   onSelect: () => void
   onRemove: (index: number) => void
 }) {
   return (
-    <div className="rounded-xl border border-border/70 bg-background/70 p-4">
+    <div
+      className={`rounded-xl border p-4 ${
+        isActive
+          ? "border-primary/30 bg-primary/10 shadow-[0_0_24px_-16px_rgba(123,208,255,0.8)]"
+          : "border-border/45 bg-card/45"
+      }`}
+    >
       <div className="space-y-1">
+        <p className="terminal-label text-muted-foreground">Asset bucket</p>
         <p className="text-sm font-semibold">{title}</p>
         <p className="text-xs text-muted-foreground">{subtitle}</p>
       </div>
@@ -150,6 +159,7 @@ function AssetBucketPanel({
                 key={`${assetKey(asset)}-${index}`}
                 asset={asset}
                 detail={assetDetail(asset)}
+                leagueId={leagueId}
                 pickValue={
                   asset.asset_type === "pick"
                     ? pickValuesByKey.get(pickValueKeyFromAsset(asset))
@@ -187,7 +197,7 @@ function LeagueField({
 
   return (
     <label className="space-y-2">
-      <span className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+      <span className="terminal-label text-muted-foreground">
         League
       </span>
       <select
@@ -228,7 +238,7 @@ function RosterField({
 
   return (
     <label className="space-y-2">
-      <span className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+      <span className="terminal-label text-muted-foreground">
         {label}
       </span>
       <select
@@ -567,10 +577,11 @@ function TradeEvaluatorPage() {
     )
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <Card>
         <CardHeader className="space-y-2">
-          <CardTitle>Evaluate Trade</CardTitle>
+          <p className="terminal-label text-primary/85">Deal intelligence</p>
+          <CardTitle className="text-3xl">Evaluate Trade</CardTitle>
           <p className="max-w-3xl text-sm text-muted-foreground">
             Build your outgoing and incoming package first, then layer in extra teams for
             multi-team trades. The seven dimensions stay anchored to your net swap and the
@@ -598,15 +609,18 @@ function TradeEvaluatorPage() {
           </div>
 
           {leagueId.trim().length > 0 && selectedLeague && userRosterId === 0 ? (
-            <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-200">
+            <p className="rounded-lg border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               Your team could not be identified for this league, so trade evaluation is disabled.
             </p>
           ) : null}
 
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-            <Card className="border-l-2 border-l-primary">
+            <Card className="border-primary/25">
               <CardHeader>
                 <CardTitle>{userRosterName ? `${userRosterName} • Your Team` : "Your Team View"}</CardTitle>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Build your send and receive package from your roster’s perspective.
+                </p>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <AssetBucketPanel
@@ -615,6 +629,7 @@ function TradeEvaluatorPage() {
                   buttonLabel="Add to Send Side"
                   isActive={queryTarget.kind === "user" && queryTarget.bucket === "send"}
                   assets={userSends}
+                  leagueId={leagueId}
                   pickValuesByKey={pickValuesByKey}
                   onSelect={() => setActiveTarget({ kind: "user", bucket: "send" })}
                   onRemove={(index) => removeUserAsset("send", index)}
@@ -625,6 +640,7 @@ function TradeEvaluatorPage() {
                   buttonLabel="Add to Receive Side"
                   isActive={queryTarget.kind === "user" && queryTarget.bucket === "receive"}
                   assets={userReceives}
+                  leagueId={leagueId}
                   pickValuesByKey={pickValuesByKey}
                   onSelect={() => setActiveTarget({ kind: "user", bucket: "receive" })}
                   onRemove={(index) => removeUserAsset("receive", index)}
@@ -632,13 +648,16 @@ function TradeEvaluatorPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-dashed">
+            <Card className="border-dashed border-border/45">
               <CardHeader>
                 <CardTitle>
                   {counterpartyRosterName
                     ? `${counterpartyRosterName} • Primary Counterparty`
                     : "Primary Counterparty"}
                 </CardTitle>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Reroutes and package framing stay anchored to this opponent profile.
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">
@@ -646,8 +665,8 @@ function TradeEvaluatorPage() {
                   {counterpartyRosterName ?? `roster ${counterpartyRosterId || "?"}`}. Your
                   receive buckets can still pull assets from any team in a multi-team deal.
                 </p>
-                <div className="rounded-xl border border-border/70 bg-background/70 p-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                <div className="rounded-xl border border-border/45 bg-card/45 p-4">
+                  <p className="terminal-label text-muted-foreground">
                     Deal Shape
                   </p>
                   <p className="mt-2 text-sm font-semibold">
@@ -668,7 +687,7 @@ function TradeEvaluatorPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                  <p className="terminal-label text-muted-foreground">
                     Multi-Team Legs
                   </p>
                   <p className="text-sm text-muted-foreground">
@@ -687,7 +706,7 @@ function TradeEvaluatorPage() {
                       className={
                         isActiveTrade
                           ? "border-amber-400/70 shadow-[0_18px_42px_-28px_rgba(217,119,6,0.55)]"
-                          : "border-dashed"
+                          : "border-dashed border-border/45"
                       }
                     >
                       <CardHeader className="flex flex-row items-start justify-between gap-4">
@@ -736,6 +755,7 @@ function TradeEvaluatorPage() {
                               queryTarget.bucket === "send"
                             }
                             assets={trade.sends}
+                            leagueId={leagueId}
                             pickValuesByKey={pickValuesByKey}
                             onSelect={() =>
                               setActiveTarget({
@@ -758,6 +778,7 @@ function TradeEvaluatorPage() {
                               queryTarget.bucket === "receive"
                             }
                             assets={trade.receives}
+                            leagueId={leagueId}
                             pickValuesByKey={pickValuesByKey}
                             onSelect={() =>
                               setActiveTarget({
@@ -798,7 +819,7 @@ function TradeEvaluatorPage() {
               />
 
               {leagueId.trim().length > 0 && !hasScopedRoster ? (
-                <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-200">
+                <p className="rounded-lg border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                   {queryTarget.kind === "user"
                     ? "Your team has not been identified for this league yet."
                     : "Select the third team roster before searching its outgoing assets."}
@@ -807,7 +828,7 @@ function TradeEvaluatorPage() {
 
               {playerSearchQuery.data?.length ? (
                 <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                  <p className="terminal-label text-muted-foreground">
                     {queryText.trim().length >= 2 ? "Player Results" : "Roster Players"}
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -845,7 +866,7 @@ function TradeEvaluatorPage() {
 
               {pickOptions.length ? (
                 <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                  <p className="terminal-label text-muted-foreground">
                     Picks
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -865,7 +886,7 @@ function TradeEvaluatorPage() {
             </CardContent>
           </Card>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 border-t border-border/40 pt-2">
             <Button
               className="w-full sm:w-auto"
               disabled={!canEvaluate || evaluationMutation.isPending}
@@ -897,6 +918,7 @@ function TradeEvaluatorPage() {
         <>
           <EvaluationOutputPanel
             evaluation={evaluation}
+            leagueId={leagueId}
             userSends={userSends}
             userReceives={userReceives}
             pickValuesByKey={pickValuesByKey}
