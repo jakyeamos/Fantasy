@@ -255,13 +255,14 @@ Plans:
   3. Team direction labels and trade recommendations can cite lineup-level reasons, not just aggregate roster value
   4. Every team screen includes a roster-hygiene panel with stash, cut, move-to-taxi, and consolidation suggestions
   5. Taxi eligibility, IR occupancy, and manual exceptions are modeled per league
-**Plans**: 4 plans
+**Plans**: 5 plans
 
 Plans:
 - [x] 11-01-PLAN.md -- Backend foundation: lineup package, models, constants, migration 014, LineupRepo, triple-write schema
 - [x] 11-02-PLAN.md -- Engines: LineupEngine (replacement-level, title-window), HygieneEngine (consolidation/cut/stash/taxi), IntelligenceService wiring, API routers, unit + integration tests
 - [x] 11-03-PLAN.md -- Frontend types, query hooks, TitleWindowPanel, LineupStrengthCard, TaxiIRSlotSummary, TaxiConfigForm
 - [x] 11-04-PLAN.md -- Frontend hygiene: RosterHygienePanel, HygieneSuggestionRow, route wiring into league team screen, human-verify checkpoint
+- [ ] 11-05-PLAN.md -- Gap closure: manual exceptions field (model/schema/repo/API/frontend) + FS-02/FS-04 defined in REQUIREMENTS.md
 
 ---
 
@@ -356,7 +357,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> [GATE] -> 4 -> 5 -> 6 -> 7 -> 8 
 | 8. Historical Prospect Lab | 0/5 | Planned | - |
 | 9. Portfolio & Retrospectives | 0/5 | Planned | - |
 | 10. Pick Accuracy & Draft Order | 0/4 | Planned | - |
-| 11. Roster & Lineup Intelligence | 4/4 | Complete   | 2026-03-25 |
+| 11. Roster & Lineup Intelligence | 4/5 | Gap Closure | 2026-03-25 |
 | 12. Manager Rookie & Pick Profiles | 0/0 | Unplanned | - |
 | 13. Context Awareness | 0/0 | Unplanned | - |
 | 14. Trust Infrastructure | 0/0 | Unplanned | - |
