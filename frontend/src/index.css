@@ -1,54 +1,59 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@500;700;800&family=Space+Grotesk:wght@500;700&display=swap");
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   color-scheme: light;
-  --background: 44 28% 96%;
-  --foreground: 214 26% 14%;
+  --background: 210 43% 96%;
+  --foreground: 220 41% 12%;
   --card: 0 0% 100%;
-  --card-foreground: 214 26% 14%;
+  --card-foreground: 220 41% 12%;
   --popover: 0 0% 100%;
-  --popover-foreground: 214 26% 14%;
-  --primary: 204 78% 38%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 42 25% 91%;
-  --secondary-foreground: 214 26% 20%;
-  --muted: 38 22% 90%;
-  --muted-foreground: 215 12% 38%;
-  --accent: 188 44% 88%;
-  --accent-foreground: 214 26% 14%;
-  --destructive: 2 84% 58%;
-  --border: 34 18% 84%;
-  --input: 34 18% 84%;
-  --ring: 204 78% 38%;
-  --radius: 18px;
-  --background-glow-left: hsla(188, 44%, 88%, 0.6);
-  --background-glow-right: hsla(42, 34%, 88%, 0.8);
-  --background-end: color-mix(in srgb, hsl(var(--background)) 88%, white);
+  --popover-foreground: 220 41% 12%;
+  --primary: 199 100% 49%;
+  --primary-foreground: 199 100% 13%;
+  --secondary: 213 42% 92%;
+  --secondary-foreground: 220 41% 16%;
+  --muted: 213 35% 90%;
+  --muted-foreground: 219 16% 38%;
+  --accent: 156 100% 81%;
+  --accent-foreground: 154 100% 16%;
+  --destructive: 4 77% 61%;
+  --border: 216 31% 80%;
+  --input: 216 31% 80%;
+  --ring: 199 100% 49%;
+  --radius: 12px;
+  --background-glow-left: hsla(199, 100%, 49%, 0.18);
+  --background-glow-right: hsla(156, 100%, 81%, 0.12);
+  --background-end: color-mix(in srgb, hsl(var(--background)) 82%, white);
+  --font-headline: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-label: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 .dark {
   color-scheme: dark;
-  --background: 214 26% 10%;
-  --foreground: 44 28% 96%;
-  --card: 214 24% 14%;
-  --card-foreground: 44 28% 96%;
-  --popover: 214 24% 14%;
-  --popover-foreground: 44 28% 96%;
-  --primary: 193 71% 61%;
-  --primary-foreground: 214 26% 10%;
-  --secondary: 214 19% 20%;
-  --secondary-foreground: 44 28% 96%;
-  --muted: 214 19% 18%;
-  --muted-foreground: 35 12% 72%;
-  --accent: 193 35% 22%;
-  --accent-foreground: 44 28% 96%;
-  --destructive: 2 84% 58%;
-  --border: 214 17% 24%;
-  --input: 214 17% 24%;
-  --ring: 193 71% 61%;
-  --background-glow-left: hsla(193, 71%, 61%, 0.12);
-  --background-glow-right: hsla(204, 74%, 38%, 0.22);
+  --background: 221 69% 8%;
+  --foreground: 214 32% 90%;
+  --card: 216 85% 10%;
+  --card-foreground: 214 32% 90%;
+  --popover: 216 85% 10%;
+  --popover-foreground: 214 32% 90%;
+  --primary: 199 100% 74%;
+  --primary-foreground: 199 100% 18%;
+  --secondary: 214 29% 24%;
+  --secondary-foreground: 214 32% 90%;
+  --muted: 218 53% 15%;
+  --muted-foreground: 216 17% 65%;
+  --accent: 156 100% 81%;
+  --accent-foreground: 154 100% 16%;
+  --destructive: 4 77% 70%;
+  --border: 219 49% 33%;
+  --input: 219 49% 33%;
+  --ring: 199 100% 74%;
+  --background-glow-left: hsla(199, 100%, 74%, 0.14);
+  --background-glow-right: hsla(156, 100%, 81%, 0.08);
   --background-end: color-mix(in srgb, hsl(var(--background)) 88%, black);
 }
 
@@ -71,8 +76,8 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
-  --radius-sm: calc(var(--radius) - 10px);
-  --radius-md: calc(var(--radius) - 6px);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 3px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 8px);
 }
@@ -88,14 +93,101 @@ html {
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, var(--background-glow-left), transparent 32%),
-    radial-gradient(circle at top right, var(--background-glow-right), transparent 28%),
+    radial-gradient(circle at top left, var(--background-glow-left), transparent 28%),
+    radial-gradient(circle at top right, var(--background-glow-right), transparent 24%),
     linear-gradient(180deg, hsl(var(--background)), var(--background-end));
   color: hsl(var(--foreground));
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-body);
+  letter-spacing: -0.01em;
   transition: background 180ms ease, color 180ms ease;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, hsl(var(--border)) 14%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, hsl(var(--border)) 10%, transparent) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.24), transparent 55%);
+  opacity: 0.45;
+}
+
+::selection {
+  background-color: color-mix(in srgb, hsl(var(--primary)) 26%, transparent);
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+input,
+select,
+textarea {
+  border-radius: calc(var(--radius) - 4px);
+  border: 1px solid hsl(var(--input) / 0.55);
+  background: color-mix(in srgb, hsl(var(--card)) 84%, transparent);
+  color: hsl(var(--foreground));
+  font-family: var(--font-label);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: hsl(var(--ring) / 0.8);
+  box-shadow: 0 0 0 1px hsl(var(--ring) / 0.3);
 }
 
 #root {
   min-height: 100vh;
+  position: relative;
+}
+
+.font-headline {
+  font-family: var(--font-headline);
+}
+
+.font-label {
+  font-family: var(--font-label);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.glass-panel {
+  background: color-mix(in srgb, hsl(var(--card)) 74%, transparent);
+  backdrop-filter: blur(20px);
+}
+
+.terminal-label {
+  font-family: var(--font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
 }
