@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fantasy.picks.models import PickValue, TimingLabel
+from fantasy.picks.constants import DraftTiebreaker, NonPlayoffOrderBasis, PlayoffOrdering
+from fantasy.picks.models import LeagueDraftOrderRule, PickValue, TimingLabel
 from fantasy.picks.pick_repo import PickRepo
 from fantasy.trade.models import TradeAsset
 
@@ -134,6 +135,72 @@ def test_get_class_strength_signal_reads_latest_cache(db):
     )
     repo = PickRepo(db)
     assert repo.get_class_strength_signal("league_x") == 0.35
+
+
+def test_get_draft_order_rule_returns_none_when_unconfigured(db):
+    repo = PickRepo(db)
+    assert repo.get_draft_order_rule("missing_league") is None
+
+
+def test_save_and_get_draft_order_rule_roundtrip(db):
+    _seed_league(db)
+    repo = PickRepo(db)
+    rule = LeagueDraftOrderRule(
+        non_playoff_basis=NonPlayoffOrderBasis.INVERSE_STANDINGS,
+        playoff_ordering=PlayoffOrdering.BY_FINISH,
+        tiebreaker=DraftTiebreaker.POINTS_AGAINST,
+    )
+
+    repo.save_draft_order_rule("league_x", rule)
+    saved = repo.get_draft_order_rule("league_x")
+
+    assert saved is not None
+    assert saved == rule
+
+
+def test_save_draft_order_rule_upsert(db):
+    _seed_league(db)
+    repo = PickRepo(db)
+    repo.save_draft_order_rule(
+        "league_x",
+        LeagueDraftOrderRule(
+            non_playoff_basis=NonPlayoffOrderBasis.INVERSE_STANDINGS,
+            playoff_ordering=PlayoffOrdering.BY_FINISH,
+            tiebreaker=DraftTiebreaker.POINTS_AGAINST,
+        ),
+    )
+    repo.save_draft_order_rule(
+        "league_x",
+        LeagueDraftOrderRule(
+            non_playoff_basis=NonPlayoffOrderBasis.MAX_POINTS_FOR,
+            playoff_ordering=PlayoffOrdering.BY_RECORD,
+            tiebreaker=DraftTiebreaker.POINTS_FOR,
+        ),
+    )
+
+    saved = repo.get_draft_order_rule("league_x")
+
+    assert saved is not None
+    assert saved.non_playoff_basis == NonPlayoffOrderBasis.MAX_POINTS_FOR
+    assert saved.playoff_ordering == PlayoffOrdering.BY_RECORD
+    assert saved.tiebreaker == DraftTiebreaker.POINTS_FOR
+
+
+def test_get_max_pf_slots_ranks_by_fpts_asc(db):
+    _seed_league(db)
+    db.execute(
+        """
+        INSERT INTO standings (id, league_id, roster_id, wins, losses, ties, fpts, fpts_against)
+        VALUES
+            (1, 'league_x', 1, 0, 0, 0, 100.0, 0.0),
+            (2, 'league_x', 2, 0, 0, 0, 200.0, 0.0),
+            (3, 'league_x', 3, 0, 0, 0, 150.0, 0.0)
+        """
+    )
+
+    repo = PickRepo(db)
+
+    assert repo.get_max_pf_slots("league_x") == {1: 1, 3: 2, 2: 3}
 
 
 def test_save_pick_values_persists_rows(db):

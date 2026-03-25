@@ -98,6 +98,113 @@ def test_get_league_picks_batch(db):
     assert {"timing_label", "timing_reasoning", "demand_adjusted_value"} <= set(payload[0])
 
 
+def test_get_draft_order_rule_returns_null_when_unconfigured(db):
+    _seed_pick_data(db)
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(db)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(db)
+    client = TestClient(app)
+
+    response = client.get("/picks/league_x/draft-order-rule")
+
+    assert response.status_code == 200
+    assert response.json() is None
+
+
+def test_put_and_get_draft_order_rule_roundtrip(db):
+    _seed_pick_data(db)
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(db)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(db)
+    client = TestClient(app)
+
+    payload = {
+        "non_playoff_basis": "inverse_standings",
+        "playoff_ordering": "by_finish",
+        "tiebreaker": "points_against",
+    }
+
+    put_response = client.put("/picks/league_x/draft-order-rule", json=payload)
+    get_response = client.get("/picks/league_x/draft-order-rule")
+
+    assert put_response.status_code == 200
+    assert put_response.json() == {"league_id": "league_x", "rule": payload}
+    assert get_response.status_code == 200
+    assert get_response.json() == {"league_id": "league_x", "rule": payload}
+
+
+def test_picks_blocked_when_no_rule(db):
+    _seed_pick_data(db)
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(db)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(db)
+    client = TestClient(app)
+
+    response = client.get("/picks/league_x")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload) == 12
+    assert all(item["rule_citation"] is None for item in payload)
+    assert all(item["expected_draft_slot"] == 1.0 for item in payload)
+    assert all(item["league_adjusted_value"] == 0.0 for item in payload)
+
+
+def test_picks_configured_after_rule_save(db):
+    _seed_pick_data(db)
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(db)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(db)
+    client = TestClient(app)
+
+    client.put(
+        "/picks/league_x/draft-order-rule",
+        json={
+            "non_playoff_basis": "inverse_standings",
+            "playoff_ordering": "by_finish",
+            "tiebreaker": "points_against",
+        },
+    )
+
+    response = client.get("/picks/league_x")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload) == 12
+    assert all(
+        item["rule_citation"] == "Using: Inverse standings · Playoff teams by finish"
+        for item in payload
+    )
+    assert any(item["league_adjusted_value"] > 0.0 for item in payload)
+
+
+def test_picks_max_pf_configured_returns_citation(db):
+    _seed_pick_data(db)
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(db)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(db)
+    client = TestClient(app)
+
+    client.put(
+        "/picks/league_x/draft-order-rule",
+        json={
+            "non_playoff_basis": "max_points_for",
+            "playoff_ordering": "by_points_for",
+            "tiebreaker": "commissioner",
+        },
+    )
+
+    response = client.get("/picks/league_x")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload) == 12
+    assert all(
+        item["rule_citation"] == "Using: Max points for · Playoff teams by points for"
+        for item in payload
+    )
+
+
 def test_get_league_picks_batch_filters_by_current_owner(db):
     _seed_pick_data(db)
     app = create_app()
