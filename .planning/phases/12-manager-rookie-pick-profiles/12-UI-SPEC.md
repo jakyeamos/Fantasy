@@ -5,6 +5,7 @@ status: draft
 shadcn_initialized: false
 preset: manual — CSS variable system with custom shadcn-compatible primitives
 created: 2026-03-25
+revised: 2026-03-25
 ---
 
 # Phase 12 — UI Design Contract
@@ -53,13 +54,16 @@ Exceptions: Touch targets for interactive elements minimum 44px (established by 
 | Role | Size | Weight | Line Height | Font |
 |------|------|--------|-------------|------|
 | Body | 14px (text-sm) | 400 | 1.5 | Inter |
-| Label / Terminal | 10px (text-[10px]) | 700 | 1.4 | Space Grotesk, uppercase, tracking-[0.14em–0.16em] |
-| Heading (CardTitle) | 16px (text-base) / 20px (text-xl) for stat numbers | 600 | 1.2 | Manrope or Inter semibold |
-| Display (Dossier header) | 28–30px (text-3xl) | 700 | 1.2 | Manrope |
+| Card Title | 14px (text-sm) | 600 | 1.2 | Inter semibold |
+| Label / Terminal | 10px (text-[10px]) | 700 | 1.4 | Space Grotesk, uppercase, tracking-[0.16em] |
+| Stat Number / Heading | 20px (text-xl) | 600 | 1.2 | Manrope or Inter semibold |
+| Display (Dossier header) | 28px (text-3xl) | 700 | 1.2 | Manrope |
 
-Declared sizes: 10, 14, 16/20, 28. Declared weights: 400 (regular) and 600–700 (semibold/bold).
+Declared sizes: 10, 14, 20, 28. Declared weights: 400 (regular) and 600–700 (semibold/bold).
 
-**Source:** Existing dossier route (`text-3xl` for manager name), `DossierOverviewTab.tsx` (`text-sm`, `text-xs`), `terminal-label` utility class in `index.css`.
+Note: Card titles (CardTitle, section headers within cards) use 14px weight 600 — same size as body, distinguished by weight only. The previous 16px card title size is not used in this phase; it does not appear as a declared size.
+
+**Source:** Existing dossier route (`text-3xl` for manager name), `DossierOverviewTab.tsx` (`text-sm`, `text-xs`), `terminal-label` utility class in `index.css` (hard-coded `font-size: 10px; font-weight: 700; letter-spacing: 0.16em`).
 
 ---
 
@@ -129,6 +133,7 @@ The following existing components are extended or reused in Phase 12. No new des
 - Tab content: `DossierDraftPicksTab` component.
 
 ### Draft & Picks tab content
+- **Primary focal point:** The pick-premium score block is the visual anchor of `DossierDraftPicksTab` — rendered at the top of the tab as a full-width stat-block using `text-xl font-semibold` for the numeric score, establishing hierarchy above the draft history table and archetype patterns below it.
 - Per-season draft history: table layout matching `DossierTradeHistoryTab` — `overflow-x-auto rounded-xl border border-border/40`, `bg-card/45` header row.
 - Archetype hit patterns: `<Card>` with `CardContent` badge list — each archetype bet displayed as `<Badge variant="default">` using Phase 7 archetype label vocabulary.
 - Pick-premium score detail: numeric score in `text-xl font-semibold`, supporting evidence text in `text-sm text-muted-foreground`, same stat-block grid pattern as Roster Summary stat boxes.
