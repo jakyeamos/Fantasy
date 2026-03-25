@@ -18,6 +18,9 @@ export function DossierTradeHistoryTab({
     <Card>
       <CardHeader>
         <CardTitle>Trade History</CardTitle>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Historical deal outcomes for this manager’s trade record.
+        </p>
       </CardHeader>
       <CardContent>
         {trades.length === 0 ? (
@@ -25,30 +28,30 @@ export function DossierTradeHistoryTab({
             No trade history found for this manager.
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-xl border border-border/40">
             <table className="min-w-full text-left text-sm">
-              <thead className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+              <thead className="bg-card/45 text-xs uppercase tracking-[0.16em] text-muted-foreground">
                 <tr>
-                  <th className="px-2 py-2">Date</th>
-                  <th className="px-2 py-2">Assets Sent</th>
-                  <th className="px-2 py-2">Assets Received</th>
-                  <th className="px-2 py-2 text-right">Value Delta</th>
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">Assets Sent</th>
+                  <th className="px-4 py-3">Assets Received</th>
+                  <th className="px-4 py-3 text-right">Value Delta</th>
                 </tr>
               </thead>
               <tbody>
                 {trades.map((trade) => (
-                  <tr key={trade.transaction_id} className="border-t border-border/60">
-                    <td className="px-2 py-3 text-xs text-muted-foreground">
+                  <tr key={trade.transaction_id} className="border-t border-border/40">
+                    <td className="px-4 py-4 text-xs text-muted-foreground">
                       {formatDate(trade.date)}
                     </td>
-                    <td className="px-2 py-3 text-sm">
+                    <td className="px-4 py-4 text-sm">
                       {trade.sent_assets.join(", ")}
                     </td>
-                    <td className="px-2 py-3 text-sm">
+                    <td className="px-4 py-4 text-sm">
                       {trade.received_assets.join(", ")}
                     </td>
                     <td
-                      className={`px-2 py-3 text-right text-xs ${
+                      className={`px-4 py-4 text-right font-mono text-xs ${
                         trade.value_delta >= 0
                           ? "text-green-600 dark:text-green-400"
                           : "text-red-600 dark:text-red-400"

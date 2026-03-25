@@ -19,8 +19,8 @@ export function DossierOverviewTab({
   return (
     <div className="space-y-4">
       {profile.low_confidence ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
-          <p className="text-xs font-semibold tracking-[0.18em]">LOW CONFIDENCE</p>
+        <div className="rounded-xl border border-destructive/25 bg-destructive/10 p-4 text-destructive">
+          <p className="terminal-label">Low confidence</p>
           <p className="mt-2 text-sm">
             Based on {profile.evidence_count} trades (minimum 10 for reliable profiling). Treat all conclusions with skepticism.
           </p>
@@ -30,6 +30,9 @@ export function DossierOverviewTab({
       <Card>
         <CardHeader>
           <CardTitle>Exploitation Type</CardTitle>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Primary patterns inferred from how this manager has historically traded.
+          </p>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -39,7 +42,10 @@ export function DossierOverviewTab({
             ) : null}
           </div>
           {Object.entries(profile.exploitation_evidence).map(([key, value]) => (
-            <p key={key} className="text-sm text-muted-foreground">
+            <p
+              key={key}
+              className="rounded-lg border border-border/35 bg-card/45 px-3 py-2 text-sm text-muted-foreground"
+            >
               {value}
             </p>
           ))}
@@ -49,6 +55,9 @@ export function DossierOverviewTab({
       <Card>
         <CardHeader>
           <CardTitle>Roster Summary</CardTitle>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Direction, needs, and trade output from this roster’s current profile.
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
@@ -60,28 +69,33 @@ export function DossierOverviewTab({
             {positionalNeeds.length === 0 ? (
               <p className="text-sm text-muted-foreground">No positional needs surfaced.</p>
             ) : (
-              <ul className="space-y-1 text-sm text-muted-foreground">
+              <ul className="space-y-2 text-sm text-muted-foreground">
                 {positionalNeeds.map((position) => (
-                  <li key={position}>{position}</li>
+                  <li
+                    key={position}
+                    className="rounded-lg border border-border/35 bg-card/45 px-3 py-2"
+                  >
+                    {position}
+                  </li>
                 ))}
               </ul>
             )}
           </div>
           <Separator />
           <div className="grid gap-4 md:grid-cols-3">
-            <div>
+            <div className="rounded-lg border border-border/35 bg-card/45 p-4">
               <p className="text-xl font-semibold">
                 {profile.aggregate_trade_stats.total_trades}
               </p>
               <p className="text-xs text-muted-foreground">Total Trades</p>
             </div>
-            <div>
+            <div className="rounded-lg border border-border/35 bg-card/45 p-4">
               <p className="text-xl font-semibold">
                 {(profile.aggregate_trade_stats.win_rate * 100).toFixed(0)}%
               </p>
               <p className="text-xs text-muted-foreground">Win Rate</p>
             </div>
-            <div>
+            <div className="rounded-lg border border-border/35 bg-card/45 p-4">
               <p className="text-xl font-semibold">
                 {profile.aggregate_trade_stats.avg_delta.toFixed(2)}
               </p>

@@ -18,11 +18,14 @@ export function ManagerListRow({
       params={{ leagueId, managerId: String(summary.roster_id) }}
       className="block"
     >
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="space-y-2 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+      <Card className="border-border/45 transition-transform duration-200 hover:-translate-y-1 hover:border-primary/25">
+        <CardContent className="space-y-3 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-semibold">{summary.manager_name}</p>
+              <div>
+                <p className="terminal-label text-muted-foreground">Manager</p>
+                <p className="mt-2 text-sm font-semibold">{summary.manager_name}</p>
+              </div>
               {summary.direction_label ? (
                 <Badge variant="secondary">
                   {formatModelLabel(summary.direction_label)}
@@ -30,11 +33,11 @@ export function ManagerListRow({
               ) : null}
             </div>
             <div
-              className={`text-xs ${
+              className={`rounded-lg border px-3 py-2 text-xs ${
                 summary.low_confidence ? "opacity-75 text-muted-foreground" : "text-muted-foreground"
               }`}
             >
-              Exploitability:{" "}
+              <span className="terminal-label">Exploitability</span>{" "}
               <span
                 className={
                   summary.low_confidence
@@ -47,10 +50,10 @@ export function ManagerListRow({
               | {summary.evidence_count} trades
             </div>
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="rounded-lg border border-border/35 bg-card/45 p-3 text-xs text-muted-foreground">
             {summary.top_pitch_angle ? (
               <>
-                <span className="font-medium text-primary">
+                <span className="font-label text-[10px] text-primary">
                   {formatModelLabel(summary.top_pitch_angle.deal_archetype)}
                 </span>{" "}
                 {summary.top_pitch_angle.reasoning}

@@ -1,7 +1,7 @@
 import { useEffect } from "react"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Outlet, createFileRoute } from "@tanstack/react-router"
+import { Outlet, createFileRoute, useLocation } from "@tanstack/react-router"
 
 import { managerSummariesOptions } from "@/api/queries"
 import { ManagerListRow } from "@/components/ManagerListRow"
@@ -15,8 +15,13 @@ export const Route = createFileRoute("/league/$leagueId/managers")({
 
 function ManagersPlaceholderPage() {
   const { leagueId } = Route.useParams()
+  const location = useLocation()
   const queryClient = useQueryClient()
-  const summariesQuery = useQuery(managerSummariesOptions(leagueId))
+  const isManagerListRoute = location.pathname === `/league/${leagueId}/managers`
+  const summariesQuery = useQuery({
+    ...managerSummariesOptions(leagueId),
+    enabled: isManagerListRoute,
+  })
   const computeMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(`/api/profiling/leagues/${leagueId}/managers/compute`, {
@@ -34,6 +39,10 @@ function ManagersPlaceholderPage() {
   })
 
   useEffect(() => {
+    if (!isManagerListRoute) {
+      return
+    }
+
     if (
       summariesQuery.data &&
       summariesQuery.data.length > 0 &&
@@ -43,7 +52,11 @@ function ManagersPlaceholderPage() {
     ) {
       computeMutation.mutate()
     }
-  }, [computeMutation, summariesQuery.data])
+  }, [computeMutation, isManagerListRoute, summariesQuery.data])
+
+  if (!isManagerListRoute) {
+    return <Outlet />
+  }
 
   if (summariesQuery.isLoading) {
     return (
@@ -64,11 +77,14 @@ function ManagersPlaceholderPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-muted-foreground">League {leagueId}</p>
-          <h2 className="text-lg font-semibold">Managers</h2>
+          <p className="terminal-label text-muted-foreground">League {leagueId}</p>
+          <h2 className="font-headline text-3xl font-extrabold tracking-tight">Managers</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Behavioral profiles, exploitability, and top trade angles for every roster.
+          </p>
         </div>
         <Button
           variant="outline"
@@ -89,7 +105,7 @@ function ManagersPlaceholderPage() {
         ))}
       </div>
 
-      <Card className="border-dashed">
+      <Card className="border-dashed border-border/45">
         <CardHeader>
           <CardTitle>Signal Notes</CardTitle>
         </CardHeader>
@@ -99,7 +115,6 @@ function ManagersPlaceholderPage() {
           </p>
         </CardContent>
       </Card>
-      <Outlet />
     </div>
   )
 }

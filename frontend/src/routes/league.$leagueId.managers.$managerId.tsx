@@ -44,14 +44,17 @@ function ManagerDossierPlaceholderPage() {
   const profile = profileQuery.data
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <Card>
         <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
-              <CardTitle className="text-xl">
-                {profile.manager_name ?? `Roster ${profile.roster_id}`}
-              </CardTitle>
+              <div>
+                <p className="terminal-label text-muted-foreground">Manager dossier</p>
+                <CardTitle className="mt-2 text-3xl">
+                  {profile.manager_name ?? `Roster ${profile.roster_id}`}
+                </CardTitle>
+              </div>
               {profile.direction_label ? (
                 <Badge variant="secondary">
                   {formatModelLabel(profile.direction_label)}
@@ -59,11 +62,11 @@ function ManagerDossierPlaceholderPage() {
               ) : null}
             </div>
             <div
-              className={`text-sm ${
+              className={`rounded-xl border px-4 py-3 text-sm ${
                 profile.low_confidence ? "opacity-75 text-muted-foreground" : "text-muted-foreground"
               }`}
             >
-              Exploitability:{" "}
+              <span className="terminal-label">Exploitability</span>{" "}
               <span
                 className={
                   profile.low_confidence
@@ -76,17 +79,26 @@ function ManagerDossierPlaceholderPage() {
               | {profile.evidence_count} trades
             </div>
           </div>
-          <Link
-            to="/trades"
-            search={{ leagueId }}
-            className={buttonClasses({})}
-          >
-            Evaluate Trade
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/league/$leagueId/managers"
+              params={{ leagueId }}
+              className={buttonClasses({ variant: "outline" })}
+            >
+              Back to Managers
+            </Link>
+            <Link
+              to="/trades"
+              search={{ leagueId }}
+              className={buttonClasses({})}
+            >
+              Evaluate Trade
+            </Link>
+          </div>
         </CardHeader>
       </Card>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 rounded-xl border border-border/40 bg-card/45 p-2">
         {[
           { key: "overview", label: "Overview" },
           { key: "trade-history", label: "Trade History" },
@@ -94,7 +106,7 @@ function ManagerDossierPlaceholderPage() {
         ].map((item) => (
           <Button
             key={item.key}
-            variant={tab === item.key ? "default" : "outline"}
+            variant={tab === item.key ? "default" : "ghost"}
             onClick={() =>
               setTab(item.key as "overview" | "trade-history" | "pitch-angles")
             }
