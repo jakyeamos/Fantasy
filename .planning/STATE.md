@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-03-25T02:40:38.425Z"
+stopped_at: Completed 11-02-PLAN.md
+last_updated: "2026-03-25T02:44:26.582Z"
 progress:
   total_phases: 16
   completed_phases: 9
   total_plans: 49
-  completed_plans: 41
+  completed_plans: 42
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-11)
 ## Current Position
 
 Phase: 11 (roster-lineup-intelligence) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 
 ## Performance Metrics
 
@@ -49,6 +49,7 @@ Plan: 2 of 4
 | Phase 06-dynamic-pick-valuation | 4 | 4 plans | backend + frontend complete |
 | Phase 07-rookie-board-draft-room | 4 | 4 plans | backend + frontend complete |
 | Phase 11 P01 | 88 | 3 tasks | 7 files |
+| Phase 11 P02 | 1 min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,9 @@ Recent decisions affecting current work:
 - [Phase 11]: Use Literal-based title-window and hygiene action type aliases for explicit API contracts.
 - [Phase 11]: Maintain byte-aligned triple-write DDL across migration, startup schema compat, and test schema bootstrap.
 - [Phase 11]: Persist lineup slot and hygiene suggestion payloads as compact deterministic JSON in LineupRepo.
+- [Phase 11]: Lineup scoring normalizes starter slots across league to prevent lineup-length bias.
+- [Phase 11]: Contender directions are post-adjusted only when title window is Outside Window via fragility boost.
+- [Phase 11]: Hygiene output ordering is deterministic: consolidate, cut, stash, taxi.
 
 ### Pending Todos
 
@@ -80,6 +84,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-25T02:40:38.421Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-03-25T02:44:26.578Z
+Stopped at: Completed 11-02-PLAN.md
 Resume file: None
