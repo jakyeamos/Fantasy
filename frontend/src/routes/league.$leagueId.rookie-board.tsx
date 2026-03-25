@@ -49,17 +49,18 @@ function RookieBoardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <Card>
         <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <CardTitle>Rookie Board</CardTitle>
+            <p className="terminal-label text-primary/85">Draft intelligence</p>
+            <CardTitle className="mt-2 text-3xl">Rookie Board</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
               {query.data.league_format} · Class strength {query.data.class_strength_signal.toFixed(2)}
             </p>
           </div>
           <label className="space-y-2">
-            <span className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+            <span className="terminal-label text-muted-foreground">
               Highlight availability at slot
             </span>
             <select
@@ -82,7 +83,7 @@ function RookieBoardPage() {
           <TierGroup key={tier.tier_number} tier={tier} selectedSlot={slot} />
         ))
       ) : (
-        <Card className="border-dashed">
+        <Card className="border-dashed border-border/45">
           <CardContent className="p-5">
             <p className="text-sm text-muted-foreground">
               No rookie board candidates are available for this league yet.

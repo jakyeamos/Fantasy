@@ -27,25 +27,30 @@ export function RookiePlayerCard({
   return (
     <Card
       className={cn(
-        "border-l-4",
+        "border-l-4 transition-transform duration-200 hover:-translate-y-1",
         RISK_BORDER[player.risk_band],
         isAvailableAtSlot && "bg-primary/10",
       )}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-5">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm font-medium">{player.full_name}</p>
+          <div>
+            <p className="terminal-label text-muted-foreground">Prospect</p>
+            <p className="mt-2 text-sm font-semibold">{player.full_name}</p>
+          </div>
           <Badge variant="outline">{player.position}</Badge>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">{player.archetype_label}</p>
-        <div className="mt-2 flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{player.risk_band} risk</span>
+        <p className="mt-2 text-xs text-muted-foreground">{player.archetype_label}</p>
+        <div className="mt-3 flex items-center gap-2">
+          <span className="terminal-label text-muted-foreground">{player.risk_band} risk</span>
           <span className={cn("rounded px-2 py-0.5 text-xs font-medium", RISK_BADGE[player.risk_band])}>
             {player.risk_band}
           </span>
         </div>
         {isAvailableAtSlot && selectedSlot ? (
-          <p className="mt-2 text-xs text-primary">Available at ~{selectedSlot}</p>
+          <p className="mt-3 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-xs text-primary">
+            Available at ~{selectedSlot}
+          </p>
         ) : null}
       </CardContent>
     </Card>
