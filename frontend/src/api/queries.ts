@@ -4,9 +4,14 @@ import type {
   CorrelatedRiskRow,
   DashboardLeagueSummary,
   DiffRow,
+  DraftOrderRuleResponse,
   DraftRoomResponse,
   ExposureRow,
+  HygieneResult,
   LeagueDetailResponse,
+  LeagueDraftOrderRule,
+  LeagueTaxiConfig,
+  LineupResult,
   ManagerProfile,
   ManagerSummary,
   PickSearchResult,
@@ -16,6 +21,8 @@ import type {
   RookieBoardResponse,
   SnapshotAnchor,
   SnapshotStatus,
+  SlotOccupancy,
+  TaxiConfigResponse,
 } from "@/api/types"
 
 export async function getJson<T>(path: string): Promise<T> {
@@ -92,6 +99,29 @@ export const pickValuesOptions = (
     enabled: leagueId.trim().length > 0,
   })
 
+export const draftOrderRuleOptions = (leagueId: string) =>
+  queryOptions({
+    queryKey: ["picks", leagueId, "draft-order-rule"],
+    queryFn: () => getJson<DraftOrderRuleResponse | null>(`/picks/${leagueId}/draft-order-rule`),
+    staleTime: 5 * 60 * 1000,
+    enabled: leagueId.trim().length > 0,
+  })
+
+export async function saveDraftOrderRule(
+  leagueId: string,
+  rule: LeagueDraftOrderRule,
+): Promise<DraftOrderRuleResponse> {
+  const response = await fetch(`/api/picks/${leagueId}/draft-order-rule`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(rule),
+  })
+  if (!response.ok) {
+    throw new Error("Failed to save draft order rule")
+  }
+  return (await response.json()) as DraftOrderRuleResponse
+}
+
 export const pickInventoryOptions = (
   leagueId: string,
   rosterId?: number | null,
@@ -161,3 +191,48 @@ export const snapshotDiffOptions = (
     staleTime: 5 * 60 * 1000,
     enabled: leagueId.trim().length > 0 && snapshotId > 0 && rosterId > 0,
   })
+
+export const lineupScoreOptions = (leagueId: string, rosterId: number) =>
+  queryOptions({
+    queryKey: ["intelligence", "lineup", leagueId, rosterId],
+    queryFn: () => getJson<LineupResult>(`/intelligence/lineup/${leagueId}/${rosterId}`),
+    staleTime: 5 * 60 * 1000,
+    enabled: leagueId.trim().length > 0 && rosterId > 0,
+  })
+
+export const hygieneOptions = (leagueId: string, rosterId: number) =>
+  queryOptions({
+    queryKey: ["intelligence", "hygiene", leagueId, rosterId],
+    queryFn: () => getJson<HygieneResult>(`/intelligence/hygiene/${leagueId}/${rosterId}`),
+    staleTime: 5 * 60 * 1000,
+    enabled: leagueId.trim().length > 0 && rosterId > 0,
+  })
+
+export const taxiConfigOptions = (leagueId: string) =>
+  queryOptions({
+    queryKey: ["leagues", leagueId, "taxi-config"],
+    queryFn: () => getJson<TaxiConfigResponse>(`/leagues/${leagueId}/taxi-config`),
+    staleTime: 5 * 60 * 1000,
+    enabled: leagueId.trim().length > 0,
+  })
+
+export const slotOccupancyOptions = (leagueId: string, rosterId: number) =>
+  queryOptions({
+    queryKey: ["leagues", leagueId, "slot-occupancy", rosterId],
+    queryFn: () => getJson<SlotOccupancy>(`/leagues/${leagueId}/slot-occupancy/${rosterId}`),
+    staleTime: 5 * 60 * 1000,
+    enabled: leagueId.trim().length > 0 && rosterId > 0,
+  })
+
+export async function saveTaxiConfig(
+  leagueId: string,
+  config: LeagueTaxiConfig,
+): Promise<TaxiConfigResponse> {
+  const res = await fetch(`/api/leagues/${leagueId}/taxi-config`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(config),
+  })
+  if (!res.ok) throw new Error("Failed to save taxi config")
+  return (await res.json()) as TaxiConfigResponse
+}

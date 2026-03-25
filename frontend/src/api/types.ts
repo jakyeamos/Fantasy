@@ -219,6 +219,18 @@ export interface PickValue {
   class_strength_signal: number
   years_out: number
   computed_at: string
+  rule_citation: string | null
+}
+
+export interface LeagueDraftOrderRule {
+  non_playoff_basis: "inverse_standings" | "max_points_for"
+  playoff_ordering: "by_finish" | "by_record" | "by_points_for"
+  tiebreaker: "points_against" | "points_for" | "commissioner"
+}
+
+export interface DraftOrderRuleResponse {
+  league_id: string
+  rule: LeagueDraftOrderRule
 }
 
 export interface RookiePlayer {
@@ -319,4 +331,63 @@ export interface DiffRow {
   old_value: string | null
   new_value: string | null
   display_string: string
+}
+
+export interface LineupSlotScore {
+  position: string
+  player_id: string
+  player_name: string
+  starter_value: number
+  replacement_level: number
+  score: number
+}
+
+export interface LineupResult {
+  league_id: string
+  roster_id: number
+  computed_at: string | null
+  slot_scores: LineupSlotScore[]
+  total_lineup_score: number
+  title_window_label: "Peak Window" | "Fading Window" | "Outside Window"
+  title_window_composite: number
+  ceiling_score: number
+  stability_score: number
+  depth_score: number
+}
+
+export interface HygieneSuggestion {
+  action_type: "consolidate" | "cut" | "stash" | "taxi"
+  primary_player_ids: string[]
+  primary_player_names: string[]
+  target_player_id: string | null
+  target_player_name: string | null
+  counterparty_roster_id: number | null
+  counterparty_name: string | null
+  reasoning: string
+  direction_fit_score: number
+}
+
+export interface HygieneResult {
+  league_id: string
+  roster_id: number
+  computed_at: string | null
+  suggestions: HygieneSuggestion[]
+}
+
+export interface LeagueTaxiConfig {
+  taxi_slots: number
+  taxi_years_eligible: number
+  years_pro_cutoff: number
+}
+
+export interface TaxiConfigResponse {
+  league_id: string
+  config: LeagueTaxiConfig | null
+}
+
+export interface SlotOccupancy {
+  taxi_used: number
+  taxi_total: number
+  ir_used: number
+  ir_total: number
 }
