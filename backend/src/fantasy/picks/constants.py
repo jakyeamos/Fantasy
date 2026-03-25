@@ -2,6 +2,26 @@
 
 from __future__ import annotations
 
+from enum import Enum
+
+
+class NonPlayoffOrderBasis(str, Enum):
+    INVERSE_STANDINGS = "inverse_standings"
+    MAX_POINTS_FOR = "max_points_for"
+
+
+class PlayoffOrdering(str, Enum):
+    BY_FINISH = "by_finish"
+    BY_RECORD = "by_record"
+    BY_POINTS_FOR = "by_points_for"
+
+
+class DraftTiebreaker(str, Enum):
+    POINTS_AGAINST = "points_against"
+    POINTS_FOR = "points_for"
+    COMMISSIONER = "commissioner"
+
+
 # --- Slot-to-value curve ---
 SLOT_VALUE_DECAY_EXPONENT: float = 0.6       # power decay k in value = base * (1/slot)^k
 FIRST_ROUND_BASE_VALUE: float = 100.0        # normalized base for 1.01

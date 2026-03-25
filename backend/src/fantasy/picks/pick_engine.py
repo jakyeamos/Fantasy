@@ -14,6 +14,8 @@ from fantasy.picks.constants import (
     MAX_REBUILDER_PREMIUM,
     NEAR_PEAK_MONTHS,
     NEUTRAL_REBUILDER_RATIO,
+    NonPlayoffOrderBasis,
+    PlayoffOrdering,
     SEASON_MIDPOINT_THRESHOLD,
     SLOT_VALUE_DECAY_EXPONENT,
     FIRST_ROUND_BASE_VALUE,
@@ -21,9 +23,18 @@ from fantasy.picks.constants import (
     TRENDING_DOWN_THRESHOLD,
     TRENDING_WINDOW,
 )
-from fantasy.picks.models import LeaguePickContext, PickValue, PickValuationContext, TeamStandingsRow, TimingLabel
+from fantasy.picks.models import (
+    LeagueDraftOrderRule,
+    LeaguePickContext,
+    PickValue,
+    PickValuationContext,
+    TeamStandingsRow,
+    TimingLabel,
+)
 from fantasy.picks.pick_repo import PickRepo
 from fantasy.trade.models import TradeAsset
+
+_RULE_UNSET = object()
 
 
 def sigmoid(x: float, k: float, center: float) -> float:
@@ -32,7 +43,7 @@ def sigmoid(x: float, k: float, center: float) -> float:
     return 1.0 / (1.0 + math.exp(-k * (x - center)))
 
 
-def expected_draft_slot(win_pct: float, remaining_games: int, league_size: int) -> float:
+def expected_draft_slot_inverse(win_pct: float, remaining_games: int, league_size: int) -> float:
     league_size = max(2, league_size)
     if remaining_games <= 0:
         slot = round(win_pct * (league_size - 1)) + 1
@@ -44,6 +55,32 @@ def expected_draft_slot(win_pct: float, remaining_games: int, league_size: int) 
     )
     slot = round(regressed_win_pct * (league_size - 1)) + 1
     return float(max(1, min(league_size, slot)))
+
+
+def expected_draft_slot_max_pf(
+    max_pf_slots: dict[int, int],
+    roster_id: int,
+    league_size: int,
+) -> float:
+    league_size = max(2, league_size)
+    return float(max_pf_slots.get(roster_id, (league_size + 1) // 2))
+
+
+def expected_draft_slot(
+    rule: LeagueDraftOrderRule | None,
+    win_pct: float,
+    remaining_games: int,
+    league_size: int,
+    max_pf_slots: dict[int, int] | None = None,
+    roster_id: int = 0,
+) -> float | None:
+    if rule is None:
+        return None
+    if rule.non_playoff_basis == NonPlayoffOrderBasis.INVERSE_STANDINGS:
+        return expected_draft_slot_inverse(win_pct, remaining_games, league_size)
+    if rule.non_playoff_basis == NonPlayoffOrderBasis.MAX_POINTS_FOR:
+        return expected_draft_slot_max_pf(max_pf_slots or {}, roster_id, league_size)
+    return None
 
 
 def slot_to_base_value(slot: float, league_size: int) -> float:
@@ -69,6 +106,22 @@ def ordinal(value: int) -> str:
 def projected_pick_label(round_number: int, slot_in_round: float) -> str:
     rounded_slot = max(1, round(slot_in_round))
     return f"{round_number}.{str(rounded_slot).zfill(2)}"
+
+
+def _build_rule_citation(rule: LeagueDraftOrderRule | None) -> str | None:
+    if rule is None:
+        return None
+
+    basis_label = {
+        NonPlayoffOrderBasis.INVERSE_STANDINGS: "Inverse standings",
+        NonPlayoffOrderBasis.MAX_POINTS_FOR: "Max points for",
+    }[rule.non_playoff_basis]
+    playoff_label = {
+        PlayoffOrdering.BY_FINISH: "Playoff teams by finish",
+        PlayoffOrdering.BY_RECORD: "Playoff teams by record",
+        PlayoffOrdering.BY_POINTS_FOR: "Playoff teams by points for",
+    }[rule.playoff_ordering]
+    return f"Using: {basis_label} · {playoff_label}"
 
 
 def compute_rebuilder_adjustment(rebuilder_ratio: float) -> float:
@@ -178,7 +231,10 @@ class PickEngine:
         pick: TradeAsset,
         league_id: str,
         target_manager_id: int | None = None,
+        draft_order_rule: LeagueDraftOrderRule | None | object = _RULE_UNSET,
     ) -> PickValuationContext:
+        if draft_order_rule is _RULE_UNSET:
+            draft_order_rule = self._repo.get_draft_order_rule(league_id)
         class_strength_signal = self._load_class_strength_signal(league_id)
         demand_factor = (
             self._repo.get_manager_demand_factor(target_manager_id, league_id)
@@ -188,8 +244,29 @@ class PickEngine:
         return PickValuationContext(
             pick=pick,
             league_id=league_id,
+            draft_order_rule=draft_order_rule,
             class_strength_signal=class_strength_signal,
             target_manager_demand_factor=demand_factor,
+        )
+
+    def _blocked_pick_value(
+        self,
+        pick: TradeAsset,
+        years_out: int,
+    ) -> PickValue:
+        return PickValue(
+            pick=pick,
+            base_value=0.0,
+            timed_value=0.0,
+            league_adjusted_value=0.0,
+            demand_adjusted_value=0.0,
+            expected_draft_slot=1.0,
+            timing_label=TimingLabel.HOLD_UNTIL_ROOKIE_FEVER,
+            timing_reasoning="Pick projections require a configured draft order rule.",
+            class_strength_signal=0.0,
+            years_out=years_out,
+            computed_at=self._now(),
+            rule_citation=None,
         )
 
     def _compute_with_context(
@@ -202,9 +279,14 @@ class PickEngine:
         current_season: int,
         current_month: int,
         confirmed_slot: int | None = None,
+        max_pf_slots: dict[int, int] | None = None,
     ) -> PickValue:
         pick_year = int(pick.pick_year or current_season)
         years_out = max(0, pick_year - current_season)
+        rule_citation = _build_rule_citation(context.draft_order_rule)
+
+        if context.draft_order_rule is None:
+            return self._blocked_pick_value(pick, years_out)
 
         if years_out > 0:
             slot = (league_ctx.league_size + 1) / 2
@@ -222,10 +304,15 @@ class PickEngine:
             slot = float(confirmed_slot)
         else:
             slot = expected_draft_slot(
+                rule=context.draft_order_rule,
                 win_pct=standings.win_pct,
                 remaining_games=standings.remaining_games,
                 league_size=league_ctx.league_size,
+                max_pf_slots=max_pf_slots,
+                roster_id=int(pick.pick_owner_roster_id or standings.roster_id),
             )
+            if slot is None:
+                return self._blocked_pick_value(pick, years_out)
 
         absolute_slot = absolute_pick_slot(
             int(pick.pick_round or 1),
@@ -273,6 +360,7 @@ class PickEngine:
             class_strength_signal=round(context.class_strength_signal, 4),
             years_out=years_out,
             computed_at=self._now(),
+            rule_citation=rule_citation,
         )
 
     def compute(
@@ -284,7 +372,19 @@ class PickEngine:
         current_time = self._now()
         league_ctx = self._repo.get_league_pick_context(league_id)
         current_season = self._repo.get_current_season(league_id)
-        context = self._build_context(pick, league_id, target_manager_id)
+        draft_order_rule = self._repo.get_draft_order_rule(league_id)
+        max_pf_slots = (
+            self._repo.get_max_pf_slots(league_id)
+            if draft_order_rule is not None
+            and draft_order_rule.non_playoff_basis == NonPlayoffOrderBasis.MAX_POINTS_FOR
+            else None
+        )
+        context = self._build_context(
+            pick,
+            league_id,
+            target_manager_id,
+            draft_order_rule=draft_order_rule,
+        )
         owner_roster_id = int(pick.pick_owner_roster_id or 0)
         standings = self._repo.get_standings(owner_roster_id, league_id)
         confirmed_slot = self._repo.get_confirmed_slot(
@@ -299,6 +399,7 @@ class PickEngine:
             current_season=current_season,
             current_month=current_time.month,
             confirmed_slot=confirmed_slot,
+            max_pf_slots=max_pf_slots,
         )
 
     def compute_batch(
@@ -313,12 +414,24 @@ class PickEngine:
         current_time = self._now()
         league_ctx = self._repo.get_league_pick_context(league_id)
         current_season = self._repo.get_current_season(league_id)
+        draft_order_rule = self._repo.get_draft_order_rule(league_id)
+        max_pf_slots = (
+            self._repo.get_max_pf_slots(league_id)
+            if draft_order_rule is not None
+            and draft_order_rule.non_playoff_basis == NonPlayoffOrderBasis.MAX_POINTS_FOR
+            else None
+        )
         context_by_pick = {
             (
                 int(pick.pick_owner_roster_id or 0),
                 int(pick.pick_year or current_season),
                 int(pick.pick_round or 0),
-            ): self._build_context(pick, league_id, target_manager_id)
+            ): self._build_context(
+                pick,
+                league_id,
+                target_manager_id,
+                draft_order_rule=draft_order_rule,
+            )
             for pick in picks
         }
         standings_by_owner = {
@@ -363,6 +476,7 @@ class PickEngine:
                     current_season=current_season,
                     current_month=current_time.month,
                     confirmed_slot=confirmed_slot,
+                    max_pf_slots=max_pf_slots,
                 )
             )
         return results

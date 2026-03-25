@@ -2,14 +2,49 @@ from __future__ import annotations
 
 import duckdb
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
+from fantasy.picks.constants import DraftTiebreaker, NonPlayoffOrderBasis, PlayoffOrdering
 from fantasy.picks.pick_engine import PickEngine
 from fantasy.picks.pick_repo import PickRepo
-from fantasy.picks.models import PickValue
+from fantasy.picks.models import LeagueDraftOrderRule, PickValue
 from fantasy.routers.deps import get_read_db_conn, get_write_db_conn
 from fantasy.trade.models import TradeAsset
 
 router = APIRouter(prefix="/picks", tags=["picks"])
+
+
+class DraftOrderRuleRequest(BaseModel):
+    non_playoff_basis: NonPlayoffOrderBasis
+    playoff_ordering: PlayoffOrdering
+    tiebreaker: DraftTiebreaker
+
+
+class DraftOrderRuleResponse(BaseModel):
+    league_id: str
+    rule: LeagueDraftOrderRule
+
+
+@router.get("/{league_id}/draft-order-rule", response_model=DraftOrderRuleResponse | None)
+def get_draft_order_rule(
+    league_id: str,
+    conn: duckdb.DuckDBPyConnection = Depends(get_read_db_conn),
+) -> DraftOrderRuleResponse | None:
+    rule = PickRepo(conn).get_draft_order_rule(league_id)
+    if rule is None:
+        return None
+    return DraftOrderRuleResponse(league_id=league_id, rule=rule)
+
+
+@router.put("/{league_id}/draft-order-rule", response_model=DraftOrderRuleResponse)
+def save_draft_order_rule(
+    league_id: str,
+    body: DraftOrderRuleRequest,
+    conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
+) -> DraftOrderRuleResponse:
+    rule = LeagueDraftOrderRule(**body.model_dump())
+    PickRepo(conn).save_draft_order_rule(league_id, rule)
+    return DraftOrderRuleResponse(league_id=league_id, rule=rule)
 
 
 @router.get("/{league_id}", response_model=list[PickValue])

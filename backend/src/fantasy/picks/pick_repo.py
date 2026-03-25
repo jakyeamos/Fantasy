@@ -20,7 +20,7 @@ from fantasy.picks.constants import (
     NEUTRAL_REBUILDER_RATIO,
     TOTAL_SEASON_GAMES,
 )
-from fantasy.picks.models import LeaguePickContext, PickValue, TeamStandingsRow
+from fantasy.picks.models import LeagueDraftOrderRule, LeaguePickContext, PickValue, TeamStandingsRow
 from fantasy.trade.models import TradeAsset
 
 
@@ -57,6 +57,54 @@ class PickRepo:
         if row is None or row[0] is None:
             return 2026
         return int(row[0])
+
+    def get_draft_order_rule(self, league_id: str) -> LeagueDraftOrderRule | None:
+        row = self._conn.execute(
+            """
+            SELECT non_playoff_basis, playoff_ordering, tiebreaker
+            FROM league_draft_order_rules
+            WHERE league_id = ?
+            LIMIT 1
+            """,
+            [league_id],
+        ).fetchone()
+        if row is None:
+            return None
+        return LeagueDraftOrderRule(
+            non_playoff_basis=row[0],
+            playoff_ordering=row[1],
+            tiebreaker=row[2],
+        )
+
+    def save_draft_order_rule(self, league_id: str, rule: LeagueDraftOrderRule) -> None:
+        next_id_row = self._conn.execute(
+            "SELECT COALESCE(MAX(id), 0) + 1 FROM league_draft_order_rules"
+        ).fetchone()
+        next_id = int(next_id_row[0] or 1) if next_id_row else 1
+        self._conn.execute(
+            """
+            INSERT INTO league_draft_order_rules (
+                id,
+                league_id,
+                non_playoff_basis,
+                playoff_ordering,
+                tiebreaker
+            )
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT (league_id) DO UPDATE SET
+                non_playoff_basis = EXCLUDED.non_playoff_basis,
+                playoff_ordering = EXCLUDED.playoff_ordering,
+                tiebreaker = EXCLUDED.tiebreaker,
+                updated_at = now()
+            """,
+            [
+                next_id,
+                league_id,
+                rule.non_playoff_basis.value,
+                rule.playoff_ordering.value,
+                rule.tiebreaker.value,
+            ],
+        )
 
     def get_confirmed_slot(
         self, league_id: str, roster_id: int, pick_year: int
@@ -245,6 +293,20 @@ class PickRepo:
         )
         direction_weight = 1.0 - HISTORY_DEMAND_WEIGHT
         return direction_weight * direction_demand_score + HISTORY_DEMAND_WEIGHT * demand_from_history
+
+    def get_max_pf_slots(self, league_id: str) -> dict[int, int]:
+        """Rank rosters by points for ascending, where lowest PF gets the earliest slot."""
+
+        rows = self._conn.execute(
+            """
+            SELECT roster_id, fpts
+            FROM standings
+            WHERE league_id = ?
+            ORDER BY fpts ASC, roster_id ASC
+            """,
+            [league_id],
+        ).fetchall()
+        return {int(row[0]): rank for rank, row in enumerate(rows, start=1)}
 
     def _get_pick_inventory_rows(self, league_id: str) -> list[dict[str, Any]]:
         owner_rows = self._conn.execute(
