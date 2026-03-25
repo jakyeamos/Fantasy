@@ -22,7 +22,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 8: Historical Prospect Lab** - 10+ year database, backtested position models, archetype clustering
 - [ ] **Phase 9: Portfolio & Retrospectives** - Cross-league exposure, season-over-season snapshots, retrospective grading
 - [ ] **Phase 10: Pick Accuracy & Draft Order** - Draft order rules engine, format-aware pick slot projections (FS-01)
-- [ ] **Phase 11: Roster & Lineup Intelligence** - Optimal lineup calculator, title-window score, roster management layer (FS-02, FS-04)
+- [x] **Phase 11: Roster & Lineup Intelligence** - Optimal lineup calculator, title-window score, roster management layer (FS-02, FS-04) (completed 2026-03-25)
 - [ ] **Phase 12: Manager Rookie & Pick Profiles** - Rookie-draft behavior mining, pick-premium scoring, profile-aware suggestions (FS-06)
 - [ ] **Phase 13: Context Awareness** - Dynasty calendar state, NFL context freshness, time-aware recommendations (FS-03, FS-08)
 - [ ] **Phase 14: Trust Infrastructure** - League rule support matrix, unsupported-format flagging, fallback behavior (FS-07)
@@ -261,7 +261,7 @@ Plans:
 - [x] 11-01-PLAN.md -- Backend foundation: lineup package, models, constants, migration 014, LineupRepo, triple-write schema
 - [x] 11-02-PLAN.md -- Engines: LineupEngine (replacement-level, title-window), HygieneEngine (consolidation/cut/stash/taxi), IntelligenceService wiring, API routers, unit + integration tests
 - [x] 11-03-PLAN.md -- Frontend types, query hooks, TitleWindowPanel, LineupStrengthCard, TaxiIRSlotSummary, TaxiConfigForm
-- [ ] 11-04-PLAN.md -- Frontend hygiene: RosterHygienePanel, HygieneSuggestionRow, route wiring into league team screen, human-verify checkpoint
+- [x] 11-04-PLAN.md -- Frontend hygiene: RosterHygienePanel, HygieneSuggestionRow, route wiring into league team screen, human-verify checkpoint
 
 ---
 
@@ -356,7 +356,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> [GATE] -> 4 -> 5 -> 6 -> 7 -> 8 
 | 8. Historical Prospect Lab | 0/5 | Planned | - |
 | 9. Portfolio & Retrospectives | 0/5 | Planned | - |
 | 10. Pick Accuracy & Draft Order | 0/4 | Planned | - |
-| 11. Roster & Lineup Intelligence | 3/4 | In Progress|  |
+| 11. Roster & Lineup Intelligence | 4/4 | Complete   | 2026-03-25 |
 | 12. Manager Rookie & Pick Profiles | 0/0 | Unplanned | - |
 | 13. Context Awareness | 0/0 | Unplanned | - |
 | 14. Trust Infrastructure | 0/0 | Unplanned | - |
