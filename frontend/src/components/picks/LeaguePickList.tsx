@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import type { PickSearchResult, PickValue } from "@/api/types"
 import { pickInventoryOptions, pickValuesOptions } from "@/api/queries"
+import { RuleCitation } from "@/components/picks/RuleCitation"
 import { TimingBadge } from "@/components/picks/TimingBadge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -161,6 +162,9 @@ export function LeaguePickList({
       <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <CardTitle>Pick Capital</CardTitle>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Timed value, projected slot range, and market posture for every future pick.
+          </p>
           <p className="mt-1 text-sm text-muted-foreground">
             Last computed: {relativeTime(lastComputedAt)}
           </p>
@@ -180,35 +184,45 @@ export function LeaguePickList({
             pick_year: pickValue.pick.pick_year,
             pick_round: pickValue.pick.pick_round,
           })
+          const isBlocked = pickValue.rule_citation === null
           const inventory = inventoryByKey.get(key)
           const ownerText = ownerSummary(inventory)
           return (
-            <div key={key} className="rounded-xl border border-border/60 bg-background/70 p-4">
+            <div key={key} className="rounded-xl border border-border/45 bg-card/45 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-semibold">
                     {formatPickLabel(pickValue)}
                   </p>
                   {ownerText ? <span className="text-xs text-muted-foreground">{ownerText}</span> : null}
-                  <span className="text-xs text-muted-foreground">
-                    {formatProjectedRange(pickValue)}
-                  </span>
+                  {!isBlocked ? (
+                    <span className="text-xs text-muted-foreground">
+                      {formatProjectedRange(pickValue)}
+                    </span>
+                  ) : null}
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <TimingBadge
-                    label={pickValue.timing_label}
-                    reasoning={pickValue.timing_reasoning}
-                    showReasoning={false}
-                  />
-                  <span className="text-sm font-semibold">
-                    {formatValue(pickValue.league_adjusted_value)}
-                  </span>
-                </div>
+                {!isBlocked ? (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <TimingBadge
+                      label={pickValue.timing_label}
+                      reasoning={pickValue.timing_reasoning}
+                      showReasoning={false}
+                    />
+                    <span className="text-sm font-semibold">
+                      {formatValue(pickValue.league_adjusted_value)}
+                    </span>
+                  </div>
+                ) : null}
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Projected position: {formatProjectedSlot(pickValue)}
-              </p>
-              <p className="mt-2 text-xs text-muted-foreground">{pickValue.timing_reasoning}</p>
+              {!isBlocked ? (
+                <>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Projected position: {formatProjectedSlot(pickValue)}
+                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground">{pickValue.timing_reasoning}</p>
+                </>
+              ) : null}
+              <RuleCitation citation={pickValue.rule_citation} leagueId={leagueId} />
             </div>
           )
         })}

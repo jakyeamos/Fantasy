@@ -10,9 +10,9 @@ import { buttonClasses } from "@/components/ui/button"
 
 function badgeForCount(count: number) {
   if (count >= 3) {
-    return "bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400"
+    return "border border-destructive/25 bg-destructive/10 text-destructive"
   }
-  return "bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-300"
+  return "border border-primary/25 bg-primary/10 text-primary"
 }
 
 export function ConcentrationAlertBanner({
@@ -37,19 +37,24 @@ export function ConcentrationAlertBanner({
   }
 
   return (
-    <div className="rounded-xl border border-amber-200/70 bg-amber-50/70 p-4 dark:border-amber-950/40 dark:bg-amber-950/20">
+    <div className="glass-panel rounded-xl border border-primary/25 bg-card/65 p-5">
       <div className="flex items-start gap-3">
-        <AlertTriangle className="mt-0.5 size-4 text-amber-600 dark:text-amber-400" />
+        <div className="flex size-10 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
+          <AlertTriangle className="size-4" />
+        </div>
         <div className="min-w-0 flex-1 space-y-3">
           <div className="space-y-1">
-            <p className="text-sm font-medium text-foreground">Cross-league exposure</p>
-            <p className="text-xs text-amber-700 dark:text-amber-300">
+            <p className="terminal-label text-primary/85">Cross-league exposure</p>
+            <p className="text-sm text-muted-foreground">
               {rows.length} player{rows.length === 1 ? "" : "s"} on this roster are owned in other leagues.
             </p>
           </div>
           <div className="space-y-2">
             {rows.map((row) => (
-              <div key={row.player_id} className="flex flex-wrap items-center gap-2 text-sm">
+              <div
+                key={row.player_id}
+                className="flex flex-wrap items-center gap-2 rounded-lg border border-border/35 bg-card/45 px-3 py-2 text-sm"
+              >
                 <span>{row.full_name}</span>
                 <Badge variant="outline" className="text-xs">
                   {row.position}
@@ -63,8 +68,11 @@ export function ConcentrationAlertBanner({
               </div>
             ))}
           </div>
-          <Link to="/portfolio" className={buttonClasses({ variant: "link", className: "px-0" })}>
-            View full exposure →
+          <Link
+            to="/portfolio"
+            className={buttonClasses({ variant: "outline", size: "sm" })}
+          >
+            View Full Exposure
           </Link>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { useMemo } from "react"
 
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
+import { AlertTriangle, Briefcase, Radar, ShieldAlert } from "lucide-react"
 
 import {
   dashboardSummaryOptions,
@@ -51,30 +52,94 @@ function PortfolioPage() {
       }))
       .sort((a, b) => a.leagueName.localeCompare(b.leagueName))
   }, [dashboardQuery.data, exposureQuery.data?.exposure])
+  const exposureRows = exposureQuery.data?.exposure ?? []
+  const correlatedRisk = exposureQuery.data?.correlated_risk ?? []
+  const concentratedRows = exposureRows.filter((row) => row.league_count >= 3).length
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      <div className="space-y-1">
-        <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+    <div className="space-y-8">
+      <div className="space-y-2">
+        <p className="terminal-label text-muted-foreground">
           Cross-League View
         </p>
-        <h2 className="text-[20px] font-semibold">Portfolio</h2>
+        <h2 className="font-headline text-4xl font-extrabold tracking-tight">
+          Portfolio
+        </h2>
+        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+          Track repeated bets across leagues, spot concentrated exposure, and
+          surface correlated team risk before a single NFL outcome hits multiple
+          rosters at once.
+        </p>
       </div>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {[
+          {
+            label: "Tracked Leagues",
+            value: String(leagueColumns.length),
+            helper: "Mapped to portfolio",
+            icon: Briefcase,
+            tone: "text-primary",
+          },
+          {
+            label: "Exposed Players",
+            value: String(exposureRows.length),
+            helper: "Owned in multiple leagues",
+            icon: Radar,
+            tone: "text-accent",
+          },
+          {
+            label: "High Concentration",
+            value: String(concentratedRows),
+            helper: "3+ leagues on one player",
+            icon: ShieldAlert,
+            tone: "text-destructive",
+          },
+          {
+            label: "Correlated Clusters",
+            value: String(correlatedRisk.length),
+            helper: "NFL team overlap alerts",
+            icon: AlertTriangle,
+            tone: "text-primary",
+          },
+        ].map((item) => (
+          <Card key={item.label}>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className={`rounded-lg border border-border/40 bg-card/50 p-2 ${item.tone}`}>
+                  <item.icon className="size-4" />
+                </div>
+                <span className="terminal-label text-muted-foreground">{item.label}</span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="font-headline text-3xl font-extrabold tracking-tight">
+                {item.value}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">{item.helper}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
 
       <Card>
         <CardHeader>
           <CardTitle>Player Exposure</CardTitle>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Audit ownership overlap by league, then review hedge notes and team-level
+            correlation underneath the matrix.
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <ExposureMatrix
-            rows={exposureQuery.data?.exposure ?? []}
+            rows={exposureRows}
             leagueColumns={leagueColumns}
             isLoading={exposureQuery.isLoading}
             isError={exposureQuery.isError}
           />
           <Separator className="my-4" />
           <CorrelatedRiskSection
-            rows={exposureQuery.data?.correlated_risk ?? []}
+            rows={correlatedRisk}
             isLoading={exposureQuery.isLoading}
             isError={exposureQuery.isError}
           />
