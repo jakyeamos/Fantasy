@@ -5,10 +5,16 @@ from typing import Any
 
 import duckdb
 
+from fantasy.intelligence.constants import CONTENDER_DIRECTION_LABELS
 from fantasy.intelligence.direction_engine import DirectionEngine
 from fantasy.intelligence.models import DirectionResult, PlayerValue, TeamScorecard
 from fantasy.intelligence.scorecard_engine import ScorecardEngine
 from fantasy.intelligence.valuation_engine import ValuationEngine
+from fantasy.lineup.constants import TITLE_WINDOW_FRAGILITY_BOOST
+from fantasy.lineup.hygiene_engine import HygieneEngine
+from fantasy.lineup.lineup_engine import LineupEngine
+from fantasy.lineup.lineup_repo import LineupRepo
+from fantasy.lineup.models import HygieneResult, LineupResult
 
 
 class IntelligenceService:
@@ -17,6 +23,9 @@ class IntelligenceService:
         self._scorecard_engine = ScorecardEngine(conn)
         self._direction_engine = DirectionEngine()
         self._valuation_engine = ValuationEngine(conn)
+        self._lineup_engine = LineupEngine(conn)
+        self._hygiene_engine = HygieneEngine(conn)
+        self._lineup_repo = LineupRepo(conn)
 
     def compute_league(self, league_id: str) -> dict[str, Any]:
         scorecards = self._scorecard_engine.compute_all(league_id)
@@ -24,15 +33,66 @@ class IntelligenceService:
             roster_id: self._direction_engine.classify(scorecard)
             for roster_id, scorecard in scorecards.items()
         }
+
+        all_inputs = {
+            roster_id: self._scorecard_engine._apply_corrections(
+                self._scorecard_engine._gather_inputs(league_id, roster_id),
+                league_id,
+                roster_id,
+            )
+            for roster_id in scorecards.keys()
+        }
+
+        lineup_results = self._lineup_engine.compute_all(
+            league_id, all_inputs, scorecards
+        )
+
+        for roster_id, lineup_result in lineup_results.items():
+            direction = directions[roster_id]
+            if (
+                lineup_result.title_window_label == "Outside Window"
+                and direction.primary_label in CONTENDER_DIRECTION_LABELS
+            ):
+                adjusted_scorecard = scorecards[roster_id].model_copy()
+                adjusted_scorecard.fragility = min(
+                    1.0,
+                    float(adjusted_scorecard.fragility) + TITLE_WINDOW_FRAGILITY_BOOST,
+                )
+                adjusted_direction = self._direction_engine.classify(adjusted_scorecard)
+                if adjusted_direction.primary_label != direction.primary_label:
+                    directions[roster_id] = adjusted_direction
+
         values: dict[int, dict[str, PlayerValue]] = {}
         for roster_id, direction in directions.items():
             values[roster_id] = self._valuation_engine.compute_all(
                 league_id, roster_id, direction.primary_label
             )
+
+        hygiene_results: dict[int, HygieneResult] = {}
+        for roster_id, inp in all_inputs.items():
+            hygiene_results[roster_id] = self._hygiene_engine.compute(
+                league_id,
+                roster_id,
+                inp,
+                directions[roster_id].primary_label,
+                all_inputs,
+            )
+
+        for roster_id, result in lineup_results.items():
+            self._lineup_repo.save_lineup_result(result)
+        for roster_id, result in hygiene_results.items():
+            self._lineup_repo.save_hygiene_result(result)
+
         self._persist_scorecards(scorecards)
         self._persist_directions(league_id, directions)
         self._persist_values(values)
-        return {"scorecards": scorecards, "directions": directions, "values": values}
+        return {
+            "scorecards": scorecards,
+            "directions": directions,
+            "values": values,
+            "lineup": lineup_results,
+            "hygiene": hygiene_results,
+        }
 
     def get_scorecard(self, league_id: str, roster_id: int) -> TeamScorecard:
         row = self._conn.execute(
@@ -169,6 +229,26 @@ class IntelligenceService:
             lens_team_fit=row[19],
             lens_direction=row[20],
         )
+
+    def get_lineup_result(self, league_id: str, roster_id: int) -> LineupResult:
+        cached = self._lineup_repo.get_lineup_result(league_id, roster_id)
+        if cached is not None:
+            return cached
+        self.compute_league(league_id)
+        refreshed = self._lineup_repo.get_lineup_result(league_id, roster_id)
+        if refreshed is None:
+            raise ValueError(f"lineup result not found: {league_id}/{roster_id}")
+        return refreshed
+
+    def get_hygiene_result(self, league_id: str, roster_id: int) -> HygieneResult:
+        cached = self._lineup_repo.get_hygiene_result(league_id, roster_id)
+        if cached is not None:
+            return cached
+        self.compute_league(league_id)
+        refreshed = self._lineup_repo.get_hygiene_result(league_id, roster_id)
+        if refreshed is None:
+            raise ValueError(f"hygiene result not found: {league_id}/{roster_id}")
+        return refreshed
 
     def _next_id(self, table: str) -> int:
         return int(self._conn.execute(f"SELECT COALESCE(MAX(id), 0) + 1 FROM {table}").fetchone()[0])
