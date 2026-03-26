@@ -2,7 +2,7 @@
 phase: 13
 slug: context-awareness
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-03-26
 ---
@@ -40,9 +40,14 @@ created: 2026-03-26
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
 | 13-01-01 | 01 | 1 | FS-03 | unit | `cd backend && python -m pytest tests/test_calendar_state.py -x -q` | ❌ W0 | ⬜ pending |
 | 13-01-02 | 01 | 1 | FS-03 | unit | `cd backend && python -m pytest tests/test_calendar_state.py -x -q` | ❌ W0 | ⬜ pending |
-| 13-02-01 | 02 | 2 | FS-03 | unit | `cd backend && python -m pytest tests/test_calendar_state.py tests/test_scorecard_engine.py -x -q` | ❌ W0 | ⬜ pending |
+| 13-02-01 | 02 | 2 | FS-03 | unit | `cd backend && python -m pytest tests/test_calendar_state.py tests/test_freshness.py -x -q` | ❌ W0 | ⬜ pending |
+| 13-02-02 | 02 | 2 | FS-03 | unit | `cd backend && python -m pytest tests/test_calendar_state.py -x -q` | ❌ W0 | ⬜ pending |
+| 13-02-03 | 02 | 2 | FS-08 | integration | `cd backend && python -c "import pathlib; src = pathlib.Path('src/fantasy/ingestion/ingest_service.py').read_text(); assert 'mark_refreshed' in src; print('ingest hook OK')" && python -m pytest tests/test_ingest_service.py -x -q` | ❌ W0 | ⬜ pending |
 | 13-03-01 | 03 | 2 | FS-08 | unit | `cd backend && python -m pytest tests/test_freshness.py -x -q` | ❌ W0 | ⬜ pending |
 | 13-03-02 | 03 | 2 | FS-08 | unit | `cd backend && python -m pytest tests/test_freshness.py -x -q` | ❌ W0 | ⬜ pending |
+| 13-04-01 | 04 | 3 | FS-03 | static | `cd frontend && npx tsc --noEmit 2>&1 \| head -20 && grep -c "CalendarState" src/api/types.ts && grep -c "calendarContextOptions" src/api/queries.ts && echo "types+queries OK"` | ❌ W0 | ⬜ pending |
+| 13-04-02 | 04 | 3 | FS-03 FS-08 | static | `cd frontend && npx tsc --noEmit 2>&1 \| head -20 && grep -c "context.*calendar/override" src/components/context/CalendarOverridePanel.tsx && grep -c "CalendarStateBadge" src/components/picks/LeaguePickList.tsx && echo "components+wiring OK"` | ❌ W0 | ⬜ pending |
+| 13-04-03 | 04 | 3 | FS-03 FS-08 | human | Human-verify checkpoint: calendar badge, override set/clear, freshness warnings on picks surface | N/A (checkpoint) | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -69,11 +74,11 @@ created: 2026-03-26
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
