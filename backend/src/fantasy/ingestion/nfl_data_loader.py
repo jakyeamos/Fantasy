@@ -86,11 +86,11 @@ class NflDataPyLoader:
             return
 
         prepared = df.select(PLAYER_STATS_COLUMNS)
-        conn.register("weekly_df", prepared)
-        conn.execute(
-            """
+
+        upsert_sql = """
             INSERT INTO player_stats_weekly
-            SELECT * FROM weekly_df
+            ({cols})
+            VALUES ({placeholders})
             ON CONFLICT (player_id, season, week) DO UPDATE SET
                 player_name = EXCLUDED.player_name,
                 position = EXCLUDED.position,
@@ -108,9 +108,43 @@ class NflDataPyLoader:
                 receiving_2pt_conversions = EXCLUDED.receiving_2pt_conversions,
                 rushing_2pt_conversions = EXCLUDED.rushing_2pt_conversions,
                 fantasy_points = EXCLUDED.fantasy_points
-            """
+        """.format(
+            cols=", ".join(PLAYER_STATS_COLUMNS),
+            placeholders=", ".join(["?"] * len(PLAYER_STATS_COLUMNS)),
         )
-        conn.unregister("weekly_df")
+
+        try:
+            conn.register("weekly_df", prepared)
+            conn.execute(
+                """
+                INSERT INTO player_stats_weekly
+                SELECT * FROM weekly_df
+                ON CONFLICT (player_id, season, week) DO UPDATE SET
+                    player_name = EXCLUDED.player_name,
+                    position = EXCLUDED.position,
+                    receptions = EXCLUDED.receptions,
+                    targets = EXCLUDED.targets,
+                    receiving_yards = EXCLUDED.receiving_yards,
+                    receiving_tds = EXCLUDED.receiving_tds,
+                    rushing_yards = EXCLUDED.rushing_yards,
+                    rushing_tds = EXCLUDED.rushing_tds,
+                    carries = EXCLUDED.carries,
+                    passing_yards = EXCLUDED.passing_yards,
+                    passing_tds = EXCLUDED.passing_tds,
+                    interceptions = EXCLUDED.interceptions,
+                    passing_2pt_conversions = EXCLUDED.passing_2pt_conversions,
+                    receiving_2pt_conversions = EXCLUDED.receiving_2pt_conversions,
+                    rushing_2pt_conversions = EXCLUDED.rushing_2pt_conversions,
+                    fantasy_points = EXCLUDED.fantasy_points
+                """
+            )
+            conn.unregister("weekly_df")
+        except Exception:
+            rows = [
+                [row.get(col) for col in PLAYER_STATS_COLUMNS]
+                for row in prepared.to_dicts()
+            ]
+            conn.executemany(upsert_sql, rows)
 
 
 def load_adp_baseline(conn: duckdb.DuckDBPyConnection, csv_path: str = "data/adp_baseline.csv") -> int:

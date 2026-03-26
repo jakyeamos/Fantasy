@@ -8,11 +8,49 @@ import polars as pl
 
 from fantasy.corrections.override_service import OverrideService
 from fantasy.ingestion.gap_detector import GapDetector
-from fantasy.ingestion.nfl_data_loader import SLEEPER_TO_NFLDATA_MAP
+from fantasy.ingestion.nfl_data_loader import (
+    PLAYER_STATS_COLUMNS,
+    SLEEPER_TO_NFLDATA_MAP,
+    NflDataPyLoader,
+    compute_fantasy_points,
+)
 from fantasy.ingestion.sleeper_client import SleeperClient
 from fantasy.ingestion.sleeper_mapper import SleeperMapper
 from fantasy.repositories.league_repo import LeagueRepo
 from fantasy.snapshots.snapshot_service import SnapshotService
+
+
+def _build_gsis_sleeper_map(conn: duckdb.DuckDBPyConnection) -> dict[str, str]:
+    mapping: dict[str, str] = {}
+    for sleeper_id, blob in conn.execute(
+        "SELECT player_id, metadata_blob FROM players WHERE metadata_blob IS NOT NULL"
+    ).fetchall():
+        try:
+            data = json.loads(blob)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        gsis_id = data.get("gsis_id")
+        if gsis_id:
+            mapping[str(gsis_id)] = str(sleeper_id)
+    return mapping
+
+
+def _prepare_stats_df(
+    raw_df: pl.DataFrame,
+    gsis_to_sleeper: dict[str, str],
+    scoring_settings: dict[str, float],
+) -> pl.DataFrame:
+    prepared = []
+    for row in raw_df.to_dicts():
+        sleeper_id = gsis_to_sleeper.get(str(row.get("player_id") or ""))
+        if not sleeper_id:
+            continue
+        position = str(row.get("position") or "")
+        fantasy_pts, _ = compute_fantasy_points(row, scoring_settings, position)
+        prepared.append({**row, "player_id": sleeper_id, "fantasy_points": fantasy_pts})
+    if not prepared:
+        return pl.DataFrame(schema={col: pl.Float64 for col in PLAYER_STATS_COLUMNS})
+    return pl.DataFrame(prepared).select(PLAYER_STATS_COLUMNS)
 
 
 class IngestService:
@@ -191,6 +229,17 @@ class IngestService:
 
             override_service = OverrideService()
             override_service.apply_corrections(self.conn, league_id)
+
+            # Load NFL weekly stats and populate player_stats_weekly
+            gsis_to_sleeper = _build_gsis_sleeper_map(self.conn)
+            try:
+                loader = NflDataPyLoader()
+                raw_df = loader.load_weekly_stats([int(league.season)])
+                if raw_df.height > 0:
+                    stats_ready = _prepare_stats_df(raw_df, gsis_to_sleeper, league.scoring_settings)
+                    loader.upsert_weekly_stats(self.conn, stats_ready)
+            except Exception:
+                pass  # Stats load failure surfaces via gap detection below; ingest must still complete
 
             season_number = int(league.season)
             season_rows = self.conn.execute(
