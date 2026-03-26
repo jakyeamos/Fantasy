@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project builds a personal dynasty intelligence system in sixteen focused phases. Phases 1-3 deliver the core ingestion pipeline, team intelligence engines, and dashboard -- the system's foundational thesis. A hard gate between Phase 3 and Phase 4 requires manual direction label validation against all active leagues before trade and manager intelligence is built on top of it. Phases 4-5 add counterparty intelligence and trade evaluation. Phases 6-7 deliver the dynamic pick engine and rookie tooling. Phase 8 builds the historical prospect lab with backtested models. Phase 9 closes the trust loop with portfolio-level exposure tracking and recommendation retrospectives. Phases 10-16 add fantasy-specific enhancements: draft order accuracy, roster and lineup intelligence, manager market profiling, context awareness, format trust infrastructure, waiver and startup workflows, and thesis-level portfolio expansion.
+This project builds a personal dynasty intelligence system in twenty focused phases. Phases 1-3 deliver the core ingestion pipeline, team intelligence engines, and dashboard. A hard gate between Phase 3 and Phase 4 requires manual direction label validation. Phases 4-5 add counterparty intelligence and trade evaluation. Phases 6-7 deliver the dynamic pick engine and rookie tooling. Phase 8 builds the historical prospect lab with backtested models. Phase 9 closes the trust loop with portfolio-level exposure tracking and recommendation retrospectives. Phases 10-12 add format accuracy, lineup/roster intelligence, and manager rookie/pick profiling. Phases 13-16 add context awareness, trust infrastructure, waiver workflows, and thesis-level portfolio expansion. **Phases 17-20 (Helpfulness Overhaul)** deepen the highest-value decision surfaces into a true dynasty GM copilot: structured recommendation contracts, market inefficiency detection, competitive outlook 2.0, team direction 2.0, trade copilot 2.0, and a recommendation-first UX layer across all screens.
 
 ## Phases
 
@@ -28,6 +28,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 14: Trust Infrastructure** - League rule support matrix, unsupported-format flagging, fallback behavior (FS-07)
 - [ ] **Phase 15: Waiver & Startup Workflows** - FAAB/waiver intelligence, startup draft mode, orphan intake checklist (FS-05, FS-09)
 - [ ] **Phase 16: Portfolio Thesis Expansion** - Thesis-level exposure tracking, concentration flags, diversification suggestions (FS-10)
+- [ ] **Phase 17: Recommendation Contract & Market Intelligence** - Structured recommendation cards, anti-overreaction priors, player context flags, model-vs-market gap layer (REC-01–06, MKT-01–05)
+- [ ] **Phase 18: Competitive Outlook 2.0 & Team Direction 2.0** - 10-state competitive outlook replacing 3-state title window, secondary tag system, fake-vs-real contender detection (COMP-01–04, DIR2-01–06)
+- [ ] **Phase 19: Trade Copilot 2.0** - Blended EV ranking modes, acceptance likelihood model, manager-aware execution, "why this deal / why this manager / why now" outputs (TRADE2-01–06)
+- [ ] **Phase 20: UX Recommendation Layer** - Recommendation-first hierarchy across all screens, league homepage GM memo, lineup/trade/dossier screen restructures (UX-01–05)
 
 ## Phase Details
 
@@ -255,26 +259,30 @@ Plans:
   3. Team direction labels and trade recommendations can cite lineup-level reasons, not just aggregate roster value
   4. Every team screen includes a roster-hygiene panel with stash, cut, move-to-taxi, and consolidation suggestions
   5. Taxi eligibility, IR occupancy, and manual exceptions are modeled per league
-**Plans**: 5 plans
+**Plans**: 6 plans
 
 Plans:
 - [x] 11-01-PLAN.md -- Backend foundation: lineup package, models, constants, migration 014, LineupRepo, triple-write schema
 - [x] 11-02-PLAN.md -- Engines: LineupEngine (replacement-level, title-window), HygieneEngine (consolidation/cut/stash/taxi), IntelligenceService wiring, API routers, unit + integration tests
 - [x] 11-03-PLAN.md -- Frontend types, query hooks, TitleWindowPanel, LineupStrengthCard, TaxiIRSlotSummary, TaxiConfigForm
 - [x] 11-04-PLAN.md -- Frontend hygiene: RosterHygienePanel, HygieneSuggestionRow, route wiring into league team screen, human-verify checkpoint
-- [ ] 11-05-PLAN.md -- Gap closure: manual exceptions field (model/schema/repo/API/frontend) + FS-02/FS-04 defined in REQUIREMENTS.md
+- [ ] 11-05-PLAN.md -- Gap closure: add manual_exceptions field to LeagueTaxiConfig (model, triple-write schema, repo, API, frontend form); define FS-02 and FS-04 in REQUIREMENTS.md with traceability entries
+- [ ] 11-06-PLAN.md -- Helpfulness Overhaul depth: Lineup Strength 2.0 (contender benchmarking, median baseline, elite insulation guard, upgrade leverage point, weak-by-median vs. weak-relative-to-contender signals, TE format adjustment); Roster Hygiene 2.0 (8 action buckets with timing/packaging rationale, HYG-04 veteran protection, HYG-05 coverage guarantee); player context flags (LS-01–06, HYG-01–05, REC-06)
 
 ---
 
-### Phase 12: Manager Rookie & Pick Profiles
-**Goal**: Manager dossiers extend into rookie-draft and pick-market behavior, enabling the trade and draft views to surface which counterparty is most likely to buy a given prospect or pick profile
+### Phase 12: Manager Rookie & Pick Profiles + Dossier 2.0
+**Goal**: Manager dossiers extend into rookie-draft and pick-market behavior, AND deepen into a behavioral exploit map with appetite vectors, urgency state, and separate target/send recommendations
 **Depends on**: Phase 11
-**Requirements**: FS-06
+**Requirements**: FS-06, MGR2-01, MGR2-02, MGR2-03, MGR2-04
 **Success Criteria** (what must be TRUE):
   1. Historical rookie-draft selections are mined for positional preference, early-vs-late aggression, and repeated archetype bets per manager
   2. Each manager has a pick-premium score (willingness to pay for early firsts, second-round darts, draft-day trade-ups)
   3. Package builder, reroute suggestions, and draft-room warnings incorporate rookie/pick-market tendencies
   4. Low-confidence suppression is applied when historical rookie-draft evidence is too thin
+  5. Dossier adds derived behavioral fields: likely motivations now, recent urgency state, time-of-calendar sensitivity, veteran appetite score, rookie fever index, value rigidity, reroute susceptibility (MGR2-01)
+  6. "Best asset to target" and "best asset to send" are surfaced as separate outputs per manager (MGR2-02)
+  7. Dossier top section frames as an exploit map: how to trade with this manager, what they overpay for, what not to send (MGR2-03)
 **Plans**: 5 plans
 
 Plans:
@@ -283,6 +291,7 @@ Plans:
 - [ ] 12-03-PLAN.md -- Trade model extension (picks_buyer reroute type), RerouteEngine picks_buyer logic, PackageBuilder pick-premium integration, draft room warnings
 - [ ] 12-04-PLAN.md -- Frontend dossier: RookiePickMarketCard, DossierDraftPicksTab, 4th tab conditional rendering
 - [ ] 12-05-PLAN.md -- Frontend list + draft room: Picks Buyer badge in ManagerListRow, manager_tendency type extension, human-verify checkpoint
+- [ ] 12-06-PLAN.md -- Manager Dossier 2.0: behavioral fields (urgency state, appetite vectors, rigidity), separate best_asset_to_target/send outputs, exploit map dossier top section (MGR2-01–04)
 
 ---
 
@@ -296,7 +305,13 @@ Plans:
   3. The same asset demonstrably receives different guidance in different calendar windows (test-verified)
   4. Freshness domains (injuries, depth-chart changes, free agency, combine, draft capital, landing spots) are tagged on recommendation surfaces with stale-state warnings
   5. Major NFL events (Draft, major injuries) trigger an intentional refresh of affected outputs
-**Plans**: 0 plans
+**Plans**: 4 plans
+
+Plans:
+- [ ] 13-01-PLAN.md -- Backend foundation: context package scaffold, constants, models, ContextRepo, Alembic migration 016, triple-write schema (startup_tasks + conftest), freezegun install, Wave 0 test stubs
+- [ ] 13-02-PLAN.md -- CalendarService (auto-detect + override), FreshnessService (domain staleness), FastAPI /context router, main.py registration, full parametrized tests
+- [ ] 13-03-PLAN.md -- Engine enrichment: attach RecommendationContext to picks, rookie board, trade evaluation, and dashboard router responses (wrapper-only)
+- [ ] 13-04-PLAN.md -- Frontend: TypeScript types, TanStack Query hooks, CalendarStateBadge, FreshnessWarningBar, CalendarOverridePanel, picks surface wiring, human-verify checkpoint
 
 ---
 
@@ -341,6 +356,66 @@ Plans:
 
 ---
 
+---
+
+### Phase 17: Recommendation Contract & Market Intelligence
+**Goal**: Every module emits structured recommendation cards with a consistent contract, an anti-overreaction layer protects elite assets from one-year noise, player context flags are tracked, and a market-vs-model gap layer is visible across all decision surfaces
+**Depends on**: Phase 16
+**Requirements**: REC-01, REC-02, REC-03, REC-04, REC-05, REC-06, MKT-01, MKT-02, MKT-03, MKT-04, MKT-05
+**Success Criteria** (what must be TRUE):
+  1. A structured recommendation card Pydantic model with all 15 required fields is the shared output contract across lineup, trade, hygiene, and manager modules
+  2. Priority ranking formula (impact × confidence × execution × urgency) is applied and every recommendation surfaces a numeric priority rank
+  3. Anti-overreaction layer: an elite player with high insulation score cannot be labeled below replacement from raw recent production without a context flag explaining why
+  4. Player context flags (QB change, coaching change, role shift, age cliff, injury recovery) alter recommendations downstream — surfaced on recommendation cards, not buried in footnotes
+  5. Every asset carries parallel values (current lineup, next-season dynasty, market, league-specific, team-direction, manager-demand) accessible via API
+  6. Model-vs-market gap is computed per asset with buy/sell/hold/ignore/hold-despite-market classification — visible in player cards, trade recs, lineup recs, and hygiene recs
+**Plans**: 0 plans
+
+---
+
+### Phase 18: Competitive Outlook 2.0 & Team Direction 2.0
+**Goal**: The 3-state title window is replaced with a rich 10-state competitive outlook with secondary tags and recommended paths; team direction detection gains fake-contender detection, secondary tags, and better middle-tier differentiation
+**Depends on**: Phase 17
+**Requirements**: COMP-01, COMP-02, COMP-03, COMP-04, DIR2-01, DIR2-02, DIR2-03, DIR2-04, DIR2-05, DIR2-06
+**Success Criteria** (what must be TRUE):
+  1. Competitive outlook emits one of 10 primary states (Tier 1 Contender through Hard Reset) with 1–3 secondary tags, a recommended path, title odds band, fragility score, and aging curve risk
+  2. System can detect and flag "fake contender": teams with a contender label but insufficient elite starters or fragile ceiling
+  3. System can detect and flag "good team, bad bet": strong roster but poor EV from competition, aging risk, or ceiling cap
+  4. System can detect and flag "bad current team, good direction": rebuild with clear asset quality and plausible contention path
+  5. Fewer than 25% of teams in a given league land in the same undifferentiated bucket without secondary tag differentiation
+  6. Primary direction label (DIR2-06) is wired downstream: trade suggestion logic, stash/hygiene priorities, and package builder all reference the current direction + competitive state
+**Plans**: 0 plans
+
+---
+
+### Phase 19: Trade Copilot 2.0
+**Goal**: Trade recommendations are realistic, manager-aware, and EV-driven with 4 selectable ranking modes, an acceptance likelihood model, and a mandatory "why this deal / why this manager / why now" output for every suggestion
+**Depends on**: Phase 18
+**Requirements**: TRADE2-01, TRADE2-02, TRADE2-03, TRADE2-04, TRADE2-05, TRADE2-06
+**Success Criteria** (what must be TRUE):
+  1. Trade evaluator supports 4 ranking modes: best blended EV, best acceptance chance, best roster fit, best market win — user can select default mode in settings
+  2. Acceptance likelihood model uses manager behavioral history: managers who repeatedly accept negative-delta trades receive offers in that range; managers who resist certain asset archetypes do not receive those suggestions
+  3. Every trade recommendation outputs: why this deal, why this manager, why now, estimated acceptance band, and open/fair/close/reroute options
+  4. Every trade recommendation includes a "what to do if rejected" path with at least one reroute
+  5. Trade screen top section surfaces: best trade to send now, best manager to target, best player archetype to acquire, reroute if primary target is unavailable
+**Plans**: 0 plans
+
+---
+
+### Phase 20: UX Recommendation Layer
+**Goal**: All major screens adopt a recommendation-first hierarchy; league homepage becomes a GM memo; lineup, trade, and dossier screens lead with next actions rather than metrics
+**Depends on**: Phase 19
+**Requirements**: UX-01, UX-02, UX-03, UX-04, UX-05
+**Success Criteria** (what must be TRUE):
+  1. Every major screen follows the hierarchy: primary recommendation → supporting metrics → confidence → downside of inaction → what changes the call — with no screen leading with a raw score table
+  2. League homepage top block is a team memo: team state, competitive outlook, top 3 next actions, biggest risk, best trade partner, best leverage point
+  3. Lineup screen top section surfaces: strongest unit, weakest unit, title blocker, best upgrade leverage — before the slot grid
+  4. Trade screen top section surfaces: best trade to send now, best manager to work with, best target archetype, reroute option
+  5. Manager dossier top section answers directly: how to trade with this manager, what they overpay for, what not to send first
+**Plans**: 0 plans
+
+---
+
 ## Cross-Cutting Backlog
 
 The items in `.planning/FANTASY-BACKLOG.md` have been sequenced into Phases 10-16 above. The backlog file is retained as the source-of-truth for the original task breakdowns and validation criteria.
@@ -350,7 +425,7 @@ The items in `.planning/FANTASY-BACKLOG.md` have been sequenced into Phases 10-1
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> [GATE] -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16
+Phases execute in numeric order: 1 -> 2 -> 3 -> [GATE] -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17 -> 18 -> 19 -> 20
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -365,8 +440,12 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> [GATE] -> 4 -> 5 -> 6 -> 7 -> 8 
 | 9. Portfolio & Retrospectives | 0/5 | Planned | - |
 | 10. Pick Accuracy & Draft Order | 0/4 | Planned | - |
 | 11. Roster & Lineup Intelligence | 4/5 | Gap Closure | 2026-03-25 |
-| 12. Manager Rookie & Pick Profiles | 0/5 | Planned | - |
+| 12. Manager Rookie & Pick Profiles + Dossier 2.0 | 0/6 | Planned | - |
 | 13. Context Awareness | 0/0 | Unplanned | - |
 | 14. Trust Infrastructure | 0/0 | Unplanned | - |
 | 15. Waiver & Startup Workflows | 0/0 | Unplanned | - |
 | 16. Portfolio Thesis Expansion | 0/0 | Unplanned | - |
+| 17. Recommendation Contract & Market Intelligence | 0/0 | Unplanned | - |
+| 18. Competitive Outlook 2.0 & Direction 2.0 | 0/0 | Unplanned | - |
+| 19. Trade Copilot 2.0 | 0/0 | Unplanned | - |
+| 20. UX Recommendation Layer | 0/0 | Unplanned | - |
