@@ -275,7 +275,14 @@ Plans:
   2. Each manager has a pick-premium score (willingness to pay for early firsts, second-round darts, draft-day trade-ups)
   3. Package builder, reroute suggestions, and draft-room warnings incorporate rookie/pick-market tendencies
   4. Low-confidence suppression is applied when historical rookie-draft evidence is too thin
-**Plans**: 0 plans
+**Plans**: 5 plans
+
+Plans:
+- [ ] 12-01-PLAN.md -- Backend foundation: rookie_pick package, constants, models, RookiePickRepo, migration 015, schema triple-write, SleeperClient/mapper extension
+- [ ] 12-02-PLAN.md -- RookiePickProfileEngine, ManagerProfile extension, profiling router updates, on-demand draft-pick ingest endpoint
+- [ ] 12-03-PLAN.md -- Trade model extension (picks_buyer reroute type), RerouteEngine picks_buyer logic, PackageBuilder pick-premium integration, draft room warnings
+- [ ] 12-04-PLAN.md -- Frontend dossier: RookiePickMarketCard, DossierDraftPicksTab, 4th tab conditional rendering
+- [ ] 12-05-PLAN.md -- Frontend list + draft room: Picks Buyer badge in ManagerListRow, manager_tendency type extension, human-verify checkpoint
 
 ---
 
@@ -358,7 +365,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> [GATE] -> 4 -> 5 -> 6 -> 7 -> 8 
 | 9. Portfolio & Retrospectives | 0/5 | Planned | - |
 | 10. Pick Accuracy & Draft Order | 0/4 | Planned | - |
 | 11. Roster & Lineup Intelligence | 4/5 | Gap Closure | 2026-03-25 |
-| 12. Manager Rookie & Pick Profiles | 0/0 | Unplanned | - |
+| 12. Manager Rookie & Pick Profiles | 0/5 | Planned | - |
 | 13. Context Awareness | 0/0 | Unplanned | - |
 | 14. Trust Infrastructure | 0/0 | Unplanned | - |
 | 15. Waiver & Startup Workflows | 0/0 | Unplanned | - |
