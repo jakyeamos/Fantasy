@@ -234,3 +234,30 @@ def test_league_normalization_ceiling_spread():
 def test_title_window_threshold_constants():
     assert PEAK_WINDOW_THRESHOLD == 0.65
     assert FADING_WINDOW_THRESHOLD == 0.35
+
+
+def test_slot_score_position_uses_player_position_not_slot_label():
+    conn = duckdb.connect(":memory:")
+    eng = LineupEngine(conn)
+    # Purdy (QB) in SUPER_FLEX slot — should show "QB", not "SUPER_FLEX"
+    all_in = {
+        1: _base_inputs(
+            1,
+            roster_positions=["SUPER_FLEX", "BN"],
+            starters=["qb1"],
+            bench=[],
+            weekly={"qb1": 22.0},
+            player_positions={"qb1": "QB"},
+        ),
+        2: _base_inputs(
+            2,
+            roster_positions=["SUPER_FLEX", "BN"],
+            starters=["qb2"],
+            bench=[],
+            weekly={"qb2": 18.0},
+            player_positions={"qb2": "QB"},
+        ),
+    }
+    results = eng.compute_all("league_t", all_in)
+    slot = results[1].slot_scores[0]
+    assert slot.position == "QB", f"expected QB, got {slot.position!r}"

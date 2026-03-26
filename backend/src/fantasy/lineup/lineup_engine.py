@@ -214,7 +214,7 @@ class LineupEngine:
                 total += score
                 slot_scores.append(
                     LineupSlotScore(
-                        position=slot,
+                        position=inputs.player_positions.get(pid, slot),
                         player_id=pid,
                         player_name=_player_display(self._conn, pid),
                         starter_value=float(starter_val),
