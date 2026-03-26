@@ -324,3 +324,81 @@ def test_package_builder_import():
     from fantasy.trade.package_builder import PackageBuilder
 
     assert PackageBuilder is not None
+
+
+def _seed_consolidation_db(db, *, target_exploitability: float, target_evidence: int, target_low_confidence: bool):
+    """Seed minimal data for a 2-roster consolidation scenario."""
+    db.execute("""
+        INSERT INTO leagues (league_id, name, season, scoring_settings, roster_positions, settings_blob, superflex, tep, ppr)
+        VALUES ('lc1', 'C', '2025', '{}', '["QB","BN","BN"]', '{}', FALSE, FALSE, 0.0)
+    """)
+    db.execute("""
+        INSERT INTO rosters (id, league_id, roster_id, owner_id, owner_display_name, starters, players, reserve, taxi)
+        VALUES
+          (801, 'lc1', 1, 'u1', 'User', '["s1"]', '["s1","b1","b2"]', '[]', '[]'),
+          (802, 'lc1', 2, 'u2', 'Target', '["ts1"]', '["ts1"]', '[]', '[]')
+    """)
+    for pid in ('s1', 'b1', 'b2', 'ts1'):
+        db.execute(
+            "INSERT INTO players (player_id, full_name, position, team, age, metadata_blob) VALUES (?, ?, 'WR', 'X', 24, '{}')",
+            [pid, pid],
+        )
+    for pid, lens in [('b1', 0.2), ('b2', 0.25), ('s1', 0.8)]:
+        db.execute("""
+            INSERT INTO player_values (id, league_id, roster_id, player_id,
+                comp_current_production, comp_short_term, comp_role_stability,
+                comp_age_curve, comp_insulation, comp_market_liquidity,
+                comp_positional_scarcity, comp_fragility, comp_ceiling, comp_floor,
+                comp_rerollability, comp_contract,
+                lens_production, lens_market, lens_insulation, lens_team_fit, lens_direction)
+            VALUES (?, 'lc1', 1, ?, 0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,?)
+        """, [8000 + hash(pid) % 1000, pid, lens])
+    db.execute("""
+        INSERT INTO player_values (id, league_id, roster_id, player_id,
+            comp_current_production, comp_short_term, comp_role_stability,
+            comp_age_curve, comp_insulation, comp_market_liquidity,
+            comp_positional_scarcity, comp_fragility, comp_ceiling, comp_floor,
+            comp_rerollability, comp_contract,
+            lens_production, lens_market, lens_insulation, lens_team_fit, lens_direction)
+        VALUES (9001, 'lc1', 2, 'ts1', 0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0.8)
+    """)
+    db.execute("""
+        INSERT INTO manager_profiles (id, league_id, roster_id, evidence_count, low_confidence,
+            exploitability_score, exploitation_primary, exploitation_secondary,
+            exploitation_evidence, aggregate_trade_stats, trade_history)
+        VALUES (701, 'lc1', 2, ?, ?, ?, NULL, NULL, '{}', '{}', '[]')
+    """, [target_evidence, target_low_confidence, target_exploitability])
+
+
+def test_consolidation_skips_low_exploitability_manager(db):
+    _seed_consolidation_db(db, target_exploitability=25.0, target_evidence=15, target_low_confidence=False)
+    eng = HygieneEngine(db)
+    inp = _inputs('lc1', 1, bench=['b1', 'b2'], starters=['s1'])
+    all_inp = {1: inp, 2: _inputs('lc1', 2, bench=[], starters=['ts1'])}
+    result = eng.compute('lc1', 1, inp, 'rebuild', all_inp)
+    for s in result.consolidate:
+        assert s.counterparty_roster_id is None, (
+            f"Should not target roster 2 (exploitability=25.0), got counterparty={s.counterparty_roster_id}"
+        )
+
+
+def test_consolidation_skips_low_confidence_manager(db):
+    _seed_consolidation_db(db, target_exploitability=70.0, target_evidence=3, target_low_confidence=True)
+    eng = HygieneEngine(db)
+    inp = _inputs('lc1', 1, bench=['b1', 'b2'], starters=['s1'])
+    all_inp = {1: inp, 2: _inputs('lc1', 2, bench=[], starters=['ts1'])}
+    result = eng.compute('lc1', 1, inp, 'rebuild', all_inp)
+    for s in result.consolidate:
+        assert s.counterparty_roster_id is None, (
+            f"Should not target low-confidence roster 2, got counterparty={s.counterparty_roster_id}"
+        )
+
+
+def test_consolidation_targets_exploitable_manager(db):
+    _seed_consolidation_db(db, target_exploitability=70.0, target_evidence=15, target_low_confidence=False)
+    eng = HygieneEngine(db)
+    inp = _inputs('lc1', 1, bench=['b1', 'b2'], starters=['s1'])
+    all_inp = {1: inp, 2: _inputs('lc1', 2, bench=[], starters=['ts1'])}
+    result = eng.compute('lc1', 1, inp, 'rebuild', all_inp)
+    targets = [s.counterparty_roster_id for s in result.consolidate if s.counterparty_roster_id is not None]
+    assert 2 in targets, f"Should target exploitable roster 2, got {targets}"

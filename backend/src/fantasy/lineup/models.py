@@ -58,6 +58,10 @@ class HygieneResult(BaseModel):
     computed_at: str | None = None
     suggestions: list[HygieneSuggestion]
 
+    @property
+    def consolidate(self) -> list[HygieneSuggestion]:
+        return [s for s in self.suggestions if s.action_type == "consolidate"]
+
 
 class TitleWindowResult(BaseModel):
     """Standalone title-window classification for API response (D-07)."""

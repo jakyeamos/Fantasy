@@ -19,6 +19,10 @@ from fantasy.trade.package_builder import PackageBuilder
 from fantasy.trade.trade_engine import TradeEngine
 
 
+_MIN_EXPLOITABILITY_SCORE: float = 40.0
+_MIN_TRADE_EVIDENCE: int = 10
+
+
 def _loads(raw: str | None) -> dict:
     if not raw:
         return {}
@@ -244,6 +248,22 @@ class HygieneEngine:
         for other_rid, oins in all_inputs.items():
             if other_rid == roster_id:
                 continue
+            # Skip managers without enough trade history or who are too sharp to exploit
+            profile_row = self._conn.execute(
+                """
+                SELECT exploitability_score, evidence_count, low_confidence
+                FROM manager_profiles
+                WHERE league_id = ? AND roster_id = ?
+                LIMIT 1
+                """,
+                [league_id, other_rid],
+            ).fetchone()
+            if profile_row is not None:
+                expl_score = float(profile_row[0])
+                evidence = int(profile_row[1])
+                low_conf = bool(profile_row[2])
+                if low_conf or evidence < _MIN_TRADE_EVIDENCE or expl_score < _MIN_EXPLOITABILITY_SCORE:
+                    continue
             for pid in oins.starters + oins.bench:
                 lv = self._row_lens(league_id, other_rid, pid)
                 if lv >= 0.5:
