@@ -258,12 +258,13 @@ class HygieneEngine:
                 """,
                 [league_id, other_rid],
             ).fetchone()
-            if profile_row is not None:
-                expl_score = float(profile_row[0])
-                evidence = int(profile_row[1])
-                low_conf = bool(profile_row[2])
-                if low_conf or evidence < _MIN_TRADE_EVIDENCE or expl_score < _MIN_EXPLOITABILITY_SCORE:
-                    continue
+            if profile_row is None:
+                continue  # No trade history — treat as low-confidence, skip
+            expl_score = float(profile_row[0])
+            evidence = int(profile_row[1])
+            low_conf = bool(profile_row[2])
+            if low_conf or evidence < _MIN_TRADE_EVIDENCE or expl_score < _MIN_EXPLOITABILITY_SCORE:
+                continue
             for pid in oins.starters + oins.bench:
                 lv = self._row_lens(league_id, other_rid, pid)
                 if lv >= 0.5:

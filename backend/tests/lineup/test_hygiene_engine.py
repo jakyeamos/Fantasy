@@ -383,7 +383,7 @@ def test_consolidation_skips_low_exploitability_manager(db):
 
 
 def test_consolidation_skips_low_confidence_manager(db):
-    _seed_consolidation_db(db, target_exploitability=70.0, target_evidence=3, target_low_confidence=True)
+    _seed_consolidation_db(db, target_exploitability=70.0, target_evidence=15, target_low_confidence=True)
     eng = HygieneEngine(db)
     inp = _inputs('lc1', 1, bench=['b1', 'b2'], starters=['s1'])
     all_inp = {1: inp, 2: _inputs('lc1', 2, bench=[], starters=['ts1'])}
