@@ -222,6 +222,32 @@ export interface PickValue {
   rule_citation: string | null
 }
 
+export interface RuleScanEntry {
+  rule: string
+  support_level: "supported" | "partially_supported" | "unsupported"
+  reason: string
+  distorts_recommendations: boolean
+}
+
+export interface LeagueFormatScan {
+  league_id: string
+  entries: RuleScanEntry[]
+  needs_acknowledgment: boolean
+  league_unsupported: boolean
+}
+
+export interface FormatAcknowledgment {
+  league_id: string
+  acknowledged_rules: string[]
+  acknowledged_at: string
+}
+
+export interface AcknowledgedResponse {
+  league_id: string
+  acknowledged: boolean
+  acknowledgment: FormatAcknowledgment | null
+}
+
 export interface LeagueDraftOrderRule {
   non_playoff_basis: "inverse_standings" | "max_points_for"
   playoff_ordering: "by_finish" | "by_record" | "by_points_for"
@@ -316,6 +342,41 @@ export interface SnapshotAnchor {
   snapshot_at: string
   anchor_type: "trade" | "roster_change" | "season_start" | "season_end"
   label: string
+}
+
+export type CalendarState =
+  | "startup"
+  | "preseason"
+  | "early_season"
+  | "trade_deadline"
+  | "playoffs"
+  | "rookie_fever"
+  | "post_combine"
+  | "post_nfl_draft"
+
+export interface FreshnessTag {
+  domain: string
+  last_updated: string | null
+  is_stale: boolean
+  warning: string | null
+}
+
+export interface CalendarContext {
+  active_state: CalendarState
+  is_override: boolean
+  override_set_by: string | null
+  detected_at: string
+}
+
+export interface RecommendationContext {
+  calendar_state: CalendarState
+  freshness_tags: FreshnessTag[]
+  calendar_note: string | null
+}
+
+export interface PickListResponse {
+  picks: PickValue[]
+  recommendation_context: RecommendationContext
 }
 
 export interface DiffRow {

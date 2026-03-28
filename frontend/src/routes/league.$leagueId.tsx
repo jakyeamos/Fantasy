@@ -7,6 +7,7 @@ import type { LeagueDraftOrderRule } from "@/api/types"
 import { draftOrderRuleOptions, leagueDetailOptions, saveDraftOrderRule } from "@/api/queries"
 import { ConcentrationAlertBanner } from "@/components/ConcentrationAlertBanner"
 import { ExploitWindowPanel } from "@/components/ExploitWindowPanel"
+import { FormatWarningBanner } from "@/components/FormatWarningBanner"
 import { RosterHygienePanel } from "@/components/hygiene/RosterHygienePanel"
 import { LineupStrengthCard } from "@/components/lineup/LineupStrengthCard"
 import { TaxiConfigForm } from "@/components/lineup/TaxiConfigForm"
@@ -440,6 +441,7 @@ function LeagueDetailPage() {
             </CardContent>
           </Card>
 
+          <FormatWarningBanner leagueId={leagueId} />
           <ConcentrationAlertBanner
             leagueId={leagueId}
             userRosterPlayerIds={league.user_roster_player_ids}

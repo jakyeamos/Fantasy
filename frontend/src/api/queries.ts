@@ -1,6 +1,9 @@
 import { queryOptions } from "@tanstack/react-query"
 
 import type {
+  AcknowledgedResponse,
+  CalendarContext,
+  FreshnessTag,
   CorrelatedRiskRow,
   DashboardLeagueSummary,
   DiffRow,
@@ -10,6 +13,7 @@ import type {
   HygieneResult,
   LeagueDetailResponse,
   LeagueDraftOrderRule,
+  LeagueFormatScan,
   LeagueTaxiConfig,
   LineupResult,
   ManagerProfile,
@@ -235,4 +239,28 @@ export async function saveTaxiConfig(
   })
   if (!res.ok) throw new Error("Failed to save taxi config")
   return (await res.json()) as TaxiConfigResponse
+}
+
+export const leagueFormatScanOptions = (leagueId: string) =>
+  queryOptions({
+    queryKey: ["trust", leagueId, "scan"],
+    queryFn: () => getJson<LeagueFormatScan>(`/trust/${leagueId}/scan`),
+    staleTime: 5 * 60 * 1000,
+    enabled: leagueId.trim().length > 0,
+  })
+
+export const leagueAcknowledgedOptions = (leagueId: string) =>
+  queryOptions({
+    queryKey: ["trust", leagueId, "acknowledged"],
+    queryFn: () => getJson<AcknowledgedResponse>(`/trust/${leagueId}/acknowledged`),
+    staleTime: 0,
+    enabled: leagueId.trim().length > 0,
+  })
+
+export async function acknowledgeLeagueFormat(leagueId: string): Promise<void> {
+  const res = await fetch(`/api/trust/${leagueId}/acknowledge`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  })
+  if (!res.ok) throw new Error("Failed to acknowledge league format")
 }
