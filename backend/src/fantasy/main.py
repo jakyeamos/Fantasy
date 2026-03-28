@@ -24,6 +24,7 @@ from fantasy.routers import (
     snapshot_diff,
     snapshots,
     trade,
+    trust,
 )
 from fantasy.startup_tasks import maybe_run_dev_refresh
 
@@ -79,6 +80,7 @@ def create_app() -> FastAPI:
     app.include_router(draft_room.router)
     app.include_router(snapshot_diff.router)
     app.include_router(portfolio.router)
+    app.include_router(trust.router)
     return app
 
 

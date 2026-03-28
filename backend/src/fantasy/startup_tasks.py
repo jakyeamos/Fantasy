@@ -95,6 +95,15 @@ _SCHEMA_COMPAT_TABLES: dict[str, str] = {
             updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
     """,
+    "league_format_acknowledgments": """
+        CREATE TABLE IF NOT EXISTS league_format_acknowledgments (
+            id                  INTEGER PRIMARY KEY,
+            league_id           VARCHAR NOT NULL UNIQUE,
+            acknowledged_rules  VARCHAR NOT NULL,
+            acknowledged_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    """,
     "lineup_scores": """
         CREATE TABLE IF NOT EXISTS lineup_scores (
             id                      INTEGER PRIMARY KEY,
