@@ -57,21 +57,23 @@ Exceptions:
 | Role | Size | Weight | Line Height | Font Family |
 |------|------|--------|-------------|-------------|
 | Body | 14px (text-sm) | 400 (regular) | 1.5 | Inter (--font-body) |
-| Label (terminal) | 10px, uppercase, tracking-[0.16em] | 700 (bold) | 1.4 | Space Grotesk (--font-label) |
+| Label (terminal) | 12px (text-xs), uppercase, tracking-[0.16em] | 700 (bold) | 1.4 | Space Grotesk (--font-label) |
 | Sub-label / meta | 12px (text-xs) | 400 (regular) | 1.5 | Inter (--font-body) |
 | Heading (card title) | 18px (text-lg) | 700 (bold) | 1.2 | Manrope (--font-headline) |
-| Display (large card stat/label) | 24px (text-2xl) | 800 (extrabold) | 1.2 | Manrope (--font-headline) |
+| Display (large card stat/label) | 24px (text-2xl) | 700 (bold) | 1.2 | Manrope (--font-headline) |
 
-Source: Derived from `index.css`, `card.tsx` (`text-lg font-bold font-headline`), `LeagueCard.tsx` (`text-xl`), `TitleWindowPanel.tsx` (`text-2xl font-headline font-extrabold`), `button.tsx` (`text-[11px]` uppercase).
+Source: Derived from `index.css`, `card.tsx` (`text-lg font-bold font-headline`), `LeagueCard.tsx` (`text-xl`), `TitleWindowPanel.tsx` (`text-2xl font-headline`), `button.tsx` (`text-[11px]` uppercase).
 
 Notes:
-- `terminal-label` class encapsulates 10px / weight-700 / uppercase / tracking-[0.16em] / Space Grotesk — this class is used for all section eyebrow labels and is required for Phase 17 recommendation card section headers (e.g., "Recommendation", "Priority", "Market Gap").
+- `terminal-label` class: 12px / weight-700 / uppercase / tracking-[0.16em] / Space Grotesk — visually distinguished from `sub-label` (12px / weight-400 / sentence-case / default tracking / Inter) by font family, weight, case, and letter-spacing alone. No separate size is needed.
+- Both `terminal-label` and `sub-label` share 12px (text-xs). They are differentiated without a sixth size: terminal-label uses Space Grotesk bold uppercase wide-tracked; sub-label uses Inter regular sentence-case.
+- `terminal-label` class is used for all section eyebrow labels and Phase 17 recommendation card section headers (e.g., "Recommendation", "Priority", "Market Gap"), confidence labels, and market gap classification labels.
 - Recommendation card headlines (the `headline` field of `RecommendationCard`) render at 18px Manrope weight-700.
 - `why_summary` and `explanation` fields render at 14px Inter weight-400 line-height 1.5.
-- Confidence labels render at 10px uppercase terminal-label.
-- Market gap classification labels (buy low / sell high / hold) render at 10px uppercase terminal-label in the appropriate semantic color.
-- `supporting_factors[]` factor names render at 12px Space Grotesk weight-600.
-- Priority rank numeral renders at 12px JetBrains Mono uppercase.
+- `supporting_factors[]` factor names render at 12px Space Grotesk weight-700 (terminal-label treatment) — uppercase + tracking distinguishes from sub-label.
+- Priority rank numeral renders at 12px JetBrains Mono (no uppercase, default tracking — mono font alone differentiates from label roles).
+- Declared scale: 12px / 14px / 18px / 24px. Maximum 4 sizes. Compliant.
+- Declared weights: 400 (regular) / 700 (bold). Maximum 2 weights. Compliant.
 
 ---
 
@@ -111,6 +113,12 @@ Source: `frontend/src/index.css` — all values pre-declared.
 - `ignore_false_discount`: muted treatment — `border-border/40 bg-card/45 text-muted-foreground`
 - `market_right_model_cautious`: muted treatment — `border-border/40 bg-card/45 text-muted-foreground`
 - `league_specific_opportunity`: primary treatment — `border-primary/25 bg-primary/10 text-primary`
+
+---
+
+## Visuals
+
+Primary visual anchor: the `RecommendationCard` headline + `ConfidenceBadge` pair at the top of each card. The card list is ordered by `priority_rank`, making rank-1 the page's visual focal point. All other card content (supporting factors, market gap panel, CTA) is visually subordinate to this pair. Cards are visually separated by 48px (2xl) gaps between priority groups; within a group, 24px (lg) gaps between consecutive cards.
 
 ---
 
