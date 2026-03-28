@@ -339,7 +339,15 @@ Plans:
   3. A startup-draft mode provides startup pick valuation, trade-up/down heuristics, and direction-aware build templates
   4. An orphan intake checklist evaluates age curve, pick capital, dead roster spots, lineup viability, and liquidation options
   5. A newly connected team or orphan roster receives a clear first-pass 30-day action plan
-**Plans**: 0 plans
+**Plans**: 6 plans
+
+Plans:
+- [ ] 15-01-PLAN.md -- Foundation: migration 018, triple-write schema, waiver package scaffold, SleeperMapper extensions, Wave 0 test stubs
+- [ ] 15-02-PLAN.md -- WaiverEngine: FAAB bid range algorithm, free agent availability, waiver state derivation (TDD)
+- [ ] 15-03-PLAN.md -- StartupEngine: startup detection, build template assignment, trade-up/down heuristics (TDD)
+- [ ] 15-04-PLAN.md -- OrphanEngine: 5-dimension intake scoring, action plan generation, WaiverRepo persistence (TDD)
+- [ ] 15-05-PLAN.md -- FastAPI routers (waiver + startup), main.py registration, integration tests GREEN
+- [ ] 15-06-PLAN.md -- Frontend: TypeScript types, query hooks, 3 routes, 13 components, LeagueDetailPage tab integration, human-verify checkpoint
 
 ---
 
@@ -443,7 +451,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> [GATE] -> 4 -> 5 -> 6 -> 7 -> 8 
 | 12. Manager Rookie & Pick Profiles + Dossier 2.0 | 0/6 | Planned | - |
 | 13. Context Awareness | 0/0 | Unplanned | - |
 | 14. Trust Infrastructure | 0/0 | Unplanned | - |
-| 15. Waiver & Startup Workflows | 0/0 | Unplanned | - |
+| 15. Waiver & Startup Workflows | 0/6 | Planned | - |
 | 16. Portfolio Thesis Expansion | 0/0 | Unplanned | - |
 | 17. Recommendation Contract & Market Intelligence | 0/0 | Unplanned | - |
 | 18. Competitive Outlook 2.0 & Direction 2.0 | 0/0 | Unplanned | - |
