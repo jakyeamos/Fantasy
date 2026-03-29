@@ -26,7 +26,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 12: Manager Rookie & Pick Profiles** - Rookie-draft behavior mining, pick-premium scoring, profile-aware suggestions (FS-06)
 - [ ] **Phase 13: Context Awareness** - Dynasty calendar state, NFL context freshness, time-aware recommendations (FS-03, FS-08)
 - [ ] **Phase 14: Trust Infrastructure** - League rule support matrix, unsupported-format flagging, fallback behavior (FS-07)
-- [ ] **Phase 15: Waiver & Startup Workflows** - FAAB/waiver intelligence, startup draft mode, orphan intake checklist (FS-05, FS-09)
+- [x] **Phase 15: Waiver & Startup Workflows** - FAAB/waiver intelligence, startup draft mode, orphan intake checklist (FS-05, FS-09) (completed 2026-03-28)
 - [ ] **Phase 16: Portfolio Thesis Expansion** - Thesis-level exposure tracking, concentration flags, diversification suggestions (FS-10)
 - [ ] **Phase 17: Recommendation Contract & Market Intelligence** - Structured recommendation cards, anti-overreaction priors, player context flags, model-vs-market gap layer (REC-01–06, MKT-01–05)
 - [ ] **Phase 18: Competitive Outlook 2.0 & Team Direction 2.0** - 10-state competitive outlook replacing 3-state title window, secondary tag system, fake-vs-real contender detection (COMP-01–04, DIR2-01–06)

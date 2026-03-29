@@ -78,6 +78,82 @@
 - [ ] **PORT-05**: System grades past direction labels against actual outcomes after a season to surface calibration quality
 - [ ] **PORT-06**: System grades past prospect tier assignments against historical outcomes to surface model accuracy
 
+## v1.1 Requirements — Helpfulness Overhaul
+
+### Recommendation Contract
+
+- [ ] **REC-01**: Every major module emits a structured recommendation card with at minimum: `recommendation_type`, `priority_rank`, `headline`, `action`, `target_entity_type`, `target_entity_ids`, `why_summary`, `supporting_factors[]`, `confidence_label`, `confidence_score`, `downside_of_inaction`, `what_would_change_this_call`, `horizon`, `league_specificity_notes`, `manager_specificity_notes`, `model_vs_market_gap`, `cta_label`, `cta_destination`
+- [ ] **REC-02**: Each supporting factor includes: `factor_name`, `direction` (positive/negative/neutral), `magnitude`, `explanation`
+- [ ] **REC-03**: Confidence contract is enforced: show confidence label + short uncertainty reason + what would change the call; never suppress moderate-confidence recommendations; never present false precision
+- [ ] **REC-04**: Recommendation priority is computed via formula: `priority = impact × confidence × execution × urgency` where impact = title equity / EV effect, confidence = model trust, execution = realistic pullability, urgency = downside of waiting
+- [ ] **REC-05**: Anti-overreaction layer applies stabilizing priors for: elite players with strong insulation, productive veterans with stable roles, players with explainable one-year dips, and players affected by temporary environmental changes
+- [ ] **REC-06**: Player context flags are tracked and surfaced: QB upgrade/downgrade, coaching/play-caller change, depth-chart competition, injury recovery, age cliff proximity, likely role compression/expansion
+
+### Market Inefficiency Layer
+
+- [ ] **MKT-01**: Every asset carries parallel values: current-season lineup value, next-season dynasty value, market value, league-specific value, team-direction value, manager-demand value
+- [ ] **MKT-02**: System computes a model-vs-market gap per asset: market rank/value, model rank/value, gap magnitude, direction of gap, explanation
+- [ ] **MKT-03**: Each gap is classified as: buy low, sell high, hold despite weak market, ignore false discount, market right / model cautious, or league-specific opportunity
+- [ ] **MKT-04**: Market gap layer is visible in player cards, trade recommendations, lineup recommendations, and stash/hygiene recommendations
+- [ ] **MKT-05**: "Hold despite weak market" is a valid actionable conclusion the system can surface, not just buy/sell signals
+
+### Competitive Outlook 2.0
+
+- [ ] **COMP-01**: System replaces the 3-state title window (Inside/Fringe/Outside) with a minimum of 10 primary competitive states: Tier 1 Contender, Fragile Contender, Matchup-Dependent Contender, Playoff Team Not Yet a Favorite, Productive but Capped, Transitional Ascender, Delayed Window Builder, Asset-Rich Repositioner, Declining Contender, Hard Reset
+- [ ] **COMP-02**: Each competitive state carries 1–3 secondary tags drawn from: Aging Core, Fragile at RB, Overexposed to One QB, Pick Poor, Deep but Star-Light, Star Heavy / Fragile Depth, Market Undervalued, Liquid Build, Overperforming Last Year, Dependent on Bouncebacks
+- [ ] **COMP-03**: Every competitive outlook includes a recommended path (not just a label), current-year title odds band, next-year outlook, fragility score, and aging curve risk
+- [ ] **COMP-04**: System emits dependency flags indicating which assets or results the competitive state is most contingent on
+
+### Team Direction 2.0
+
+- [ ] **DIR2-01**: Team direction output includes: primary label, 1–3 secondary tags, confidence score, key evidence, and recommended path
+- [ ] **DIR2-02**: System explicitly detects "fake contender" cases: teams with contender label but insufficient elite starters or fragile ceiling
+- [ ] **DIR2-03**: System explicitly detects "good team, bad bet" cases: teams with strong roster but poor expected value due to competition, aging risk, or ceiling cap
+- [ ] **DIR2-04**: System explicitly detects "bad current team, good direction" cases: rebuilds with clear asset quality and plausible path to contention
+- [ ] **DIR2-05**: Fewer than 25% of teams in a league should land in the same undifferentiated middle-tier bucket (e.g., productive struggle) without useful secondary differentiation
+- [ ] **DIR2-06**: Primary direction label drives downstream trade suggestion logic, stash logic, and hygiene action priorities
+
+### Lineup Strength 2.0
+
+- [ ] **LS-01**: Lineup scoring benchmarks against both league median and playoff/contender-team median — weakness means different things at each level
+- [ ] **LS-02**: Lineup benchmarks use median as default, not average, to reduce bias from outlier rosters
+- [ ] **LS-03**: Anti-overreaction guard: an elite-tier player (insulation score in top tier) cannot be labeled below replacement from raw recent production alone without contextual flags
+- [ ] **LS-04**: Every team receives at least one "best upgrade leverage point" recommendation with an estimated title equity improvement
+- [ ] **LS-05**: Lineup output separates "weak by median points" from "weak relative to contender path" — these are distinct signals
+- [ ] **LS-06**: Format premium adjustments apply: TE premium reduces urgency of TE weakness relative to equivalent RB weakness in standard formats
+
+### Roster Hygiene 2.0
+
+- [ ] **HYG-01**: Hygiene engine emits 8 distinct action buckets: cut, hold, shop, package, taxi, handcuff/speculative hold, re-roll into pick, use as throw-in now
+- [ ] **HYG-02**: Every hygiene action includes timing logic: why now vs. hold for later, what triggers an action change
+- [ ] **HYG-03**: Packaging logic is explicit: "this player is more useful as a 2-for-1 sweetener than a standalone sell" is a valid and surfaced recommendation
+- [ ] **HYG-04**: Productive veterans with near-zero trade market are never lazily classified as sells — must show a willing buyer archetype or be classified as "hold despite weak market"
+- [ ] **HYG-05**: Every roster receives at least one determination each of: dead roster spot, liquid shop piece, and package candidate — where evidence supports it
+
+### Trade Copilot 2.0
+
+- [ ] **TRADE2-01**: Trade recommendations support 4 ranking modes: best blended EV, best chance of acceptance, best roster fit, best market win — user can select default
+- [ ] **TRADE2-02**: Default trade ranking blends: roster improvement, direction fit, title equity impact, long-term value impact, acceptance probability, manager exploitability, timing
+- [ ] **TRADE2-03**: Acceptance likelihood model uses manager behavioral history: if a manager repeatedly accepts negative-delta trades, the tool can recommend offers in that band
+- [ ] **TRADE2-04**: Every trade recommendation includes: why this deal, why this manager, why now, estimated acceptance band, and open/fair/close/reroute options
+- [ ] **TRADE2-05**: Every trade recommendation includes a "what to do if rejected" path
+- [ ] **TRADE2-06**: If a manager hates a particular asset archetype (aging vets, injured players), the system stops surfacing that archetype to them unless new evidence overrides it
+
+### Manager Dossier 2.0
+
+- [ ] **MGR2-01**: Manager dossier adds derived behavioral fields: likely motivations right now, recent urgency state, time-of-calendar sensitivity, veteran appetite score, rookie fever index, value rigidity, reroute susceptibility
+- [ ] **MGR2-02**: "Best asset to target" and "best asset to send" are separate explicit outputs, not combined into a single pitch
+- [ ] **MGR2-03**: Dossier framing shifts from profile to exploit map: top section answers "how do I trade with this manager" with specific asset recommendations
+- [ ] **MGR2-04**: Low-confidence badge remains enforced when behavioral evidence is thin (fewer than the defined minimum trade threshold)
+
+### UX Recommendation Layer
+
+- [ ] **UX-01**: Every major screen leads with a primary recommendation, then supporting metrics, then confidence, then downside of inaction, then what changes the call — in that hierarchy
+- [ ] **UX-02**: League homepage top block surfaces a team memo: team state, competitive outlook, top 3 next actions, biggest risk, best trade partner, best leverage point
+- [ ] **UX-03**: Lineup screen top section surfaces: strongest unit, weakest unit, title blocker, best leverage upgrade — before the detailed slot grid
+- [ ] **UX-04**: Trade screen top section surfaces: best trade to send now, best manager to work with, best player archetype to target, reroute if target unavailable
+- [ ] **UX-05**: Manager dossier top section answers: how to trade with this manager, what they are likely to buy, what they are likely to overpay for, what not to send first
+
 ## v2 Requirements
 
 ### Data Ingestion
@@ -159,11 +235,59 @@
 | PORT-05 | Phase 9 | Pending |
 | PORT-06 | Phase 9 | Pending |
 
+| REC-01 | Phase 17 | Pending |
+| REC-02 | Phase 17 | Pending |
+| REC-03 | Phase 17 | Pending |
+| REC-04 | Phase 17 | Pending |
+| REC-05 | Phase 17 | Pending |
+| REC-06 | Phase 11-05 / Phase 17 | Pending |
+| MKT-01 | Phase 17 | Pending |
+| MKT-02 | Phase 17 | Pending |
+| MKT-03 | Phase 17 | Pending |
+| MKT-04 | Phase 17 | Pending |
+| MKT-05 | Phase 17 | Pending |
+| COMP-01 | Phase 18 | Pending |
+| COMP-02 | Phase 18 | Pending |
+| COMP-03 | Phase 18 | Pending |
+| COMP-04 | Phase 18 | Pending |
+| DIR2-01 | Phase 18 | Pending |
+| DIR2-02 | Phase 18 | Pending |
+| DIR2-03 | Phase 18 | Pending |
+| DIR2-04 | Phase 18 | Pending |
+| DIR2-05 | Phase 18 | Pending |
+| DIR2-06 | Phase 18 | Pending |
+| LS-01 | Phase 11-05 | Pending |
+| LS-02 | Phase 11-05 | Pending |
+| LS-03 | Phase 11-05 | Pending |
+| LS-04 | Phase 11-05 | Pending |
+| LS-05 | Phase 11-05 | Pending |
+| LS-06 | Phase 11-05 | Pending |
+| HYG-01 | Phase 11-05 | Pending |
+| HYG-02 | Phase 11-05 | Pending |
+| HYG-03 | Phase 11-05 | Pending |
+| HYG-04 | Phase 11-05 | Pending |
+| HYG-05 | Phase 11-05 | Pending |
+| TRADE2-01 | Phase 19 | Pending |
+| TRADE2-02 | Phase 19 | Pending |
+| TRADE2-03 | Phase 19 | Pending |
+| TRADE2-04 | Phase 19 | Pending |
+| TRADE2-05 | Phase 19 | Pending |
+| TRADE2-06 | Phase 19 | Pending |
+| MGR2-01 | Phase 12 | Pending |
+| MGR2-02 | Phase 12 | Pending |
+| MGR2-03 | Phase 12 | Pending |
+| MGR2-04 | Phase 12 | Pending |
+| UX-01 | Phase 20 | Pending |
+| UX-02 | Phase 20 | Pending |
+| UX-03 | Phase 20 | Pending |
+| UX-04 | Phase 20 | Pending |
+| UX-05 | Phase 20 | Pending |
+
 **Coverage:**
-- v1 requirements: 46 total
-- Mapped to phases: 46
-- Unmapped: 0 ✓
+- v1 requirements: 46 total, mapped: 46 ✓
+- v1.1 requirements: 47 total, mapped: 47 ✓
+- Grand total: 93 requirements
 
 ---
 *Requirements defined: 2026-03-11*
-*Last updated: 2026-03-22 — statuses updated after Phases 1–7 completion; DASH-03 noted as not implemented; PICK-05/PICK-06 scope changes documented*
+*Last updated: 2026-03-26 — v1.1 Helpfulness Overhaul requirements added (REC, MKT, COMP, DIR2, LS, HYG, TRADE2, MGR2, UX); phases 17–20 created; phases 11-05 and 12 augmented with 2.0 scope*
