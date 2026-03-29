@@ -6,52 +6,19 @@ from typing import Any
 import duckdb
 import polars as pl
 
+from fantasy.context.context_repo import ContextRepo
+from fantasy.context.freshness_service import FreshnessService
 from fantasy.corrections.override_service import OverrideService
 from fantasy.ingestion.gap_detector import GapDetector
-from fantasy.ingestion.nfl_data_loader import (
-    PLAYER_STATS_COLUMNS,
-    SLEEPER_TO_NFLDATA_MAP,
-    NflDataPyLoader,
-    compute_fantasy_points,
-)
+from fantasy.ingestion.nfl_data_loader import NflDataPyLoader, build_sleeper_stats_df
 from fantasy.ingestion.sleeper_client import SleeperClient
 from fantasy.ingestion.sleeper_mapper import SleeperMapper
 from fantasy.repositories.league_repo import LeagueRepo
+from fantasy.intelligence.intelligence_service import IntelligenceService
+from fantasy.profiling.profiling_engine import ProfilingEngine
+from fantasy.rookie_pick.rookie_pick_engine import RookiePickProfileEngine
+from fantasy.rookie_pick.rookie_pick_repo import RookiePickRepo
 from fantasy.snapshots.snapshot_service import SnapshotService
-
-
-def _build_gsis_sleeper_map(conn: duckdb.DuckDBPyConnection) -> dict[str, str]:
-    mapping: dict[str, str] = {}
-    for sleeper_id, blob in conn.execute(
-        "SELECT player_id, metadata_blob FROM players WHERE metadata_blob IS NOT NULL"
-    ).fetchall():
-        try:
-            data = json.loads(blob)
-        except (json.JSONDecodeError, TypeError):
-            continue
-        gsis_id = data.get("gsis_id")
-        if gsis_id:
-            mapping[str(gsis_id)] = str(sleeper_id)
-    return mapping
-
-
-def _prepare_stats_df(
-    raw_df: pl.DataFrame,
-    gsis_to_sleeper: dict[str, str],
-    scoring_settings: dict[str, float],
-) -> pl.DataFrame:
-    prepared = []
-    for row in raw_df.to_dicts():
-        sleeper_id = gsis_to_sleeper.get(str(row.get("player_id") or ""))
-        if not sleeper_id:
-            continue
-        position = str(row.get("position") or "")
-        fantasy_pts, _ = compute_fantasy_points(row, scoring_settings, position)
-        prepared.append({**row, "player_id": sleeper_id, "fantasy_points": fantasy_pts})
-    if not prepared:
-        return pl.DataFrame(schema={col: pl.Float64 for col in PLAYER_STATS_COLUMNS})
-    return pl.DataFrame(prepared).select(PLAYER_STATS_COLUMNS)
-
 
 class IngestService:
     def __init__(self, conn: duckdb.DuckDBPyConnection, client: SleeperClient):
@@ -152,6 +119,62 @@ class IngestService:
                 self._normalize_player_record(player_id, player_catalog.get(player_id))
             )
 
+    async def ingest_draft_picks(self, league_id: str) -> dict[str, int]:
+        drafts_raw = await self.client.fetch_drafts(league_id)
+        rookie_pick_repo = RookiePickRepo(self.conn)
+        processed_drafts = 0
+        processed_selections = 0
+
+        for draft in drafts_raw:
+            draft_id = draft.get("draft_id")
+            season = draft.get("season")
+            if draft_id is None or season is None:
+                continue
+            raw_picks = await self.client.fetch_draft_picks(str(draft_id))
+            if not raw_picks:
+                continue
+            draft_type = (
+                "rookie"
+                if str(draft.get("type") or "").lower() == "rookie"
+                else "startup"
+            )
+            selections = SleeperMapper.map_draft_pick_selections(
+                raw_picks,
+                league_id,
+                str(draft_id),
+                int(season),
+                draft_type,
+            )
+            for selection in selections:
+                rookie_pick_repo.upsert_draft_selection(selection)
+            processed_drafts += 1
+            processed_selections += len(selections)
+
+        engine = RookiePickProfileEngine(self.conn)
+        enriched = engine.enrich_selection_archetypes(league_id)
+        roster_rows = self.conn.execute(
+            """
+            SELECT roster_id
+            FROM rosters
+            WHERE league_id = ?
+            ORDER BY roster_id
+            """,
+            [league_id],
+        ).fetchall()
+        for row in roster_rows:
+            engine.compute_profile(league_id, int(row[0]))
+
+        freshness = FreshnessService(repo=ContextRepo(self.conn))
+        freshness.mark_refreshed(league_id, "draft_capital")
+        freshness.mark_refreshed(league_id, "landing_spots")
+
+        return {
+            "drafts": processed_drafts,
+            "selections": processed_selections,
+            "enriched": enriched,
+            "profiles": len(roster_rows),
+        }
+
     async def run(self, league_id: str, run_type: str = "full") -> int:
         running = self.conn.execute(
             "SELECT COUNT(*) FROM ingest_runs WHERE league_id = ? AND status = 'running'",
@@ -170,10 +193,12 @@ class IngestService:
         )
 
         try:
+            print(f"[ingest:{run_id}] fetching league {league_id}...")
             league_raw = await self.client.fetch_league(league_id)
             league = SleeperMapper.map_league(league_raw)
             self.repo.upsert_league(league)
 
+            print(f"[ingest:{run_id}] fetching users...")
             users_raw = await self.client.fetch_users(league_id)
             owner_display_names = {
                 str(user.get("user_id")): str(
@@ -186,6 +211,7 @@ class IngestService:
                 if user.get("user_id") is not None
             }
 
+            print(f"[ingest:{run_id}] fetching rosters...")
             rosters_raw = await self.client.fetch_rosters(league_id)
             for roster_raw in rosters_raw:
                 roster = SleeperMapper.map_roster(
@@ -201,47 +227,78 @@ class IngestService:
                 self.repo.upsert_standing(standing)
             await self._backfill_roster_players(rosters_raw)
 
+            print(f"[ingest:{run_id}] fetching traded picks...")
             traded_picks_raw = await self.client.fetch_traded_picks(league_id)
             traded_picks = SleeperMapper.map_traded_picks(traded_picks_raw, league_id)
             self.repo.upsert_traded_picks(traded_picks)
 
+            print(f"[ingest:{run_id}] fetching drafts...")
             drafts_raw = await self.client.fetch_drafts(league_id)
             draft_slots = SleeperMapper.map_draft_slots(drafts_raw, league_id)
             self.repo.upsert_draft_slots(draft_slots)
 
+            print(f"[ingest:{run_id}] fetching NFL state...")
             latest_cursor = self._get_latest_complete_cursor(league_id)
             state = await self.client.fetch_nfl_state()
+            season_type = str(state.get("season_type") or "regular")
             current_week = int(state.get("week", 18) or 18)
+
+            # In the offseason/preseason Sleeper rolls the season counter forward
+            # but the last completed season's stats live under (season - 1).
+            season_number = int(league.season)
+            if season_type in ("off", "pre"):
+                stats_season = season_number - 1
+                stats_max_week = 18
+            else:
+                stats_season = season_number
+                stats_max_week = current_week
+
+            print(f"[ingest:{run_id}]   NFL state: season={state.get('season')} season_type={season_type} week={current_week} stats_season={stats_season}")
 
             if run_type == "incremental":
                 start_week = int(latest_cursor.get("max_week_fetched", 0) or 0) + 1
             else:
                 start_week = 1
-
+            all_weeks_stats: dict[int, dict[str, dict]] = {}
             max_week_fetched = int(latest_cursor.get("max_week_fetched", 0) or 0)
-            if start_week <= current_week:
-                for week in range(start_week, current_week + 1):
+            if start_week <= stats_max_week:
+                print(f"[ingest:{run_id}] fetching weeks {start_week}–{stats_max_week} season={stats_season} (transactions + stats)...")
+                for week in range(start_week, stats_max_week + 1):
+                    print(f"[ingest:{run_id}]   week {week}/{stats_max_week}")
                     transactions_raw = await self.client.fetch_transactions(league_id, week)
                     transactions = SleeperMapper.map_transactions(transactions_raw, league_id)
                     for txn in transactions:
                         self.repo.upsert_transaction(txn)
+                    try:
+                        week_stats = await self.client.fetch_weekly_stats(
+                            "regular", stats_season, week
+                        )
+                        all_weeks_stats[week] = week_stats
+                        print(f"[ingest:{run_id}]     stats players loaded: {len(week_stats)}")
+                    except Exception as stats_exc:
+                        print(f"[ingest:{run_id}]     WARNING: stats fetch failed for week {week}: {stats_exc}")
                     max_week_fetched = week
 
+            print(f"[ingest:{run_id}] applying corrections...")
             override_service = OverrideService()
             override_service.apply_corrections(self.conn, league_id)
 
-            # Load NFL weekly stats and populate player_stats_weekly
-            gsis_to_sleeper = _build_gsis_sleeper_map(self.conn)
-            try:
+            # Load weekly stats using Sleeper IDs directly — no GSIS translation needed
+            print(f"[ingest:{run_id}] loading weekly stats ({len(all_weeks_stats)} weeks with data)...")
+            if all_weeks_stats:
+                player_info = {
+                    str(row[0]): (str(row[1]), str(row[2]))
+                    for row in self.conn.execute(
+                        "SELECT player_id, COALESCE(full_name, player_id), COALESCE(position, '') FROM players"
+                    ).fetchall()
+                }
+                stats_df_full = build_sleeper_stats_df(
+                    all_weeks_stats, league.scoring_settings, stats_season, player_info
+                )
                 loader = NflDataPyLoader()
-                raw_df = loader.load_weekly_stats([int(league.season)])
-                if raw_df.height > 0:
-                    stats_ready = _prepare_stats_df(raw_df, gsis_to_sleeper, league.scoring_settings)
-                    loader.upsert_weekly_stats(self.conn, stats_ready)
-            except Exception:
-                pass  # Stats load failure surfaces via gap detection below; ingest must still complete
+                loader.upsert_weekly_stats(self.conn, stats_df_full)
+                print(f"[ingest:{run_id}]   upserted {stats_df_full.height} player-week rows")
 
-            season_number = int(league.season)
             season_rows = self.conn.execute(
                 "SELECT season FROM player_stats_weekly WHERE season = ?",
                 [season_number],
@@ -256,7 +313,7 @@ class IngestService:
                 conn=self.conn,
                 league_id=league_id,
                 scoring_settings=league.scoring_settings,
-                sleeper_to_nfldata_map=SLEEPER_TO_NFLDATA_MAP,
+                sleeper_to_nfldata_map={},
                 stats_df=stats_df,
                 expected_years=[season_number],
             )
@@ -276,10 +333,19 @@ class IngestService:
                 """,
                 [cursor_json, gaps_json, run_id],
             )
+            print(f"[ingest:{run_id}] taking snapshot...")
             snapshot_service = SnapshotService(self.conn)
             snapshot_service.take_snapshot(
                 [league_id], triggered_by="ingest", ingest_run_id=run_id
             )
+            print(f"[ingest:{run_id}] computing profiles...")
+            ProfilingEngine(self.conn).compute_all_profiles(league_id)
+            print(f"[ingest:{run_id}] computing intelligence...")
+            IntelligenceService(self.conn).compute_league(league_id)
+            freshness = FreshnessService(repo=ContextRepo(self.conn))
+            freshness.mark_refreshed(league_id, "injuries")
+            freshness.mark_refreshed(league_id, "depth_chart")
+            print(f"[ingest:{run_id}] done.")
             return run_id
         except Exception as exc:
             self.conn.execute(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -43,6 +43,28 @@ class ManagerProfile(BaseModel):
     trade_history: list[dict[str, Any]] = []
     aggregate_trade_stats: dict[str, Any]
     roster_summary: dict[str, Any] | None = None
+    pick_premium_score: float | None = None
+    pick_trade_evidence: int = 0
+    draft_selection_count: int = 0
+    positional_tendency: dict[str, float] = {}
+    dominant_archetype: str | None = None
+    archetype_pattern: dict[str, int] = {}
+    show_draft_picks_tab: bool = False
+    draft_selection_history: list[dict] = []
+    likely_motivations_now: str | None = None
+    recent_urgency_state: Literal[
+        "building_urgency",
+        "stable",
+        "declining_window",
+        "panic_mode",
+    ] | None = None
+    time_of_calendar_sensitivity: float = 0.0
+    veteran_appetite: float = 0.0
+    rookie_fever_index: float = 0.0
+    value_rigidity: float = 0.0
+    reroute_susceptibility: float = 0.0
+    best_asset_to_target: str | None = None
+    best_asset_to_send: str | None = None
 
 
 class ManagerSummary(BaseModel):
@@ -56,3 +78,4 @@ class ManagerSummary(BaseModel):
     evidence_count: int
     low_confidence: bool
     top_pitch_angle: PitchAngle | None = None
+    pick_premium_score: float | None = None

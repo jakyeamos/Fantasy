@@ -35,6 +35,8 @@ def test_map_roster(mock_roster_response):
     assert roster.starters == ["4017", "4663"]
     assert roster.taxi == ["8888"]
     assert roster.ir == ["5122"]
+    assert roster.waiver_position == 3
+    assert roster.waiver_budget_used == 27
     assert "2374" in roster.bench
     assert "6945" in roster.bench
 
@@ -95,3 +97,25 @@ def test_partial_response_handling():
 
     with pytest.raises(Exception):
         SleeperMapper.map_league({"name": "Missing ID"})
+
+
+def test_map_transactions_extracts_waiver_bid():
+    rows = SleeperMapper.map_transactions(
+        [
+            {
+                "transaction_id": "txn_waiver",
+                "type": "waiver",
+                "status": "complete",
+                "created": 1700100000000,
+                "roster_ids": [1],
+                "adds": {"6945": 1},
+                "drops": {},
+                "draft_picks": [],
+                "settings": {"waiver_bid": 44},
+                "leg": 5,
+            }
+        ],
+        "league_x",
+    )
+
+    assert rows[0].waiver_bid == 44

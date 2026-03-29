@@ -132,12 +132,17 @@ class ProfilingRepo:
                    mp.evidence_count, mp.low_confidence, mp.exploitability_score,
                    mp.exploitation_primary, mp.exploitation_secondary,
                    mp.exploitation_evidence, mp.aggregate_trade_stats,
-                   mp.trade_history, mp.roster_summary, r.owner_id, r.owner_display_name, td.primary_label
+                   mp.trade_history, mp.roster_summary, r.owner_id, r.owner_display_name, td.primary_label,
+                   mrpp.pick_premium_score, mrpp.pick_trade_evidence, mrpp.draft_selection_count,
+                   mrpp.positional_tendency_json, mrpp.dominant_archetype,
+                   mrpp.archetype_pattern_json, mrpp.show_draft_picks_tab
             FROM manager_profiles mp
             LEFT JOIN rosters r
               ON r.league_id = mp.league_id AND r.roster_id = mp.roster_id
             LEFT JOIN team_directions td
               ON td.league_id = mp.league_id AND td.roster_id = mp.roster_id
+            LEFT JOIN manager_rookie_pick_profiles mrpp
+              ON mrpp.league_id = mp.league_id AND mrpp.roster_id = mp.roster_id
             WHERE mp.league_id = ? AND mp.roster_id = ?
             LIMIT 1
             """,
@@ -160,6 +165,13 @@ class ProfilingRepo:
             roster_summary=_loads(row[11], {}),
             manager_name=str(row[13] or row[12]) if (row[13] or row[12]) is not None else None,
             direction_label=str(row[14]) if row[14] is not None else None,
+            pick_premium_score=float(row[15]) if row[15] is not None else None,
+            pick_trade_evidence=int(row[16]) if row[16] is not None else 0,
+            draft_selection_count=int(row[17]) if row[17] is not None else 0,
+            positional_tendency=_loads(row[18], {}),
+            dominant_archetype=str(row[19]) if row[19] is not None else None,
+            archetype_pattern=_loads(row[20], {}),
+            show_draft_picks_tab=bool(row[21]) if row[21] is not None else False,
             pitch_angles=self.get_pitch_angles(league_id, roster_id),
         )
 
@@ -172,12 +184,15 @@ class ProfilingRepo:
                    td.primary_label,
                    mp.exploitability_score,
                    mp.evidence_count,
-                   mp.low_confidence
+                   mp.low_confidence,
+                   mrpp.pick_premium_score
             FROM rosters r
             LEFT JOIN team_directions td
               ON td.league_id = r.league_id AND td.roster_id = r.roster_id
             LEFT JOIN manager_profiles mp
               ON mp.league_id = r.league_id AND mp.roster_id = r.roster_id
+            LEFT JOIN manager_rookie_pick_profiles mrpp
+              ON mrpp.league_id = r.league_id AND mrpp.roster_id = r.roster_id
             WHERE r.league_id = ?
             ORDER BY COALESCE(mp.exploitability_score, 0) DESC, r.roster_id
             """,
@@ -196,6 +211,7 @@ class ProfilingRepo:
                     exploitability_score=float(row[4]) if row[4] is not None else 0.0,
                     evidence_count=int(row[5]) if row[5] is not None else 0,
                     low_confidence=bool(row[6]) if row[6] is not None else True,
+                    pick_premium_score=float(row[7]) if row[7] is not None else None,
                     top_pitch_angle=angles[0] if angles else None,
                 )
             )

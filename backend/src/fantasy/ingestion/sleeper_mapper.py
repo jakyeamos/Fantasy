@@ -23,6 +23,8 @@ class RosterSnapshot(BaseModel):
     owner_id: str | None = None
     owner_display_name: str | None = None
     league_id: str
+    waiver_position: int | None = None
+    waiver_budget_used: int | None = None
     starters: list[str]
     bench: list[str]
     ir: list[str]
@@ -67,6 +69,7 @@ class TransactionRecord(BaseModel):
     adds: dict[str, int]
     drops: dict[str, int]
     draft_picks: list[dict[str, Any]]
+    waiver_bid: int | None = None
     week: int
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -110,11 +113,22 @@ class SleeperMapper:
         excluded = set(starters) | set(reserve) | set(taxi)
         bench = [player for player in players if player not in excluded]
 
+        settings = raw.get("settings") or {}
         payload = {
             "roster_id": raw.get("roster_id"),
             "owner_id": raw.get("owner_id"),
             "owner_display_name": raw.get("owner_display_name"),
             "league_id": raw.get("league_id"),
+            "waiver_position": (
+                int(settings["waiver_position"])
+                if settings.get("waiver_position") is not None
+                else None
+            ),
+            "waiver_budget_used": (
+                int(settings["waiver_budget_used"])
+                if settings.get("waiver_budget_used") is not None
+                else None
+            ),
             "starters": starters,
             "bench": bench,
             "ir": reserve,
@@ -165,6 +179,43 @@ class SleeperMapper:
         return slots
 
     @staticmethod
+    def map_draft_pick_selections(
+        raw_picks: list[dict[str, Any]],
+        league_id: str,
+        draft_id: str,
+        season: int,
+        draft_type: str,
+    ) -> list[dict[str, Any]]:
+        selections: list[dict[str, Any]] = []
+        for raw in raw_picks or []:
+            roster_id = raw.get("roster_id")
+            player_id = raw.get("player_id")
+            pick_no = raw.get("pick_no")
+            round_number = raw.get("round")
+            if roster_id is None or player_id is None or pick_no is None or round_number is None:
+                continue
+            metadata = raw.get("metadata") if isinstance(raw.get("metadata"), dict) else {}
+            selections.append(
+                {
+                    "league_id": league_id,
+                    "draft_id": draft_id,
+                    "roster_id": int(roster_id),
+                    "player_id": str(player_id),
+                    "pick_slot": int(pick_no),
+                    "round_number": int(round_number),
+                    "season": int(season),
+                    "draft_type": str(draft_type),
+                    "position": (
+                        str(metadata.get("position"))
+                        if metadata.get("position") is not None
+                        else None
+                    ),
+                    "archetype_label": None,
+                }
+            )
+        return selections
+
+    @staticmethod
     def map_standing(raw: dict[str, Any], league_id: str) -> StandingRow:
         settings = raw.get("settings") or {}
         fpts_whole = float(settings.get("fpts", 0) or 0)
@@ -206,6 +257,11 @@ class SleeperMapper:
                     for player_id, roster_id in (item.get("drops") or {}).items()
                 },
                 "draft_picks": list(item.get("draft_picks") or []),
+                "waiver_bid": (
+                    int((item.get("settings") or {}).get("waiver_bid"))
+                    if (item.get("settings") or {}).get("waiver_bid") is not None
+                    else None
+                ),
                 "week": int(item.get("leg", 0) or 0),
             }
             mapped.append(TransactionRecord.model_validate(payload))

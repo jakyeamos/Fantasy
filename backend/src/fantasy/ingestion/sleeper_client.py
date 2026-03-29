@@ -75,6 +75,26 @@ class SleeperClient:
             raise
         return list(result or [])
 
+    async def fetch_draft_picks(self, draft_id: str) -> list[dict[str, Any]]:
+        try:
+            result = await self._get(f"/draft/{draft_id}/picks")
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 404:
+                return []
+            raise
+        return list(result or [])
+
     async def fetch_players(self) -> dict[str, dict[str, Any]]:
         data = await self._get("/players/nfl")
         return dict(data)
+
+    async def fetch_weekly_stats(
+        self, season_type: str, season: int, week: int
+    ) -> dict[str, dict[str, Any]]:
+        try:
+            data = await self._get(f"/stats/nfl/{season_type}/{season}/{week}")
+            return {k: dict(v) for k, v in data.items()} if data else {}
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 404:
+                return {}
+            raise

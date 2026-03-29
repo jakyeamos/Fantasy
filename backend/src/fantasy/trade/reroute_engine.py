@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import duckdb
 
+from fantasy.rookie_pick.constants import PICK_PREMIUM_THRESHOLD
+from fantasy.rookie_pick.rookie_pick_repo import RookiePickRepo
 from fantasy.trade.constants import MAX_REROUTES
 from fantasy.trade.models import RerouteResult, TradeAsset, TradeEvaluation, TradeRequest
 from fantasy.trade.trade_repo import TradeRepo
@@ -9,6 +11,7 @@ from fantasy.trade.trade_repo import TradeRepo
 
 class RerouteEngine:
     def __init__(self, conn: duckdb.DuckDBPyConnection):
+        self._conn = conn
         self._repo = TradeRepo(conn)
 
     def _primary_target(self, request: TradeRequest) -> TradeAsset | None:
@@ -127,4 +130,44 @@ class RerouteEngine:
                         )
                     )
 
+        if (
+            len(reroutes) < MAX_REROUTES
+            and request.counterparty_roster_id is not None
+        ):
+            picks_buyer = self._generate_picks_buyer_reroute(
+                request.league_id,
+                request.counterparty_roster_id,
+                request.user_receives,
+            )
+            if picks_buyer is not None:
+                reroutes.append(picks_buyer)
+
         return reroutes[:MAX_REROUTES]
+
+    def _generate_picks_buyer_reroute(
+        self,
+        league_id: str,
+        counterparty_roster_id: int,
+        user_receive_assets: list[TradeAsset],
+    ) -> RerouteResult | None:
+        if any(asset.asset_type == "pick" for asset in user_receive_assets):
+            return None
+        profile = RookiePickRepo(self._conn).get_profile(league_id, counterparty_roster_id)
+        if profile is None:
+            return None
+        if (
+            profile.pick_premium_score is None
+            or profile.pick_premium_score < PICK_PREMIUM_THRESHOLD
+        ):
+            return None
+        return RerouteResult(
+            reroute_type="picks_buyer",
+            headline="Consider including a pick - this manager consistently pays a premium for draft capital",
+            reasoning=(
+                f"This manager has a pick-premium score of "
+                f"{profile.pick_premium_score:.2f} based on "
+                f"{profile.pick_trade_evidence} pick-related trade(s). "
+                "Adding a pick to the package structure may improve acceptance odds."
+            ),
+            suggested_assets=None,
+        )

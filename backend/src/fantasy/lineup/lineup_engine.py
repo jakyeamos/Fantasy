@@ -93,7 +93,10 @@ class LineupEngine:
 
         if not values:
             return float(first_in.position_medians.get(slot_label, med_avg))
-        return float(min(values))
+        values.sort()
+        mid = len(values) // 2
+        median = values[mid] if len(values) % 2 != 0 else (values[mid - 1] + values[mid]) / 2
+        return float(median)
 
     def compute_all(
         self,

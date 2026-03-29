@@ -30,16 +30,10 @@ def test_compute_fantasy_points_maps_stats_and_te_bonus():
 
 
 def test_load_weekly_stats_pads_missing_columns(monkeypatch):
-    fake_source = SimpleNamespace(empty=False)
-    monkeypatch.setitem(
-        sys.modules,
-        "nfl_data_py",
-        SimpleNamespace(import_weekly_data=lambda years: fake_source),
-    )
     monkeypatch.setattr(
         pl,
-        "from_pandas",
-        lambda _value: pl.DataFrame(
+        "read_parquet",
+        lambda _url: pl.DataFrame(
             {
                 "player_id": ["p1"],
                 "player_name": ["Player One"],
@@ -60,10 +54,10 @@ def test_load_weekly_stats_pads_missing_columns(monkeypatch):
 
 
 def test_load_weekly_stats_returns_empty_frame_for_empty_source(monkeypatch):
-    monkeypatch.setitem(
-        sys.modules,
-        "nfl_data_py",
-        SimpleNamespace(import_weekly_data=lambda years: SimpleNamespace(empty=True)),
+    monkeypatch.setattr(
+        pl,
+        "read_parquet",
+        lambda _url: pl.DataFrame({"season": pl.Series([], dtype=pl.Int64)}),
     )
 
     df = NflDataPyLoader().load_weekly_stats([2025])

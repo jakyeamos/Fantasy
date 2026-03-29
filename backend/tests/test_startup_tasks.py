@@ -93,7 +93,20 @@ def test_ensure_runtime_schema_adds_missing_columns(db):
         ).fetchall()
     }
     assert "owner_display_name" in roster_columns
+    assert "waiver_position" in roster_columns
+    assert "waiver_budget_used" in roster_columns
     assert "trade_history" in profile_columns
+    transaction_columns = {
+        row[0]
+        for row in db.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'transactions'
+            """
+        ).fetchall()
+    }
+    assert "waiver_bid" in transaction_columns
     trade_history = db.execute(
         """
         SELECT trade_history
@@ -111,6 +124,10 @@ def test_ensure_runtime_schema_creates_missing_phase_tables(db):
         "rookie_board_cache",
         "league_draft_tendencies",
         "league_draft_order_rules",
+        "waiver_recommendations",
+        "startup_contexts",
+        "orphan_intakes",
+        "action_plans",
     ]:
         db.execute(f"DROP TABLE {table_name}")
 
@@ -131,6 +148,10 @@ def test_ensure_runtime_schema_creates_missing_phase_tables(db):
     assert "rookie_board_cache" in tables
     assert "league_draft_tendencies" in tables
     assert "league_draft_order_rules" in tables
+    assert "waiver_recommendations" in tables
+    assert "startup_contexts" in tables
+    assert "orphan_intakes" in tables
+    assert "action_plans" in tables
 
 
 def test_league_draft_order_rules_table_created_by_startup(db):

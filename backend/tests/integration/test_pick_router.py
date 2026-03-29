@@ -81,7 +81,13 @@ def test_get_league_picks_empty(db):
 
     response = client.get("/picks/league_x")
     assert response.status_code == 200
-    assert response.json() == []
+    payload = response.json()
+    assert payload["picks"] == []
+    assert payload["recommendation_context"]["calendar_state"]
+    assert {tag["domain"] for tag in payload["recommendation_context"]["freshness_tags"]} == {
+        "injuries",
+        "draft_capital",
+    }
 
 
 def test_get_league_picks_batch(db):
@@ -94,8 +100,11 @@ def test_get_league_picks_batch(db):
     response = client.get("/picks/league_x")
     assert response.status_code == 200
     payload = response.json()
-    assert len(payload) == 12
-    assert {"timing_label", "timing_reasoning", "demand_adjusted_value"} <= set(payload[0])
+    assert len(payload["picks"]) == 12
+    assert {"timing_label", "timing_reasoning", "demand_adjusted_value"} <= set(
+        payload["picks"][0]
+    )
+    assert "recommendation_context" in payload
 
 
 def test_get_draft_order_rule_returns_null_when_unconfigured(db):
@@ -144,10 +153,10 @@ def test_picks_blocked_when_no_rule(db):
 
     assert response.status_code == 200
     payload = response.json()
-    assert len(payload) == 12
-    assert all(item["rule_citation"] is None for item in payload)
-    assert all(item["expected_draft_slot"] == 1.0 for item in payload)
-    assert all(item["league_adjusted_value"] == 0.0 for item in payload)
+    assert len(payload["picks"]) == 12
+    assert all(item["rule_citation"] is None for item in payload["picks"])
+    assert all(item["expected_draft_slot"] == 1.0 for item in payload["picks"])
+    assert all(item["league_adjusted_value"] == 0.0 for item in payload["picks"])
 
 
 def test_picks_configured_after_rule_save(db):
@@ -170,12 +179,12 @@ def test_picks_configured_after_rule_save(db):
 
     assert response.status_code == 200
     payload = response.json()
-    assert len(payload) == 12
+    assert len(payload["picks"]) == 12
     assert all(
         item["rule_citation"] == "Using: Inverse standings · Playoff teams by finish"
-        for item in payload
+        for item in payload["picks"]
     )
-    assert any(item["league_adjusted_value"] > 0.0 for item in payload)
+    assert any(item["league_adjusted_value"] > 0.0 for item in payload["picks"])
 
 
 def test_picks_max_pf_configured_returns_citation(db):
@@ -198,10 +207,10 @@ def test_picks_max_pf_configured_returns_citation(db):
 
     assert response.status_code == 200
     payload = response.json()
-    assert len(payload) == 12
+    assert len(payload["picks"]) == 12
     assert all(
         item["rule_citation"] == "Using: Max points for · Playoff teams by points for"
-        for item in payload
+        for item in payload["picks"]
     )
 
 
@@ -215,12 +224,12 @@ def test_get_league_picks_batch_filters_by_current_owner(db):
     response = client.get("/picks/league_x?current_owner_roster_id=1")
     assert response.status_code == 200
     payload = response.json()
-    assert len(payload) == 7
+    assert len(payload["picks"]) == 7
     assert any(
         item["pick"]["pick_owner_roster_id"] == 2
         and item["pick"]["pick_year"] == 2026
         and item["pick"]["pick_round"] == 1
-        for item in payload
+        for item in payload["picks"]
     )
 
 

@@ -9,6 +9,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
 from fantasy.config import get_settings
+from fantasy.context.calendar_service import CalendarService
+from fantasy.context.constants import CALENDAR_GUIDANCE
+from fantasy.context.context_repo import ContextRepo
+from fantasy.context.freshness_service import FreshnessService
+from fantasy.context.models import RecommendationContext
 from fantasy.intelligence.constants import REBUILD_DIRECTION_LABELS
 from fantasy.routers.deps import get_read_db_conn
 
@@ -125,6 +130,25 @@ class LeagueDetailResponse(BaseModel):
     exploit_windows: list[ExploitWindowManager]
     last_snapshot_at: str | None = None
     last_ingest_at: str | None = None
+    recommendation_context: RecommendationContext | None = None
+
+
+def _build_recommendation_context(
+    conn: duckdb.DuckDBPyConnection,
+    league_id: str,
+) -> RecommendationContext:
+    repo = ContextRepo(conn)
+    calendar_context = CalendarService(repo=repo).get_context(league_id)
+    freshness_tags = FreshnessService(repo=repo).get_tags(
+        league_id,
+        ["injuries", "depth_chart", "free_agency"],
+    )
+    note = CALENDAR_GUIDANCE.get((calendar_context.active_state, "general"))
+    return RecommendationContext(
+        calendar_state=calendar_context.active_state,
+        freshness_tags=[tag for tag in freshness_tags if tag.is_stale],
+        calendar_note=note,
+    )
 
 
 def _loads(raw: str | None, fallback: Any) -> Any:
@@ -839,4 +863,5 @@ def get_league_detail(
         exploit_windows=exploit_windows,
         last_snapshot_at=_latest_snapshot_at(conn, league_id),
         last_ingest_at=_latest_ingest_at(conn, league_id),
+        recommendation_context=_build_recommendation_context(conn, league_id),
     )

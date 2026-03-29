@@ -67,12 +67,15 @@ class LeagueRepo:
         self.conn.execute(
             """
             INSERT INTO rosters (
-                id, league_id, roster_id, owner_id, owner_display_name, starters, players, reserve, taxi
+                id, league_id, roster_id, owner_id, owner_display_name,
+                waiver_position, waiver_budget_used, starters, players, reserve, taxi
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (league_id, roster_id) DO UPDATE SET
                 owner_id = EXCLUDED.owner_id,
                 owner_display_name = EXCLUDED.owner_display_name,
+                waiver_position = EXCLUDED.waiver_position,
+                waiver_budget_used = EXCLUDED.waiver_budget_used,
                 starters = EXCLUDED.starters,
                 players = EXCLUDED.players,
                 reserve = EXCLUDED.reserve,
@@ -84,6 +87,8 @@ class LeagueRepo:
                 roster.roster_id,
                 roster.owner_id,
                 roster.owner_display_name,
+                roster.waiver_position,
+                roster.waiver_budget_used,
                 _dumps(roster.starters),
                 _dumps(roster.starters + roster.bench + roster.ir + roster.taxi),
                 _dumps(roster.ir),
@@ -223,9 +228,10 @@ class LeagueRepo:
                 adds,
                 drops,
                 draft_picks,
+                waiver_bid,
                 week
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (transaction_id) DO UPDATE SET
                 status = EXCLUDED.status,
                 type = EXCLUDED.type,
@@ -234,6 +240,7 @@ class LeagueRepo:
                 adds = EXCLUDED.adds,
                 drops = EXCLUDED.drops,
                 draft_picks = EXCLUDED.draft_picks,
+                waiver_bid = EXCLUDED.waiver_bid,
                 week = EXCLUDED.week
             """,
             [
@@ -246,6 +253,7 @@ class LeagueRepo:
                 _dumps(txn.adds),
                 _dumps(txn.drops),
                 _dumps(txn.draft_picks),
+                txn.waiver_bid,
                 txn.week,
             ],
         )

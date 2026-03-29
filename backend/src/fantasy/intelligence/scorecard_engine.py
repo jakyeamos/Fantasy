@@ -143,6 +143,7 @@ class ScorecardEngine:
             WHERE player_id IN (
                 SELECT UNNEST(?)
             )
+            AND fantasy_points > 0
             GROUP BY player_id
             """,
             [all_players],

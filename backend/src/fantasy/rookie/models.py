@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 RiskBand = Literal["Low", "Moderate", "High"]
-WarningType = Literal["positional_run", "value_gap"]
+WarningType = Literal["positional_run", "value_gap", "manager_tendency"]
 TradeVerdictType = Literal["trade", "use"]
 
 
@@ -48,6 +48,7 @@ class TendencyWarning(BaseModel):
     warning_type: WarningType
     title: str
     description: str
+    affected_players: list[str] = Field(default_factory=list)
 
 
 class TradeVerdict(BaseModel):

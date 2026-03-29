@@ -68,18 +68,16 @@ def compute_fantasy_points(
 
 class NflDataPyLoader:
     def load_weekly_stats(self, years: list[int]) -> pl.DataFrame:
-        import nfl_data_py as nfl
-
-        pandas_df = nfl.import_weekly_data(years)
-        if pandas_df is None or pandas_df.empty:
+        url = "https://github.com/nflverse/nflverse-data/releases/download/player_stats/player_stats.parquet"
+        try:
+            df = pl.read_parquet(url)
+            df = df.filter(pl.col("season").is_in(years))
+            for column in PLAYER_STATS_COLUMNS:
+                if column not in df.columns:
+                    df = df.with_columns(pl.lit(None).alias(column))
+            return df.select(PLAYER_STATS_COLUMNS)
+        except Exception:
             return pl.DataFrame(schema={column: pl.Float64 for column in PLAYER_STATS_COLUMNS})
-
-        df = pl.from_pandas(pandas_df)
-        for column in PLAYER_STATS_COLUMNS:
-            if column not in df.columns:
-                df = df.with_columns(pl.lit(None).alias(column))
-
-        return df.select(PLAYER_STATS_COLUMNS)
 
     def upsert_weekly_stats(self, conn: duckdb.DuckDBPyConnection, df: pl.DataFrame) -> None:
         if df.height == 0:
@@ -206,4 +204,73 @@ def load_adp_baseline(conn: duckdb.DuckDBPyConnection, csv_path: str = "data/adp
     return len(rows)
 
 
-__all__ = ["NflDataPyLoader", "SLEEPER_TO_NFLDATA_MAP", "compute_fantasy_points", "load_adp_baseline"]
+# Maps Sleeper stat keys to player_stats_weekly column names (excludes bonus_rec_te duplicate)
+_SLEEPER_STAT_TO_COL: dict[str, str] = {
+    "rec": "receptions",
+    "tgt": "targets",
+    "rec_yd": "receiving_yards",
+    "rec_td": "receiving_tds",
+    "rush_yd": "rushing_yards",
+    "rush_td": "rushing_tds",
+    "rush_att": "carries",
+    "pass_yd": "passing_yards",
+    "pass_td": "passing_tds",
+    "pass_int": "interceptions",
+    "pass_2pt": "passing_2pt_conversions",
+    "rec_2pt": "receiving_2pt_conversions",
+    "rush_2pt": "rushing_2pt_conversions",
+}
+
+
+def build_sleeper_stats_df(
+    all_weeks_stats: "dict[int, dict[str, dict]]",
+    scoring_settings: "dict[str, float]",
+    season: int,
+    player_info: "dict[str, tuple[str, str]]",
+) -> "pl.DataFrame":
+    """Build a player_stats_weekly DataFrame from Sleeper weekly stats.
+
+    Args:
+        all_weeks_stats: week -> {sleeper_player_id -> {stat_key: value}}
+        scoring_settings: league scoring config (Sleeper key -> points_per_unit)
+        season: NFL season year
+        player_info: sleeper_player_id -> (full_name, position)
+    """
+    rows = []
+    for week, week_stats in all_weeks_stats.items():
+        for player_id, stats in week_stats.items():
+            if not stats:
+                continue
+            name, position = player_info.get(str(player_id), ("", ""))
+            fantasy_pts = 0.0
+            for key, pts_per_unit in scoring_settings.items():
+                if key == "bonus_rec_te" and position != "TE":
+                    continue
+                fantasy_pts += float(stats.get(key, 0.0) or 0.0) * float(pts_per_unit)
+            row: dict = {
+                "player_id": str(player_id),
+                "player_name": name or None,
+                "position": position or None,
+                "season": season,
+                "week": week,
+                "fantasy_points": round(fantasy_pts, 2),
+            }
+            for stat_key, col in _SLEEPER_STAT_TO_COL.items():
+                if col not in row:
+                    row[col] = float(stats.get(stat_key, 0.0) or 0.0)
+            for col in PLAYER_STATS_COLUMNS:
+                if col not in row:
+                    row[col] = None
+            rows.append(row)
+    if not rows:
+        return pl.DataFrame(schema={col: pl.Float64 for col in PLAYER_STATS_COLUMNS})
+    return pl.DataFrame(rows).select(PLAYER_STATS_COLUMNS)
+
+
+__all__ = [
+    "NflDataPyLoader",
+    "SLEEPER_TO_NFLDATA_MAP",
+    "compute_fantasy_points",
+    "load_adp_baseline",
+    "build_sleeper_stats_df",
+]

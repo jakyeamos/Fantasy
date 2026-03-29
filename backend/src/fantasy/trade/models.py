@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from fantasy.context.models import RecommendationContext
+
 
 class TradeAsset(BaseModel):
     model_config = ConfigDict(frozen=False)
@@ -43,7 +45,7 @@ class StrategicDistinction(BaseModel):
 class RerouteResult(BaseModel):
     model_config = ConfigDict(frozen=False)
 
-    reroute_type: Literal["better_target", "better_package"]
+    reroute_type: Literal["better_target", "better_package", "picks_buyer"]
     headline: str
     reasoning: str
     suggested_assets: list[TradeAsset] | None = None
@@ -78,6 +80,7 @@ class TradeEvaluation(BaseModel):
     strategic_distinction: StrategicDistinction
     reroutes: list[RerouteResult] | None = None
     package: PackageBuilderResult | None = None
+    recommendation_context: RecommendationContext | None = None
 
 
 class TradeRequest(BaseModel):

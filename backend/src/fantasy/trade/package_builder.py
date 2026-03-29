@@ -2,6 +2,11 @@ from __future__ import annotations
 
 import duckdb
 
+from fantasy.rookie_pick.constants import (
+    MIN_ROOKIE_PICK_EVIDENCE,
+    PICK_PREMIUM_THRESHOLD,
+)
+from fantasy.rookie_pick.rookie_pick_repo import RookiePickRepo
 from fantasy.trade.models import (
     PackageBuilderResult,
     PackageOffer,
@@ -14,6 +19,7 @@ from fantasy.trade.trade_repo import TradeRepo
 
 class PackageBuilder:
     def __init__(self, conn: duckdb.DuckDBPyConnection):
+        self._conn = conn
         self._repo = TradeRepo(conn)
 
     def build(
@@ -54,6 +60,32 @@ class PackageBuilder:
             receive_assets=list(request.user_receives),
             reasoning=aggressive_reasoning,
         )
+        if request.counterparty_roster_id is not None:
+            rookie_pick_profile = RookiePickRepo(self._conn).get_profile(
+                request.league_id,
+                request.counterparty_roster_id,
+            )
+            pick_premium_sufficient = (
+                rookie_pick_profile is not None
+                and rookie_pick_profile.pick_premium_score is not None
+                and rookie_pick_profile.pick_premium_score >= PICK_PREMIUM_THRESHOLD
+                and (
+                    rookie_pick_profile.pick_trade_evidence
+                    + rookie_pick_profile.draft_selection_count
+                )
+                >= MIN_ROOKIE_PICK_EVIDENCE
+            )
+            if pick_premium_sufficient:
+                has_pick_in_aggressive = any(
+                    asset.asset_type == "pick"
+                    for asset in aggressive_open.send_assets
+                )
+                if not has_pick_in_aggressive:
+                    aggressive_open.reasoning = (
+                        aggressive_open.reasoning
+                        + " This manager consistently pays a premium for draft capital - "
+                        + "consider adding a pick to improve acceptance odds."
+                    )
         return PackageBuilderResult(
             aggressive_open=aggressive_open,
             fair_close=fair_close,

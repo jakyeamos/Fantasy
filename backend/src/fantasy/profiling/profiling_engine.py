@@ -651,6 +651,146 @@ class ProfilingEngine:
         history.sort(key=lambda item: item["date"] or "", reverse=True)
         return history
 
+    def _compute_behavioral_fields(
+        self,
+        trades: list[dict[str, Any]],
+        roster_id: int,
+        direction: str | None,
+        exploitation: ExploitationClassification,
+        deltas: list[float],
+    ) -> dict[str, Any]:
+        total = len(trades)
+        low_confidence = total < MIN_TRADE_EVIDENCE_THRESHOLD
+
+        avg_delta = float(exploitation.metadata.get("avg_delta", 0.0))
+        win_rate = float(exploitation.metadata.get("win_rate", 0.0))
+        sent_pick_trades = int(exploitation.metadata.get("sent_pick_trades", 0))
+        rebuild = _is_rebuild_direction(direction)
+        contender = _is_contender_direction(direction)
+
+        if total == 0:
+            urgency_state = "stable"
+        elif rebuild and sent_pick_trades >= 2:
+            urgency_state = "building_urgency"
+        elif contender and avg_delta < -0.10 and win_rate < 0.35:
+            urgency_state = "panic_mode"
+        elif contender and win_rate < 0.40:
+            urgency_state = "declining_window"
+        else:
+            urgency_state = "stable"
+
+        early_trades = sum(
+            1
+            for trade in trades
+            if 1 <= int(trade.get("week") or 0) <= 5
+        )
+        toc_sensitivity = (
+            round(min(early_trades / max(total, 1), 1.0), 3) if total > 0 else 0.0
+        )
+
+        received_ages: list[int] = []
+        for trade in trades:
+            received, _, _, _ = self._parse_trade_sides(trade, roster_id)
+            ages = self._load_player_ages(received)
+            received_ages.extend(ages.values())
+        vet_count = sum(1 for age in received_ages if age >= 27)
+        veteran_appetite = (
+            round(min(vet_count / max(len(received_ages), 1), 1.0), 3)
+            if received_ages
+            else 0.0
+        )
+
+        arch_count = int(exploitation.evidence_counts.get("archetype_overpay", 0))
+        focus_pos = str(exploitation.metadata.get("focus_position") or "").upper()
+        if arch_count >= 3 and focus_pos in ("WR", "RB"):
+            rookie_fever_index = round(min(arch_count / max(total, 1), 1.0), 3)
+        else:
+            rookie_fever_index = 0.0
+
+        neg_count = int(exploitation.evidence_counts.get("value_loss", 0))
+        timing_count = int(exploitation.evidence_counts.get("timing_error", 0))
+        if total >= 3:
+            rigidity_raw = (neg_count + timing_count) / (2 * total)
+            value_rigidity = round(min(rigidity_raw, 1.0), 3)
+        else:
+            value_rigidity = 0.0
+
+        reroute_susceptibility = (
+            round(min(sent_pick_trades / max(total, 1), 1.0), 3) if total > 0 else 0.0
+        )
+
+        if total == 0:
+            motivations = "Insufficient trade evidence to determine motivations."
+        elif urgency_state == "panic_mode":
+            motivations = (
+                f"Likely panic selling - win-rate of {round(win_rate * 100)}% and average "
+                "value loss suggest desperation moves. Capitalize before they stabilize."
+            )
+        elif urgency_state == "building_urgency":
+            dir_label = _format_label(direction, "current path")
+            motivations = (
+                f"Actively building - trading picks into a {dir_label} roster. Most "
+                "receptive to player-for-pick offers that accelerate their timeline."
+            )
+        elif urgency_state == "declining_window":
+            motivations = (
+                f"Window is shrinking - win-rate of {round(win_rate * 100)}% suggests "
+                "mounting pressure to improve now. Likely to overpay for proven production."
+            )
+        elif veteran_appetite >= 0.5:
+            motivations = (
+                "Strong preference for proven veterans - this manager repeatedly acquires "
+                "aging talent. Target their young assets and picks."
+            )
+        elif rookie_fever_index >= 0.3:
+            motivations = (
+                f"Overvalues current-year {focus_pos} talent - overpaid in {arch_count} trades. "
+                "Surface veterans or off-trend positions to exploit this gap."
+            )
+        else:
+            motivations = (
+                "No dominant behavioral pattern detected. Use pitch angle guidance for "
+                "approach recommendations."
+            )
+
+        if low_confidence:
+            best_target = None
+        elif urgency_state == "panic_mode":
+            best_target = "Their best young player or early first - panic sellers offer more than the market requires."
+        elif urgency_state == "building_urgency" and sent_pick_trades >= 3:
+            best_target = "Future first-round picks - they have been selling picks and may price them below market."
+        elif rookie_fever_index >= 0.3 and focus_pos in ("WR", "RB"):
+            best_target = f"Established veterans at {focus_pos} - they overvalue current-year youth and may sell proven talent too cheaply."
+        elif veteran_appetite >= 0.5:
+            best_target = "Their young pass-catchers or developmental players - youth is likely undervalued on this roster."
+        else:
+            best_target = None
+
+        if low_confidence:
+            best_send = None
+        elif urgency_state in ("panic_mode", "declining_window"):
+            best_send = "A proven starter - even aging production can satisfy their urgency, especially with a small sweetener."
+        elif rookie_fever_index >= 0.3 and focus_pos in ("WR", "RB"):
+            best_send = f"Current-year {focus_pos} prospects or recent draft picks at that position - they overpay reliably for this appetite."
+        elif veteran_appetite >= 0.5:
+            best_send = "A veteran contributor at a position of need - they consistently pay above market for aging talent."
+        elif reroute_susceptibility >= 0.4:
+            best_send = "A pick-inclusive offer - they engage readily with pick-based structures and may accept a tiered package."
+        else:
+            best_send = None
+
+        return {
+            "likely_motivations_now": motivations,
+            "recent_urgency_state": urgency_state,
+            "time_of_calendar_sensitivity": toc_sensitivity,
+            "veteran_appetite": veteran_appetite,
+            "rookie_fever_index": rookie_fever_index,
+            "value_rigidity": value_rigidity,
+            "reroute_susceptibility": reroute_susceptibility,
+            "best_asset_to_target": best_target,
+            "best_asset_to_send": best_send,
+        }
+
     def compute_profile(self, league_id: str, roster_id: int) -> ManagerProfile:
         trades = self._load_trades(league_id, roster_id)
         all_players = sorted(
@@ -728,6 +868,13 @@ class ProfilingEngine:
             "win_rate": win_rate,
             "avg_delta": avg_delta,
         }
+        behavioral = self._compute_behavioral_fields(
+            trades,
+            roster_id,
+            direction,
+            exploitation,
+            deltas,
+        )
         return ManagerProfile(
             league_id=league_id,
             roster_id=roster_id,
@@ -744,6 +891,15 @@ class ProfilingEngine:
             trade_history=self._build_trade_history(trades, roster_id, adp_map),
             aggregate_trade_stats=aggregate_trade_stats,
             roster_summary=roster_summary,
+            likely_motivations_now=behavioral["likely_motivations_now"],
+            recent_urgency_state=behavioral["recent_urgency_state"],
+            time_of_calendar_sensitivity=behavioral["time_of_calendar_sensitivity"],
+            veteran_appetite=behavioral["veteran_appetite"],
+            rookie_fever_index=behavioral["rookie_fever_index"],
+            value_rigidity=behavioral["value_rigidity"],
+            reroute_susceptibility=behavioral["reroute_susceptibility"],
+            best_asset_to_target=behavioral["best_asset_to_target"],
+            best_asset_to_send=behavioral["best_asset_to_send"],
         )
 
     def compute_all_profiles(self, league_id: str) -> list[ManagerProfile]:

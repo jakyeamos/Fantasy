@@ -73,6 +73,59 @@ _SCHEMA_COMPAT_TABLES: dict[str, str] = {
             UNIQUE (league_id, draft_id, roster_id)
         )
     """,
+    "draft_pick_selections": """
+        CREATE TABLE IF NOT EXISTS draft_pick_selections (
+            id              INTEGER PRIMARY KEY,
+            league_id       VARCHAR NOT NULL,
+            draft_id        VARCHAR NOT NULL,
+            roster_id       INTEGER NOT NULL,
+            player_id       VARCHAR NOT NULL,
+            pick_slot       INTEGER NOT NULL,
+            round_number    INTEGER NOT NULL,
+            season          INTEGER NOT NULL,
+            draft_type      VARCHAR NOT NULL,
+            position        VARCHAR,
+            archetype_label VARCHAR,
+            ingested_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (league_id, draft_id, roster_id, player_id)
+        )
+    """,
+    "manager_rookie_pick_profiles": """
+        CREATE TABLE IF NOT EXISTS manager_rookie_pick_profiles (
+            id                       INTEGER PRIMARY KEY,
+            league_id                VARCHAR NOT NULL,
+            roster_id                INTEGER NOT NULL,
+            computed_at              TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            pick_premium_score       FLOAT,
+            pick_trade_evidence      INTEGER NOT NULL DEFAULT 0,
+            draft_selection_count    INTEGER NOT NULL DEFAULT 0,
+            positional_tendency_json VARCHAR NOT NULL DEFAULT '{}',
+            dominant_archetype       VARCHAR,
+            archetype_pattern_json   VARCHAR NOT NULL DEFAULT '{}',
+            show_draft_picks_tab     BOOLEAN NOT NULL DEFAULT FALSE,
+            UNIQUE (league_id, roster_id)
+        )
+    """,
+    "calendar_overrides": """
+        CREATE TABLE IF NOT EXISTS calendar_overrides (
+            id         INTEGER PRIMARY KEY,
+            league_id  VARCHAR NOT NULL UNIQUE,
+            state      VARCHAR NOT NULL,
+            set_by     VARCHAR NOT NULL DEFAULT 'user',
+            set_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP
+        )
+    """,
+    "freshness_domains": """
+        CREATE TABLE IF NOT EXISTS freshness_domains (
+            id           INTEGER PRIMARY KEY,
+            league_id    VARCHAR NOT NULL,
+            domain       VARCHAR NOT NULL,
+            last_updated TIMESTAMP,
+            notes        VARCHAR,
+            UNIQUE (league_id, domain)
+        )
+    """,
     "league_draft_order_rules": """
         CREATE TABLE IF NOT EXISTS league_draft_order_rules (
             id                INTEGER PRIMARY KEY,
@@ -140,14 +193,147 @@ _SCHEMA_COMPAT_TABLES: dict[str, str] = {
             notes VARCHAR
         )
     """,
+    "historical_prospect_features": """
+        CREATE TABLE IF NOT EXISTS historical_prospect_features (
+            player_id VARCHAR NOT NULL,
+            draft_year INTEGER NOT NULL,
+            position VARCHAR NOT NULL,
+            player_name VARCHAR,
+            age_at_draft DOUBLE,
+            draft_ovr INTEGER,
+            forty DOUBLE,
+            weight DOUBLE,
+            height DOUBLE,
+            vertical DOUBLE,
+            bench INTEGER,
+            cone DOUBLE,
+            shuttle DOUBLE,
+            college_games INTEGER,
+            college_targets DOUBLE,
+            college_receptions DOUBLE,
+            college_receiving_yards DOUBLE,
+            college_receiving_tds DOUBLE,
+            college_routes_run DOUBLE,
+            college_carries DOUBLE,
+            college_rushing_yards DOUBLE,
+            college_rushing_tds DOUBLE,
+            college_pass_attempts DOUBLE,
+            college_completions DOUBLE,
+            college_passing_yards DOUBLE,
+            college_passing_tds DOUBLE,
+            college_interceptions DOUBLE,
+            college_rec_ypg DOUBLE,
+            college_rush_ypg DOUBLE,
+            college_yprr DOUBLE,
+            college_ypt DOUBLE,
+            college_ypc DOUBLE,
+            college_ypa DOUBLE,
+            college_pass_td_rate DOUBLE,
+            college_qb_rush_yards DOUBLE,
+            college_qb_rush_tds DOUBLE,
+            college_qb_rush_ypg DOUBLE,
+            college_scramble_rate DOUBLE,
+            college_mkt_share_proxy DOUBLE,
+            college_td_rate DOUBLE,
+            college_completion_pct_proxy DOUBLE,
+            adp DOUBLE,
+            archetype_label VARCHAR,
+            outcome_bucket VARCHAR,
+            PRIMARY KEY (player_id, draft_year)
+        )
+    """,
+    "prospect_model_outputs": """
+        CREATE TABLE IF NOT EXISTS prospect_model_outputs (
+            league_id VARCHAR NOT NULL,
+            draft_season INTEGER NOT NULL,
+            player_id VARCHAR NOT NULL,
+            player_name VARCHAR NOT NULL,
+            position VARCHAR NOT NULL,
+            archetype_label VARCHAR NOT NULL,
+            hit_rate_bucket VARCHAR NOT NULL,
+            tier INTEGER NOT NULL,
+            predicted_tier INTEGER NOT NULL,
+            predicted_bucket VARCHAR NOT NULL,
+            risk_band VARCHAR NOT NULL,
+            overvalue_flag_direction VARCHAR,
+            overvalue_magnitude INTEGER,
+            low_confidence BOOLEAN NOT NULL DEFAULT FALSE,
+            comps_json VARCHAR NOT NULL DEFAULT '[]',
+            computed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (league_id, draft_season, player_id)
+        )
+    """,
+    "prospect_sub_flags": """
+        CREATE TABLE IF NOT EXISTS prospect_sub_flags (
+            id INTEGER PRIMARY KEY,
+            league_id VARCHAR NOT NULL,
+            player_id VARCHAR NOT NULL,
+            signal_name VARCHAR NOT NULL,
+            direction VARCHAR NOT NULL,
+            magnitude_str VARCHAR NOT NULL
+        )
+    """,
+    "waiver_recommendations": """
+        CREATE TABLE IF NOT EXISTS waiver_recommendations (
+            id                   INTEGER PRIMARY KEY,
+            league_id            VARCHAR NOT NULL,
+            roster_id            INTEGER NOT NULL,
+            computed_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            recommendations_json VARCHAR NOT NULL,
+            UNIQUE (league_id, roster_id)
+        )
+    """,
+    "startup_contexts": """
+        CREATE TABLE IF NOT EXISTS startup_contexts (
+            id             INTEGER PRIMARY KEY,
+            league_id      VARCHAR NOT NULL UNIQUE,
+            computed_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            draft_status   VARCHAR NOT NULL,
+            build_template VARCHAR NOT NULL,
+            context_json   VARCHAR NOT NULL
+        )
+    """,
+    "orphan_intakes": """
+        CREATE TABLE IF NOT EXISTS orphan_intakes (
+            id                     INTEGER PRIMARY KEY,
+            league_id              VARCHAR NOT NULL,
+            roster_id              INTEGER NOT NULL,
+            computed_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            age_curve_score        FLOAT NOT NULL,
+            pick_capital_score     FLOAT NOT NULL,
+            dead_spots_score       FLOAT NOT NULL,
+            lineup_viability_score FLOAT NOT NULL,
+            liquidation_score      FLOAT NOT NULL,
+            composite_score        FLOAT NOT NULL,
+            intake_json            VARCHAR NOT NULL,
+            UNIQUE (league_id, roster_id)
+        )
+    """,
+    "action_plans": """
+        CREATE TABLE IF NOT EXISTS action_plans (
+            id          INTEGER PRIMARY KEY,
+            league_id   VARCHAR NOT NULL,
+            roster_id   INTEGER NOT NULL,
+            computed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            plan_type   VARCHAR NOT NULL,
+            items_json  VARCHAR NOT NULL,
+            summary     VARCHAR NOT NULL,
+            UNIQUE (league_id, roster_id)
+        )
+    """,
 }
 
 _SCHEMA_COMPAT_COLUMNS: dict[str, dict[str, str]] = {
     "rosters": {
         "owner_display_name": "VARCHAR",
+        "waiver_position": "INTEGER",
+        "waiver_budget_used": "INTEGER",
     },
     "manager_profiles": {
         "trade_history": "VARCHAR",
+    },
+    "transactions": {
+        "waiver_bid": "INTEGER",
     },
 }
 

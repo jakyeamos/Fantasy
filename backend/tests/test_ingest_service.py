@@ -2,7 +2,7 @@ import pytest
 import polars as pl
 from unittest.mock import MagicMock, patch
 
-from fantasy.ingestion.ingest_service import IngestService, _build_gsis_sleeper_map, _prepare_stats_df
+from fantasy.ingestion.ingest_service import IngestService
 from fantasy.ingestion.nfl_data_loader import PLAYER_STATS_COLUMNS
 
 
@@ -24,6 +24,7 @@ class FakeSleeperClient:
         self._week = week
         self._users = users or []
         self._players = players or {}
+        self._weekly_stats: dict[int, dict] = {}
 
     async def fetch_league(self, _league_id):
         return self._league
@@ -45,6 +46,9 @@ class FakeSleeperClient:
 
     async def fetch_transactions(self, _league_id, week):
         return self._weekly_transactions.get(week, [])
+
+    async def fetch_weekly_stats(self, _season_type, _season, week):
+        return self._weekly_stats.get(week, {})
 
     async def fetch_nfl_state(self):
         return {"week": self._week, "season": "2025"}
@@ -93,6 +97,7 @@ def _txn(txn_id, txn_type, week):
         "adds": {"4017": 2},
         "drops": {"2374": 1},
         "draft_picks": [],
+        "settings": {"waiver_bid": 17} if txn_type == "waiver" else {},
         "leg": week,
     }
 
@@ -174,12 +179,49 @@ async def test_ingest_persists_owner_display_names(db, base_league, base_roster)
 
     row = db.execute(
         """
-        SELECT owner_id, owner_display_name
+        SELECT owner_id, owner_display_name, waiver_position, waiver_budget_used
         FROM rosters
         WHERE league_id = 'test_league_001' AND roster_id = 1
         """
     ).fetchone()
-    assert row == ("user_abc", "Display Alpha")
+    assert row == ("user_abc", "Display Alpha", None, None)
+
+
+@pytest.mark.asyncio
+async def test_ingest_persists_waiver_fields(db, base_league, base_roster):
+    roster = {
+        **base_roster,
+        "settings": {
+            **base_roster["settings"],
+            "waiver_position": 2,
+            "waiver_budget_used": 41,
+        },
+    }
+    weekly_transactions = {
+        1: [_txn("waiver_1", "waiver", 1)],
+    }
+    client = FakeSleeperClient(base_league, [roster], [], weekly_transactions, week=1)
+
+    service = IngestService(db, client)
+    await service.run("test_league_001", "full")
+
+    roster_row = db.execute(
+        """
+        SELECT waiver_position, waiver_budget_used
+        FROM rosters
+        WHERE league_id = 'test_league_001' AND roster_id = 1
+        """
+    ).fetchone()
+    transaction_row = db.execute(
+        """
+        SELECT waiver_bid
+        FROM transactions
+        WHERE transaction_id = 'waiver_1'
+        """
+    ).fetchone()
+
+    assert roster_row == (2, 41)
+    assert transaction_row == (17,)
 
 
 @pytest.mark.asyncio
@@ -227,116 +269,41 @@ async def test_ingest_backfills_roster_players(db, base_league, base_roster):
     ]
 
 
-def test_build_gsis_sleeper_map_extracts_from_metadata_blob(db):
-    db.execute(
-        """
-        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
-        VALUES
-          ('4017', 'Player A', 'QB', 'SF', 26, '{"gsis_id": "00-0033873"}'),
-          ('4663', 'Player B', 'WR', 'SF', 24, '{"gsis_id": "00-0036971"}'),
-          ('9999', 'No GSIS',  'TE', 'X',  22, '{}')
-        """
-    )
-    mapping = _build_gsis_sleeper_map(db)
-    assert mapping == {"00-0033873": "4017", "00-0036971": "4663"}
-
-
-def test_prepare_stats_df_remaps_ids_and_computes_fantasy_points():
-    gsis_to_sleeper = {"00-0033873": "4017"}
-    scoring = {"rec": 1.0, "rec_yd": 0.1}
-    raw = pl.DataFrame(
-        {
-            "player_id": ["00-0033873", "00-0099999"],
-            "player_name": ["Player A", "Unknown"],
-            "position": ["WR", "WR"],
-            "season": [2025, 2025],
-            "week": [1, 1],
-            "receptions": [6.0, 4.0],
-            "targets": [8.0, 5.0],
-            "receiving_yards": [80.0, 50.0],
-            "receiving_tds": [0.0, 0.0],
-            "rushing_yards": [0.0, 0.0],
-            "rushing_tds": [0.0, 0.0],
-            "carries": [0.0, 0.0],
-            "passing_yards": [0.0, 0.0],
-            "passing_tds": [0.0, 0.0],
-            "interceptions": [0.0, 0.0],
-            "passing_2pt_conversions": [0.0, 0.0],
-            "receiving_2pt_conversions": [0.0, 0.0],
-            "rushing_2pt_conversions": [0.0, 0.0],
-            "fantasy_points": [None, None],
-        }
-    )
-    result = _prepare_stats_df(raw, gsis_to_sleeper, scoring)
-    assert result.height == 1, "unmapped player should be dropped"
-    assert result["player_id"].to_list() == ["4017"]
-    # 6 rec * 1.0 + 80 yards * 0.1 = 14.0
-    assert result["fantasy_points"].to_list() == [14.0]
-    assert result.columns == PLAYER_STATS_COLUMNS
-
-
 @pytest.mark.asyncio
 async def test_ingest_populates_player_stats_weekly(db, base_league, base_roster):
-    stats_df = pl.DataFrame(
-        {
-            "player_id": ["00-0033873"],
-            "player_name": ["Player One"],
-            "position": ["WR"],
-            "season": [2025],
-            "week": [1],
-            "receptions": [5.0],
-            "targets": [7.0],
-            "receiving_yards": [60.0],
-            "receiving_tds": [0.0],
-            "rushing_yards": [0.0],
-            "rushing_tds": [0.0],
-            "carries": [0.0],
-            "passing_yards": [0.0],
-            "passing_tds": [0.0],
-            "interceptions": [0.0],
-            "passing_2pt_conversions": [0.0],
-            "receiving_2pt_conversions": [0.0],
-            "rushing_2pt_conversions": [0.0],
-            "fantasy_points": [None],
-        }
-    )
     db.execute(
         "INSERT INTO players (player_id, full_name, position, team, age, metadata_blob) "
-        "VALUES ('4017', 'Player One', 'WR', 'SF', 24, '{\"gsis_id\": \"00-0033873\"}')"
+        "VALUES ('4017', 'Player One', 'WR', 'SF', 24, '{}')"
     )
-    from fantasy.ingestion.nfl_data_loader import NflDataPyLoader as RealLoader
-
-    mock_loader = MagicMock()
-    mock_loader.load_weekly_stats.return_value = stats_df
-    mock_loader.upsert_weekly_stats.side_effect = RealLoader().upsert_weekly_stats
-
-    with patch(
-        "fantasy.ingestion.ingest_service.NflDataPyLoader", return_value=mock_loader
-    ):
-        client = FakeSleeperClient(base_league, [base_roster], [], {}, week=1)
-        service = IngestService(db, client)
-        await service.run("test_league_001", "full")
+    client = FakeSleeperClient(base_league, [base_roster], [], {}, week=1)
+    client._weekly_stats = {
+        1: {"4017": {"rec": 5.0, "rec_yd": 60.0}}
+    }
+    service = IngestService(db, client)
+    await service.run("test_league_001", "full")
 
     rows = db.execute(
         "SELECT player_id, week, fantasy_points FROM player_stats_weekly"
     ).fetchall()
-    assert len(rows) == 1
-    assert rows[0][0] == "4017"
-    assert rows[0][1] == 1
-    assert rows[0][2] == pytest.approx(11.0)  # 5 rec * 1.0 + 60 yards * 0.1
+    # Only 4017 is in players table; stats for all Sleeper IDs in response are stored
+    matching = [r for r in rows if r[0] == "4017"]
+    assert len(matching) == 1
+    assert matching[0][1] == 1
+    assert matching[0][2] == pytest.approx(11.0)  # 5 rec * 1.0 + 60 yards * 0.1
 
 
 @pytest.mark.asyncio
-async def test_ingest_completes_when_stats_loader_raises(db, base_league, base_roster):
-    mock_loader = MagicMock()
-    mock_loader.load_weekly_stats.side_effect = RuntimeError("nfl_data_py unavailable")
+async def test_ingest_completes_when_stats_fetch_raises(db, base_league, base_roster):
+    client = FakeSleeperClient(base_league, [base_roster], [], {}, week=1)
 
-    with patch(
-        "fantasy.ingestion.ingest_service.NflDataPyLoader", return_value=mock_loader
-    ):
-        client = FakeSleeperClient(base_league, [base_roster], [], {}, week=1)
-        service = IngestService(db, client)
-        run_id = await service.run("test_league_001", "full")
+    original_fetch = client.fetch_weekly_stats
+
+    async def raising_fetch(*args, **kwargs):
+        raise RuntimeError("stats endpoint unavailable")
+
+    client.fetch_weekly_stats = raising_fetch
+    service = IngestService(db, client)
+    run_id = await service.run("test_league_001", "full")
 
     status = db.execute(
         "SELECT status FROM ingest_runs WHERE id = ?", [run_id]

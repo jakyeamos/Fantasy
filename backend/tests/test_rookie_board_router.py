@@ -33,5 +33,6 @@ def test_rookie_board_router_returns_board(db):
     response = client.get("/rookie-board/league_rookie")
     assert response.status_code == 200
     payload = response.json()
-    assert payload["league_id"] == "league_rookie"
-    assert isinstance(payload["tiers"], list)
+    assert payload["rookie_board"]["league_id"] == "league_rookie"
+    assert isinstance(payload["rookie_board"]["tiers"], list)
+    assert payload["recommendation_context"]["calendar_state"]

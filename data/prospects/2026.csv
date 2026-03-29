@@ -1,0 +1,59 @@
+player_name,position,expected_draft_ovr,adp,college,draft_class,height,weight,age_at_draft,forty,college_rec_ypg,college_rush_ypg,college_mkt_share_proxy,college_td_rate,college_completion_pct_proxy,production_source
+Fernando Mendoza,QB,1,1.0,Indiana,Junior,77,236,22,4.85,,,,,0.90,nfl_draft_buzz_short_passing
+Jeremiyah Love,RB,3,3.0,Notre Dame,Junior,72,212,21,4.36,,91.3,0.913,,,nfl_draft_buzz_rushing_rating
+Carnell Tate,WR,9,9.0,Ohio State,Junior,74,192,21,4.53,88.4,,0.884,,,nfl_draft_buzz_wr_rating
+Kenyon Sadiq,TE,10,10.0,Oregon,Junior,75,241,21,4.39,87.6,,0.876,,,nfl_draft_buzz_te_rating
+Makai Lemon,WR,12,12.0,USC,Junior,71,192,21,4.50,88.6,,0.886,,,nfl_draft_buzz_wr_rating
+Jordyn Tyson,WR,15,15.0,Arizona State,Junior,74,203,22,4.50,88.7,,0.887,,,nfl_draft_buzz_wr_rating
+Ty Simpson,QB,19,19.0,Alabama,Junior,73,211,22,4.80,,,,,0.77,nfl_draft_buzz_short_passing
+Denzel Boston,WR,22,22.0,Washington,Junior,76,212,22,4.52,87.5,,0.875,,,nfl_draft_buzz_wr_rating
+Omar Cooper Jr.,WR,31,31.0,Indiana,Junior,72,199,22,4.42,85.0,,0.850,,,nfl_draft_buzz_wr_rating
+Kevin Concepcion,WR,34,34.0,Texas A&M,Junior,72,196,21,4.46,86.9,,0.869,,,nfl_draft_buzz_wr_rating
+Eli Stowers,TE,42,42.0,Vanderbilt,Senior,76,239,24,4.51,85.1,,0.851,,,nfl_draft_buzz_te_rating
+Jadarian Price,RB,48,48.0,Notre Dame,Junior,71,203,22,4.49,,84.8,0.848,,,nfl_draft_buzz_rushing_rating
+Zachariah Branch,WR,49,49.0,Georgia,Junior,69,177,21,4.35,84.9,,0.849,,,nfl_draft_buzz_wr_rating
+Chris Bell,WR,51,51.0,Louisville,Senior,74,222,23,4.44,85.8,,0.858,,,nfl_draft_buzz_wr_rating
+Germie Bernard,WR,55,55.0,Alabama,Senior,73,206,23,4.48,84.9,,0.849,,,nfl_draft_buzz_wr_rating
+Chris Brazzell II,WR,57,57.0,Tennessee,Junior,76,198,22,4.37,86.4,,0.864,,,nfl_draft_buzz_wr_rating
+Elijah Sarratt,WR,62,62.0,Indiana,Senior,74,210,23,4.60,84.8,,0.848,,,nfl_draft_buzz_wr_rating
+Mike Washington Jr.,RB,65,65.0,Arkansas,Senior,73,223,24,4.33,,84.8,0.848,,,nfl_draft_buzz_rushing_rating
+Malachi Fields,WR,68,68.0,Notre Dame,Senior,76,218,24,4.61,84.8,,0.848,,,nfl_draft_buzz_wr_rating
+Max Klare,TE,72,72.0,Ohio State,Junior,77,246,22,4.70,85.2,,0.852,,,nfl_draft_buzz_te_rating
+Antonio Williams,WR,77,77.0,Clemson,Junior,71,187,22,4.41,84.9,,0.849,,,nfl_draft_buzz_wr_rating
+Drew Allar,QB,80,80.0,Penn State,Senior,77,228,23,4.90,,,,,0.67,nfl_draft_buzz_short_passing
+Deion Burks,WR,85,85.0,Oklahoma,Senior,70,180,24,4.30,84.5,,0.845,,,nfl_draft_buzz_wr_rating
+Garrett Nussmeier,QB,88,88.0,LSU,Senior,74,203,24,4.82,,,,,0.78,nfl_draft_buzz_short_passing
+Carson Beck,QB,92,92.0,Miami,Senior,77,233,24,4.84,,,,,0.75,nfl_draft_buzz_short_passing
+Ja'Kobi Lane,WR,93,93.0,USC,Junior,76,200,21,4.47,84.6,,0.846,,,nfl_draft_buzz_wr_rating
+Bryce Lance,WR,94,94.0,North Dakota State,Senior,75,204,24,4.34,83.6,,0.836,,,nfl_draft_buzz_wr_rating
+Jonah Coleman,RB,96,96.0,Washington,Senior,68,220,23,4.50,,84.9,0.849,,,nfl_draft_buzz_rushing_rating
+Emmett Johnson,RB,100,100.0,Nebraska,Junior,70,202,22,4.56,,84.6,0.846,,,nfl_draft_buzz_rushing_rating
+Michael Trigg,TE,105,105.0,Baylor,Senior,76,240,24,4.70,84.5,,0.845,,,nfl_draft_buzz_te_rating
+Skyler Bell,WR,106,106.0,UConn,Senior,72,192,24,4.40,84.7,,0.847,,,nfl_draft_buzz_wr_rating
+Sam Roush,TE,110,110.0,Stanford,Senior,78,267,23,4.70,84.7,,0.847,,,nfl_draft_buzz_te_rating
+Justin Joly,TE,111,111.0,NC State,Senior,75,241,23,,84.3,,0.843,,,nfl_draft_buzz_te_rating
+Eric Rivers,WR,115,115.0,Georgia Tech,Senior,70,176,24,,82.0,,0.820,,,nfl_draft_buzz_wr_rating
+C.J. Daniels,WR,116,116.0,Miami,Senior,74,202,24,4.44,83.0,,0.830,,,nfl_draft_buzz_wr_rating
+Taylen Green,QB,120,120.0,Arkansas,Senior,78,227,24,4.36,,,,,0.69,nfl_draft_buzz_short_passing
+Kaytron Allen,RB,122,122.0,Penn State,Senior,71,216,23,4.55,,82.8,0.828,,,nfl_draft_buzz_rushing_rating
+Jack Endries,TE,123,123.0,Texas,Junior,77,245,22,4.62,84.3,,0.843,,,nfl_draft_buzz_te_rating
+Seth McGowan,RB,124,124.0,Kentucky,Senior,72,223,23,4.49,,81.3,0.813,,,nfl_draft_buzz_rushing_rating
+Brenen Thompson,WR,129,129.0,Mississippi State,Senior,69,164,23,4.26,84.7,,0.847,,,nfl_draft_buzz_wr_rating
+Demond Claiborne,RB,132,132.0,Wake Forest,Senior,70,188,23,4.37,,82.1,0.821,,,nfl_draft_buzz_rushing_rating
+Kevin Coleman Jr.,WR,134,134.0,Missouri,Senior,70,179,23,4.49,82.1,,0.821,,,nfl_draft_buzz_wr_rating
+Cade Klubnik,QB,137,137.0,Clemson,Senior,74,207,23,4.69,,,,,0.75,nfl_draft_buzz_short_passing
+Nick Singleton,RB,149,149.0,Penn State,Senior,72,219,23,4.39,,84.6,0.846,,,nfl_draft_buzz_rushing_rating
+Dallen Bentley,TE,154,154.0,Utah,Senior,76,253,23,,81.1,,0.811,,,nfl_draft_buzz_te_rating
+De'Zhaun Stribling,WR,155,155.0,Ole Miss,Senior,74,207,24,4.36,81.0,,0.810,,,nfl_draft_buzz_wr_rating
+Reggie Virgil,WR,159,159.0,Texas Tech,Senior,75,187,23,4.57,82.0,,0.820,,,nfl_draft_buzz_wr_rating
+Le'Veon Moss,RB,168,168.0,Texas A&M,Senior,71,203,23,4.42,,81.0,0.810,,,nfl_draft_buzz_rushing_rating
+Sawyer Robertson,QB,170,170.0,Baylor,Senior,76,216,24,4.64,,,,,0.71,nfl_draft_buzz_short_passing
+Joe Royer,TE,177,177.0,Cincinnati,Senior,77,247,24,4.65,83.7,,0.837,,,nfl_draft_buzz_te_rating
+Jeff Caldwell,WR,181,181.0,Cincinnati,Senior,77,216,23,4.31,80.0,,0.800,,,nfl_draft_buzz_wr_rating
+Marlin Klein,TE,182,182.0,Michigan,Senior,78,248,22,4.61,81.4,,0.814,,,nfl_draft_buzz_te_rating
+Chase Roberts,WR,188,188.0,BYU,Senior,75,209,24,4.64,82.0,,0.820,,,nfl_draft_buzz_wr_rating
+Josh Cuevas,TE,191,191.0,Alabama,Senior,75,245,24,4.65,79.6,,0.796,,,nfl_draft_buzz_te_rating
+Tanner Koziol,TE,194,194.0,Houston,Senior,78,247,24,4.70,82.1,,0.821,,,nfl_draft_buzz_te_rating
+Adam Randall,RB,198,198.0,Clemson,Senior,75,232,23,,78.0,0.780,,,nfl_draft_buzz_rushing_rating
+Josh Cameron,WR,199,199.0,Baylor,Senior,73,220,24,,81.2,,0.812,,,nfl_draft_buzz_wr_rating
+Aaron Anderson,WR,200,200.0,LSU,Junior,68,191,22,4.34,81.7,,0.817,,,nfl_draft_buzz_wr_rating

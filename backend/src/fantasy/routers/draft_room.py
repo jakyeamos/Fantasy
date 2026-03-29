@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends
 
 from fantasy.rookie.models import DraftRoomResult
 from fantasy.rookie.rookie_engine import RookieEngine
+from fantasy.rookie_pick.rookie_pick_engine import RookiePickProfileEngine
 from fantasy.routers.deps import get_write_db_conn
 
 router = APIRouter(prefix="/draft-room", tags=["draft-room"])
@@ -16,4 +17,8 @@ def get_draft_room(
     pick_slot: int,
     conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
 ) -> DraftRoomResult:
-    return RookieEngine(conn).compute_draft_room(league_id, pick_slot)
+    result = RookieEngine(conn).compute_draft_room(league_id, pick_slot)
+    result.tendency_warnings.extend(
+        RookiePickProfileEngine(conn).compute_tendency_warnings(league_id)
+    )
+    return result
