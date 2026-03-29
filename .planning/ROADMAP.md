@@ -377,7 +377,15 @@ Plans:
   4. Player context flags (QB change, coaching change, role shift, age cliff, injury recovery) alter recommendations downstream — surfaced on recommendation cards, not buried in footnotes
   5. Every asset carries parallel values (current lineup, next-season dynasty, market, league-specific, team-direction, manager-demand) accessible via API
   6. Model-vs-market gap is computed per asset with buy/sell/hold/ignore/hold-despite-market classification — visible in player cards, trade recs, lineup recs, and hygiene recs
-**Plans**: 0 plans
+**Plans**: 6 plans
+
+Plans:
+- [ ] 17-01-PLAN.md -- Recommendation module foundation: RecommendationCard/SupportingFactor Pydantic models, constants, RecommendationCardEngine with priority formula (REC-01, REC-02, REC-04)
+- [ ] 17-02-PLAN.md -- Anti-overreaction layer (is_elite, stabilization) + player_flags module + migration 021 player_context_flags table (REC-05, REC-06)
+- [ ] 17-03-PLAN.md -- Market module (FantasyCalcClient, MarketService, MarketGapEngine) + ValuationEngine lens_market retrofit + migration 021 market_values table (MKT-01, MKT-02, MKT-03)
+- [ ] 17-04-PLAN.md -- Response model retrofit (recommendation_cards on all 4 models) + engine wiring (TradeEngine, LineupEngine emit cards) + integration tests (REC-03, MKT-04, MKT-05)
+- [ ] 17-05-PLAN.md -- Frontend TypeScript API types + 8 new recommendation components (RecommendationCard, ConfidenceBadge, MarketGapBadge, etc.) (REC-01, REC-02, REC-03, MKT-03, MKT-04)
+- [ ] 17-06-PLAN.md -- Frontend: extend 6 existing components with recommendation surfaces + human-verify checkpoint (MKT-04, MKT-05)
 
 ---
 
