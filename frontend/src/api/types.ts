@@ -54,6 +54,7 @@ export interface LeagueDetailResponse {
   exploit_windows: ExploitWindowManager[]
   last_snapshot_at: string | null
   last_ingest_at: string | null
+  recommendation_context?: RecommendationContext | null
 }
 
 export interface PitchAngle {
@@ -73,6 +74,7 @@ export interface ManagerSummary {
   evidence_count: number
   low_confidence: boolean
   top_pitch_angle: PitchAngle | null
+  pick_premium_score?: number | null
 }
 
 export interface TradeHistoryEntry {
@@ -108,6 +110,36 @@ export interface ManagerProfile {
     positional_needs?: string[]
     roster_size?: number
   } | null
+  pick_premium_score?: number | null
+  pick_trade_evidence?: number
+  draft_selection_count?: number
+  positional_tendency?: Record<string, number>
+  dominant_archetype?: string | null
+  archetype_pattern?: Record<string, number>
+  show_draft_picks_tab?: boolean
+  draft_selection_history?: Array<{
+    player_id: string
+    pick_slot: number
+    round_number: number
+    season: number
+    draft_type: "startup" | "rookie"
+    position: string | null
+    archetype_label: string | null
+  }>
+  likely_motivations_now?: string | null
+  recent_urgency_state?:
+    | "building_urgency"
+    | "stable"
+    | "declining_window"
+    | "panic_mode"
+    | null
+  time_of_calendar_sensitivity?: number
+  veteran_appetite?: number
+  rookie_fever_index?: number
+  value_rigidity?: number
+  reroute_susceptibility?: number
+  best_asset_to_target?: string | null
+  best_asset_to_send?: string | null
 }
 
 export interface TradeAsset {
@@ -141,7 +173,7 @@ export interface StrategicDistinction {
 }
 
 export interface RerouteResult {
-  reroute_type: "better_target" | "better_package"
+  reroute_type: "better_target" | "better_package" | "picks_buyer"
   headline: string
   reasoning: string
   suggested_assets?: TradeAsset[] | null
@@ -170,6 +202,7 @@ export interface TradeEvaluation {
   strategic_distinction: StrategicDistinction
   reroutes?: RerouteResult[] | null
   package?: PackageBuilderResult | null
+  recommendation_context?: RecommendationContext | null
 }
 
 export interface PlayerSearchResult {
@@ -270,6 +303,40 @@ export interface RookiePlayer {
   available_probability_by_slot: Record<string, number>
 }
 
+export interface SubFlag {
+  signal_name: string
+  direction: "positive" | "negative" | "neutral"
+  magnitude_str: string
+}
+
+export interface HistoricalComp {
+  player_id: string
+  player_name: string
+  role: "ceiling" | "median" | "floor"
+  outcome_bucket: "hit" | "mediocre" | "bust"
+  match_reason: string
+}
+
+export interface ProspectModelOutput {
+  league_id: string
+  draft_season: number
+  player_id: string
+  player_name: string
+  position: string
+  archetype_label: string
+  hit_rate_bucket: "High hit rate" | "Moderate hit rate" | "Low hit rate"
+  tier: number
+  predicted_tier: number
+  predicted_bucket: "hit" | "mediocre" | "bust"
+  risk_band: string
+  comps: HistoricalComp[]
+  overvalue_flag_direction: "overvalued" | "undervalued" | null
+  overvalue_magnitude: number | null
+  low_confidence: boolean
+  sub_flags: SubFlag[]
+  computed_at: string
+}
+
 export interface RookieTier {
   tier_number: number
   label: string
@@ -284,6 +351,11 @@ export interface RookieBoardResponse {
   computed_at: string
 }
 
+export interface RookieBoardWithContext {
+  rookie_board: RookieBoardResponse
+  recommendation_context: RecommendationContext
+}
+
 export interface TradeVerdict {
   verdict: "trade" | "use"
   label: string
@@ -291,9 +363,10 @@ export interface TradeVerdict {
 }
 
 export interface TendencyWarning {
-  warning_type: "positional_run" | "value_gap"
+  warning_type: "positional_run" | "value_gap" | "manager_tendency"
   title: string
   description: string
+  affected_players?: string[]
 }
 
 export interface DraftRoomResponse {
@@ -451,4 +524,94 @@ export interface SlotOccupancy {
   taxi_total: number
   ir_used: number
   ir_total: number
+}
+
+export interface WaiverRecommendation {
+  player_id: string
+  player_name: string
+  position: string
+  team: string | null
+  recommendation_label: "faab_bid" | "rolling_waiver" | "free_agent_only"
+  bid_low: number | null
+  bid_mid: number | null
+  bid_high: number | null
+  urgency: "High" | "Medium" | "Low"
+  rationale: string
+  is_immediate_start: boolean
+  data_freshness_warning: boolean
+  hours_since_ingest: number | null
+}
+
+export interface WaiverRecommendationsResponse {
+  league_id: string
+  roster_id: number
+  waiver_type_label: string
+  waiver_type_raw: number
+  remaining_faab: number | null
+  total_faab: number | null
+  recommendations: WaiverRecommendation[]
+  data_freshness_warning: boolean
+  computed_at: string
+}
+
+export interface StartupPickValuation {
+  pick_slot: string
+  pick_slot_number: number
+  projected_player_name: string | null
+  projected_player_id?: string | null
+  tier_label: string
+  trade_up_recommended: boolean
+  trade_down_recommended: boolean
+  trade_reasoning: string | null
+  pick_value: number
+}
+
+export interface StartupContext {
+  league_id: string
+  draft_status: "pre_draft" | "drafting" | "complete" | "unknown"
+  startup_mode_available: boolean
+  build_template: "win_now" | "balanced" | "rebuild"
+  direction_label: string
+  build_template_hint: string
+  pick_valuations: StartupPickValuation[]
+  computed_at: string
+}
+
+export interface OrphanIntakeDimension {
+  score: number
+  label: string
+  summary: string
+}
+
+export interface OrphanIntake {
+  league_id: string
+  roster_id: number
+  composite_score: number
+  composite_label: "Distressed" | "Rebuilder" | "Balanced" | "Ready to Compete"
+  age_curve: OrphanIntakeDimension
+  pick_capital: OrphanIntakeDimension
+  dead_spots: OrphanIntakeDimension
+  lineup_viability: OrphanIntakeDimension
+  liquidation_options: OrphanIntakeDimension
+  computed_at: string
+}
+
+export interface ActionPlanItem {
+  priority_rank: number
+  category: "add" | "drop" | "trade" | "hold" | "evaluate"
+  headline: string
+  rationale: string
+  urgency: "this_week" | "30_days" | "offseason"
+  target_entity_type: "player" | "pick" | "position" | "manager"
+  target_entity_ids: string[]
+  confidence_label: "HIGH" | "MEDIUM" | "LOW"
+}
+
+export interface ActionPlan {
+  league_id: string
+  roster_id: number
+  generated_at: string
+  plan_type: "orphan_intake" | "startup" | "new_connection"
+  items: ActionPlanItem[]
+  summary: string
 }

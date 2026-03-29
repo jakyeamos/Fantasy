@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Link, createFileRoute } from "@tanstack/react-router"
 
 import { managerProfileOptions } from "@/api/queries"
+import { DossierDraftPicksTab } from "@/components/DossierDraftPicksTab"
 import { DossierOverviewTab } from "@/components/DossierOverviewTab"
 import { DossierPitchAnglesTab } from "@/components/DossierPitchAnglesTab"
 import { DossierTradeHistoryTab } from "@/components/DossierTradeHistoryTab"
@@ -19,9 +20,9 @@ export const Route = createFileRoute("/league/$leagueId/managers/$managerId")({
 
 function ManagerDossierPlaceholderPage() {
   const { leagueId, managerId } = Route.useParams()
-  const [tab, setTab] = useState<"overview" | "trade-history" | "pitch-angles">(
-    "overview",
-  )
+  const [tab, setTab] = useState<
+    "overview" | "trade-history" | "pitch-angles" | "draft-picks"
+  >("overview")
   const profileQuery = useQuery(managerProfileOptions(leagueId, managerId))
 
   if (profileQuery.isLoading) {
@@ -103,12 +104,21 @@ function ManagerDossierPlaceholderPage() {
           { key: "overview", label: "Overview" },
           { key: "trade-history", label: "Trade History" },
           { key: "pitch-angles", label: "Pitch Angles" },
+          ...(profile.show_draft_picks_tab
+            ? [{ key: "draft-picks", label: "Draft & Picks" }]
+            : []),
         ].map((item) => (
           <Button
             key={item.key}
             variant={tab === item.key ? "default" : "ghost"}
             onClick={() =>
-              setTab(item.key as "overview" | "trade-history" | "pitch-angles")
+              setTab(
+                item.key as
+                  | "overview"
+                  | "trade-history"
+                  | "pitch-angles"
+                  | "draft-picks",
+              )
             }
           >
             {item.label}
@@ -122,6 +132,14 @@ function ManagerDossierPlaceholderPage() {
       ) : null}
       {tab === "pitch-angles" ? (
         <DossierPitchAnglesTab pitchAngles={profile.pitch_angles} />
+      ) : null}
+      {tab === "draft-picks" && profile.show_draft_picks_tab ? (
+        <DossierDraftPicksTab
+          pickPremiumScore={profile.pick_premium_score ?? null}
+          pickTradeEvidence={profile.pick_trade_evidence ?? 0}
+          draftSelectionHistory={profile.draft_selection_history ?? []}
+          archetypePattern={profile.archetype_pattern ?? {}}
+        />
       ) : null}
     </div>
   )

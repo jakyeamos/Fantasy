@@ -31,6 +31,10 @@ export function ManagerListRow({
                   {formatModelLabel(summary.direction_label)}
                 </Badge>
               ) : null}
+              {summary.pick_premium_score !== null &&
+              summary.pick_premium_score !== undefined ? (
+                <Badge variant="default">Picks Buyer</Badge>
+              ) : null}
             </div>
             <div
               className={`rounded-lg border px-3 py-2 text-xs ${

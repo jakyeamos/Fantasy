@@ -4,7 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router"
 
 import type { LeagueDraftOrderRule } from "@/api/types"
-import { draftOrderRuleOptions, leagueDetailOptions, saveDraftOrderRule } from "@/api/queries"
+import {
+  calendarContextOptions,
+  draftOrderRuleOptions,
+  leagueDetailOptions,
+  saveDraftOrderRule,
+} from "@/api/queries"
+import { CalendarOverridePanel } from "@/components/context/CalendarOverridePanel"
+import { CalendarStateBadge } from "@/components/context/CalendarStateBadge"
 import { ConcentrationAlertBanner } from "@/components/ConcentrationAlertBanner"
 import { ExploitWindowPanel } from "@/components/ExploitWindowPanel"
 import { FormatWarningBanner } from "@/components/FormatWarningBanner"
@@ -257,6 +264,7 @@ function LeagueDetailPage() {
   const { leagueId } = Route.useParams()
   const location = useLocation()
   const query = useQuery(leagueDetailOptions(leagueId))
+  const calendarQuery = useQuery(calendarContextOptions(leagueId))
   const [comparisonOpen, setComparisonOpen] = useState(false)
 
   if (query.isLoading) {
@@ -281,6 +289,9 @@ function LeagueDetailPage() {
   const isOverviewRoute = location.pathname === leaguePath
   const isManagersRoute = location.pathname.startsWith(`${leaguePath}/managers`)
   const isRookieBoardRoute = location.pathname === `${leaguePath}/rookie-board`
+  const isWaiversRoute = location.pathname === `${leaguePath}/waivers`
+  const isStartupRoute = location.pathname === `${leaguePath}/startup`
+  const isOrphanIntakeRoute = location.pathname === `${leaguePath}/orphan-intake`
 
   return (
     <div className="space-y-8">
@@ -295,6 +306,12 @@ function LeagueDetailPage() {
               <Badge variant={badgeVariant(league.confidence_band)}>
                 {league.confidence_band}
               </Badge>
+              {calendarQuery.data ? (
+                <CalendarStateBadge
+                  state={calendarQuery.data.active_state}
+                  isOverride={calendarQuery.data.is_override}
+                />
+              ) : null}
             </div>
             <div>
               <p className="font-headline text-2xl font-extrabold">
@@ -337,6 +354,33 @@ function LeagueDetailPage() {
               >
                 Rookie Board
               </Link>
+              <Link
+                to="/league/$leagueId/waivers"
+                params={{ leagueId }}
+                className={buttonClasses({
+                  variant: isWaiversRoute ? "default" : "outline",
+                })}
+              >
+                Waivers
+              </Link>
+              <Link
+                to="/league/$leagueId/startup"
+                params={{ leagueId }}
+                className={buttonClasses({
+                  variant: isStartupRoute ? "default" : "outline",
+                })}
+              >
+                Startup Draft
+              </Link>
+              <Link
+                to="/league/$leagueId/orphan-intake"
+                params={{ leagueId }}
+                className={buttonClasses({
+                  variant: isOrphanIntakeRoute ? "default" : "outline",
+                })}
+              >
+                Orphan Intake
+              </Link>
             </div>
             <div className="flex flex-wrap gap-2">
               <Link
@@ -370,6 +414,10 @@ function LeagueDetailPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {calendarQuery.data ? (
+        <CalendarOverridePanel leagueId={leagueId} context={calendarQuery.data} />
+      ) : null}
 
       {/* Phase 11 lineup intelligence panels render above overview summary cards. */}
       {isOverviewRoute && league.user_roster_id ? (

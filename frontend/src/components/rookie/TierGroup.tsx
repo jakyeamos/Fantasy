@@ -1,4 +1,4 @@
-import type { RookieTier } from "@/api/types"
+import type { ProspectModelOutput, RookieTier } from "@/api/types"
 import { RookiePlayerCard } from "@/components/rookie/RookiePlayerCard"
 import { TierDivider } from "@/components/rookie/TierDivider"
 
@@ -7,9 +7,13 @@ const AVAILABILITY_THRESHOLD = 0.5
 export function TierGroup({
   tier,
   selectedSlot,
+  prospectMap,
+  isModelLoading = false,
 }: {
   tier: RookieTier
   selectedSlot?: string
+  prospectMap?: Map<string, ProspectModelOutput>
+  isModelLoading?: boolean
 }) {
   return (
     <div>
@@ -19,6 +23,8 @@ export function TierGroup({
           <RookiePlayerCard
             key={player.player_id}
             player={player}
+            modelOutput={prospectMap?.get(player.player_id) ?? null}
+            isModelLoading={isModelLoading}
             selectedSlot={selectedSlot}
             isAvailableAtSlot={
               selectedSlot

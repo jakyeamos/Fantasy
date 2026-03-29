@@ -1,6 +1,12 @@
-import type { RookiePlayer } from "@/api/types"
+import { Separator } from "@/components/ui/separator"
+
+import type { ProspectModelOutput, RookiePlayer } from "@/api/types"
+import { CompRow } from "@/components/rookie/CompRow"
+import { HitRateBadge } from "@/components/rookie/HitRateBadge"
+import { OverUndervalueFlag } from "@/components/rookie/OverUndervalueFlag"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 const RISK_BORDER: Record<RookiePlayer["risk_band"], string> = {
@@ -19,10 +25,14 @@ export function RookiePlayerCard({
   player,
   isAvailableAtSlot = false,
   selectedSlot,
+  modelOutput,
+  isModelLoading = false,
 }: {
   player: RookiePlayer
   isAvailableAtSlot?: boolean
   selectedSlot?: string
+  modelOutput?: ProspectModelOutput | null
+  isModelLoading?: boolean
 }) {
   return (
     <Card
@@ -52,6 +62,47 @@ export function RookiePlayerCard({
             Available at ~{selectedSlot}
           </p>
         ) : null}
+        <Separator className="my-3" />
+        {isModelLoading ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-5 w-28" />
+            </div>
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-14 w-full" />
+            <Skeleton className="h-14 w-full" />
+          </div>
+        ) : modelOutput ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="terminal-label text-muted-foreground">Model signal</p>
+                <p className="mt-1 text-sm text-muted-foreground">{modelOutput.predicted_bucket} outcome lean</p>
+              </div>
+              <HitRateBadge
+                bucket={modelOutput.hit_rate_bucket}
+                lowConfidence={modelOutput.low_confidence}
+              />
+            </div>
+            <OverUndervalueFlag
+              direction={modelOutput.overvalue_flag_direction}
+              magnitude={modelOutput.overvalue_magnitude}
+              lowConfidence={modelOutput.low_confidence}
+              subFlags={modelOutput.sub_flags}
+            />
+            <div className="space-y-2">
+              <p className="terminal-label text-muted-foreground">Historical comps</p>
+              {modelOutput.comps.length ? (
+                modelOutput.comps.map((comp) => <CompRow key={`${player.player_id}-${comp.role}`} comp={comp} />)
+              ) : (
+                <p className="text-xs text-muted-foreground">No historical comps surfaced for this profile yet.</p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">Phase 8 model output unavailable for this prospect.</p>
+        )}
       </CardContent>
     </Card>
   )

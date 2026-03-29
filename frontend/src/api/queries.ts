@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query"
 
 import type {
+  ActionPlan,
   AcknowledgedResponse,
   CalendarContext,
   FreshnessTag,
@@ -18,19 +19,45 @@ import type {
   LineupResult,
   ManagerProfile,
   ManagerSummary,
+  OrphanIntake,
   PickSearchResult,
   PickValue,
   PortfolioExposureResponse,
+  ProspectModelOutput,
+  PickListResponse,
   RecalibrationHealth,
   RookieBoardResponse,
+  RookieBoardWithContext,
   SnapshotAnchor,
   SnapshotStatus,
   SlotOccupancy,
+  StartupContext,
   TaxiConfigResponse,
+  WaiverRecommendationsResponse,
 } from "@/api/types"
 
 export async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(`/api${path}`)
+  if (!response.ok) {
+    throw new Error(`Request failed: ${path}`)
+  }
+  return (await response.json()) as T
+}
+
+export async function postJson<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`/api${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+  if (!response.ok) {
+    throw new Error(`Request failed: ${path}`)
+  }
+  return (await response.json()) as T
+}
+
+export async function deleteJson<T>(path: string): Promise<T> {
+  const response = await fetch(`/api${path}`, { method: "DELETE" })
   if (!response.ok) {
     throw new Error(`Request failed: ${path}`)
   }
@@ -97,7 +124,24 @@ export const pickValuesOptions = (
         params.set("current_owner_roster_id", String(options.currentOwnerRosterId))
       }
       const suffix = params.size ? `?${params.toString()}` : ""
-      return getJson<PickValue[]>(`/picks/${leagueId}${suffix}`)
+      return getJson<PickListResponse>(`/picks/${leagueId}${suffix}`).then(
+        (response) => response.picks,
+      )
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: leagueId.trim().length > 0,
+  })
+
+export const pickListOptions = (leagueId: string, rosterId?: number | null) =>
+  queryOptions({
+    queryKey: ["picks", "list", leagueId, rosterId ?? "all"],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (rosterId) {
+        params.set("current_owner_roster_id", String(rosterId))
+      }
+      const suffix = params.size ? `?${params.toString()}` : ""
+      return getJson<PickListResponse>(`/picks/${leagueId}${suffix}`)
     },
     staleTime: 5 * 60 * 1000,
     enabled: leagueId.trim().length > 0,
@@ -146,7 +190,7 @@ export const pickInventoryOptions = (
 export const rookieBoardOptions = (leagueId: string) =>
   queryOptions({
     queryKey: ["rookie-board", leagueId],
-    queryFn: () => getJson<RookieBoardResponse>(`/rookie-board/${leagueId}`),
+    queryFn: () => getJson<RookieBoardWithContext>(`/rookie-board/${leagueId}`),
     staleTime: 15 * 60 * 1000,
     enabled: leagueId.trim().length > 0,
   })
@@ -157,6 +201,14 @@ export const draftRoomOptions = (leagueId: string, pickSlot: number) =>
     queryFn: () => getJson<DraftRoomResponse>(`/draft-room/${leagueId}/${pickSlot}`),
     staleTime: 15 * 60 * 1000,
     enabled: leagueId.trim().length > 0 && pickSlot > 0,
+  })
+
+export const prospectModelOutputsOptions = (leagueId: string) =>
+  queryOptions({
+    queryKey: ["prospects", "model-outputs", leagueId],
+    queryFn: () => getJson<ProspectModelOutput[]>(`/prospects/model-outputs/${leagueId}`),
+    staleTime: 30 * 60 * 1000,
+    enabled: leagueId.trim().length > 0,
   })
 
 export const portfolioExposureOptions = () =>
@@ -177,6 +229,22 @@ export const snapshotAnchorsOptions = (leagueId: string) =>
   queryOptions({
     queryKey: ["snapshot-anchors", leagueId],
     queryFn: () => getJson<SnapshotAnchor[]>(`/leagues/${leagueId}/snapshot-anchors`),
+    staleTime: 60 * 1000,
+    enabled: leagueId.trim().length > 0,
+  })
+
+export const calendarContextOptions = (leagueId: string) =>
+  queryOptions({
+    queryKey: ["context", "calendar", leagueId],
+    queryFn: () => getJson<CalendarContext>(`/context/${leagueId}/calendar`),
+    staleTime: 60 * 1000,
+    enabled: leagueId.trim().length > 0,
+  })
+
+export const freshnessOptions = (leagueId: string) =>
+  queryOptions({
+    queryKey: ["context", "freshness", leagueId],
+    queryFn: () => getJson<FreshnessTag[]>(`/context/${leagueId}/freshness`),
     staleTime: 60 * 1000,
     enabled: leagueId.trim().length > 0,
   })
@@ -263,4 +331,39 @@ export async function acknowledgeLeagueFormat(leagueId: string): Promise<void> {
     headers: { "Content-Type": "application/json" },
   })
   if (!res.ok) throw new Error("Failed to acknowledge league format")
+}
+
+export function waiverRecommendationsOptions(leagueId: string, rosterId: number) {
+  return queryOptions({
+    queryKey: ["waiver-recommendations", leagueId, rosterId],
+    queryFn: () =>
+      getJson<WaiverRecommendationsResponse>(`/waiver/${leagueId}/${rosterId}/recommendations`),
+    staleTime: 60 * 1000,
+    enabled: leagueId.trim().length > 0 && rosterId > 0,
+  })
+}
+
+export async function runOrphanIntake(
+  leagueId: string,
+  rosterId: number,
+): Promise<OrphanIntake> {
+  return postJson<OrphanIntake>(`/waiver/${leagueId}/${rosterId}/orphan-intake`, {})
+}
+
+export function actionPlanOptions(leagueId: string, rosterId: number) {
+  return queryOptions({
+    queryKey: ["action-plan", leagueId, rosterId],
+    queryFn: () => getJson<ActionPlan>(`/waiver/${leagueId}/${rosterId}/action-plan`),
+    staleTime: 60 * 1000,
+    enabled: leagueId.trim().length > 0 && rosterId > 0,
+  })
+}
+
+export function startupContextOptions(leagueId: string, rosterId: number = 0) {
+  return queryOptions({
+    queryKey: ["startup-context", leagueId, rosterId],
+    queryFn: () => getJson<StartupContext>(`/startup/${leagueId}/context?roster_id=${rosterId}`),
+    staleTime: 60 * 1000,
+    enabled: leagueId.trim().length > 0,
+  })
 }

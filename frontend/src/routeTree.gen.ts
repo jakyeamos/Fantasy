@@ -14,7 +14,10 @@ import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as DraftRoomRouteImport } from './routes/draft-room'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LeagueLeagueIdRouteImport } from './routes/league.$leagueId'
+import { Route as LeagueLeagueIdWaiversRouteImport } from './routes/league.$leagueId.waivers'
+import { Route as LeagueLeagueIdStartupRouteImport } from './routes/league.$leagueId.startup'
 import { Route as LeagueLeagueIdRookieBoardRouteImport } from './routes/league.$leagueId.rookie-board'
+import { Route as LeagueLeagueIdOrphanIntakeRouteImport } from './routes/league.$leagueId.orphan-intake'
 import { Route as LeagueLeagueIdManagersRouteImport } from './routes/league.$leagueId.managers'
 import { Route as LeagueLeagueIdManagersManagerIdRouteImport } from './routes/league.$leagueId.managers.$managerId'
 
@@ -43,10 +46,26 @@ const LeagueLeagueIdRoute = LeagueLeagueIdRouteImport.update({
   path: '/league/$leagueId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LeagueLeagueIdWaiversRoute = LeagueLeagueIdWaiversRouteImport.update({
+  id: '/waivers',
+  path: '/waivers',
+  getParentRoute: () => LeagueLeagueIdRoute,
+} as any)
+const LeagueLeagueIdStartupRoute = LeagueLeagueIdStartupRouteImport.update({
+  id: '/startup',
+  path: '/startup',
+  getParentRoute: () => LeagueLeagueIdRoute,
+} as any)
 const LeagueLeagueIdRookieBoardRoute =
   LeagueLeagueIdRookieBoardRouteImport.update({
     id: '/rookie-board',
     path: '/rookie-board',
+    getParentRoute: () => LeagueLeagueIdRoute,
+  } as any)
+const LeagueLeagueIdOrphanIntakeRoute =
+  LeagueLeagueIdOrphanIntakeRouteImport.update({
+    id: '/orphan-intake',
+    path: '/orphan-intake',
     getParentRoute: () => LeagueLeagueIdRoute,
   } as any)
 const LeagueLeagueIdManagersRoute = LeagueLeagueIdManagersRouteImport.update({
@@ -68,7 +87,10 @@ export interface FileRoutesByFullPath {
   '/trades': typeof TradesRoute
   '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
   '/league/$leagueId/managers': typeof LeagueLeagueIdManagersRouteWithChildren
+  '/league/$leagueId/orphan-intake': typeof LeagueLeagueIdOrphanIntakeRoute
   '/league/$leagueId/rookie-board': typeof LeagueLeagueIdRookieBoardRoute
+  '/league/$leagueId/startup': typeof LeagueLeagueIdStartupRoute
+  '/league/$leagueId/waivers': typeof LeagueLeagueIdWaiversRoute
   '/league/$leagueId/managers/$managerId': typeof LeagueLeagueIdManagersManagerIdRoute
 }
 export interface FileRoutesByTo {
@@ -78,7 +100,10 @@ export interface FileRoutesByTo {
   '/trades': typeof TradesRoute
   '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
   '/league/$leagueId/managers': typeof LeagueLeagueIdManagersRouteWithChildren
+  '/league/$leagueId/orphan-intake': typeof LeagueLeagueIdOrphanIntakeRoute
   '/league/$leagueId/rookie-board': typeof LeagueLeagueIdRookieBoardRoute
+  '/league/$leagueId/startup': typeof LeagueLeagueIdStartupRoute
+  '/league/$leagueId/waivers': typeof LeagueLeagueIdWaiversRoute
   '/league/$leagueId/managers/$managerId': typeof LeagueLeagueIdManagersManagerIdRoute
 }
 export interface FileRoutesById {
@@ -89,7 +114,10 @@ export interface FileRoutesById {
   '/trades': typeof TradesRoute
   '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
   '/league/$leagueId/managers': typeof LeagueLeagueIdManagersRouteWithChildren
+  '/league/$leagueId/orphan-intake': typeof LeagueLeagueIdOrphanIntakeRoute
   '/league/$leagueId/rookie-board': typeof LeagueLeagueIdRookieBoardRoute
+  '/league/$leagueId/startup': typeof LeagueLeagueIdStartupRoute
+  '/league/$leagueId/waivers': typeof LeagueLeagueIdWaiversRoute
   '/league/$leagueId/managers/$managerId': typeof LeagueLeagueIdManagersManagerIdRoute
 }
 export interface FileRouteTypes {
@@ -101,7 +129,10 @@ export interface FileRouteTypes {
     | '/trades'
     | '/league/$leagueId'
     | '/league/$leagueId/managers'
+    | '/league/$leagueId/orphan-intake'
     | '/league/$leagueId/rookie-board'
+    | '/league/$leagueId/startup'
+    | '/league/$leagueId/waivers'
     | '/league/$leagueId/managers/$managerId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -111,7 +142,10 @@ export interface FileRouteTypes {
     | '/trades'
     | '/league/$leagueId'
     | '/league/$leagueId/managers'
+    | '/league/$leagueId/orphan-intake'
     | '/league/$leagueId/rookie-board'
+    | '/league/$leagueId/startup'
+    | '/league/$leagueId/waivers'
     | '/league/$leagueId/managers/$managerId'
   id:
     | '__root__'
@@ -121,7 +155,10 @@ export interface FileRouteTypes {
     | '/trades'
     | '/league/$leagueId'
     | '/league/$leagueId/managers'
+    | '/league/$leagueId/orphan-intake'
     | '/league/$leagueId/rookie-board'
+    | '/league/$leagueId/startup'
+    | '/league/$leagueId/waivers'
     | '/league/$leagueId/managers/$managerId'
   fileRoutesById: FileRoutesById
 }
@@ -170,11 +207,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeagueLeagueIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/league/$leagueId/waivers': {
+      id: '/league/$leagueId/waivers'
+      path: '/waivers'
+      fullPath: '/league/$leagueId/waivers'
+      preLoaderRoute: typeof LeagueLeagueIdWaiversRouteImport
+      parentRoute: typeof LeagueLeagueIdRoute
+    }
+    '/league/$leagueId/startup': {
+      id: '/league/$leagueId/startup'
+      path: '/startup'
+      fullPath: '/league/$leagueId/startup'
+      preLoaderRoute: typeof LeagueLeagueIdStartupRouteImport
+      parentRoute: typeof LeagueLeagueIdRoute
+    }
     '/league/$leagueId/rookie-board': {
       id: '/league/$leagueId/rookie-board'
       path: '/rookie-board'
       fullPath: '/league/$leagueId/rookie-board'
       preLoaderRoute: typeof LeagueLeagueIdRookieBoardRouteImport
+      parentRoute: typeof LeagueLeagueIdRoute
+    }
+    '/league/$leagueId/orphan-intake': {
+      id: '/league/$leagueId/orphan-intake'
+      path: '/orphan-intake'
+      fullPath: '/league/$leagueId/orphan-intake'
+      preLoaderRoute: typeof LeagueLeagueIdOrphanIntakeRouteImport
       parentRoute: typeof LeagueLeagueIdRoute
     }
     '/league/$leagueId/managers': {
@@ -210,12 +268,18 @@ const LeagueLeagueIdManagersRouteWithChildren =
 
 interface LeagueLeagueIdRouteChildren {
   LeagueLeagueIdManagersRoute: typeof LeagueLeagueIdManagersRouteWithChildren
+  LeagueLeagueIdOrphanIntakeRoute: typeof LeagueLeagueIdOrphanIntakeRoute
   LeagueLeagueIdRookieBoardRoute: typeof LeagueLeagueIdRookieBoardRoute
+  LeagueLeagueIdStartupRoute: typeof LeagueLeagueIdStartupRoute
+  LeagueLeagueIdWaiversRoute: typeof LeagueLeagueIdWaiversRoute
 }
 
 const LeagueLeagueIdRouteChildren: LeagueLeagueIdRouteChildren = {
   LeagueLeagueIdManagersRoute: LeagueLeagueIdManagersRouteWithChildren,
+  LeagueLeagueIdOrphanIntakeRoute: LeagueLeagueIdOrphanIntakeRoute,
   LeagueLeagueIdRookieBoardRoute: LeagueLeagueIdRookieBoardRoute,
+  LeagueLeagueIdStartupRoute: LeagueLeagueIdStartupRoute,
+  LeagueLeagueIdWaiversRoute: LeagueLeagueIdWaiversRoute,
 }
 
 const LeagueLeagueIdRouteWithChildren = LeagueLeagueIdRoute._addFileChildren(

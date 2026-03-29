@@ -3,7 +3,9 @@ import { useMemo } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import type { PickSearchResult, PickValue } from "@/api/types"
-import { pickInventoryOptions, pickValuesOptions } from "@/api/queries"
+import { pickInventoryOptions, pickListOptions } from "@/api/queries"
+import { CalendarStateBadge } from "@/components/context/CalendarStateBadge"
+import { FreshnessWarningBar } from "@/components/context/FreshnessWarningBar"
 import { RuleCitation } from "@/components/picks/RuleCitation"
 import { TimingBadge } from "@/components/picks/TimingBadge"
 import { Button } from "@/components/ui/button"
@@ -81,9 +83,7 @@ export function LeaguePickList({
   rosterId?: number | null
 }) {
   const queryClient = useQueryClient()
-  const pickValuesQuery = useQuery(
-    pickValuesOptions(leagueId, { currentOwnerRosterId: rosterId }),
-  )
+  const pickListQuery = useQuery(pickListOptions(leagueId, rosterId))
   const inventoryQuery = useQuery(pickInventoryOptions(leagueId, rosterId))
   const recomputeMutation = useMutation({
     mutationFn: async () => {
@@ -95,6 +95,7 @@ export function LeaguePickList({
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["picks", leagueId] })
+      await queryClient.invalidateQueries({ queryKey: ["picks", "list", leagueId] })
     },
   })
 
@@ -104,13 +105,13 @@ export function LeaguePickList({
   )
   const lastComputedAt = useMemo(
     () =>
-      [...(pickValuesQuery.data ?? [])]
+      [...(pickListQuery.data?.picks ?? [])]
         .sort((a, b) => new Date(b.computed_at).getTime() - new Date(a.computed_at).getTime())
         .at(0)?.computed_at,
-    [pickValuesQuery.data],
+    [pickListQuery.data?.picks],
   )
 
-  if (pickValuesQuery.isLoading || inventoryQuery.isLoading) {
+  if (pickListQuery.isLoading || inventoryQuery.isLoading) {
     return (
       <Card>
         <CardHeader>
@@ -125,7 +126,7 @@ export function LeaguePickList({
     )
   }
 
-  if (pickValuesQuery.isError || inventoryQuery.isError) {
+  if (pickListQuery.isError || inventoryQuery.isError) {
     return (
       <Card>
         <CardHeader>
@@ -140,7 +141,7 @@ export function LeaguePickList({
     )
   }
 
-  if (!pickValuesQuery.data || pickValuesQuery.data.length === 0) {
+  if (!pickListQuery.data || pickListQuery.data.picks.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -178,7 +179,20 @@ export function LeaguePickList({
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        {pickValuesQuery.data.map((pickValue) => {
+        <div className="space-y-2">
+          <CalendarStateBadge
+            state={pickListQuery.data.recommendation_context.calendar_state}
+          />
+          {pickListQuery.data.recommendation_context.calendar_note ? (
+            <p className="text-xs text-muted-foreground">
+              {pickListQuery.data.recommendation_context.calendar_note}
+            </p>
+          ) : null}
+          <FreshnessWarningBar
+            tags={pickListQuery.data.recommendation_context.freshness_tags}
+          />
+        </div>
+        {pickListQuery.data.picks.map((pickValue) => {
           const key = pickKey({
             pick_owner_roster_id: pickValue.pick.pick_owner_roster_id,
             pick_year: pickValue.pick.pick_year,
