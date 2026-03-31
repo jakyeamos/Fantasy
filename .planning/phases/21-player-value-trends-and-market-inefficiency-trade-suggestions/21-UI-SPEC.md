@@ -68,7 +68,7 @@ Notes:
 - Declared weights: 400 (regular) / 700 (bold). Exactly 2 weights. Compliant.
 - `.terminal-label` (12px / 700 / uppercase / tracking-[0.16em] / Space Grotesk) is used for all opportunity card section eyebrows: "TREND SIGNAL", "SUGGESTED ACTION", "SIMILAR PLAYERS", "OWNED IN", and the conflict label "SIGNAL CONFLICT".
 - `trend_label` ("WILL RISE" / "WILL MAINTAIN" / "WILL FALL") renders as `.terminal-label` treatment inside a color-coded badge (see Color section).
-- Player name on opportunity card renders at 14px Inter weight-700 (semibold — using `font-semibold`).
+- Player name on opportunity card renders at 14px Inter weight-700 (using `font-bold`).
 - `why_summary` / similarity `context` strings render at 14px Inter weight-400 line-height 1.5.
 - Impact score renders at 12px JetBrains Mono (`font-mono`) — no uppercase, default tracking. Differentiates from label roles by font family alone.
 - Conflict explanation (D-10) renders at 14px Inter weight-400, inside a bordered container — same body treatment as `supporting_factors` explanation text in Phase 17.
@@ -190,7 +190,7 @@ Row 2 — Feed list:
 
 Top row — `flex items-start justify-between gap-3`:
 - Left: `CalendarEscalationLabel` (conditional, renders above player name when active)
-- Left: player name `text-sm font-semibold text-foreground` + `Badge variant="outline"` position tag
+- Left: player name `text-sm font-bold text-foreground` + `Badge variant="outline"` position tag
 - Left: `OwnershipSymbol` inline after position tag
 - Right: `SuggestedActionBadge`
 
