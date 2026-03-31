@@ -19,13 +19,13 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Trade Intelligence** - Trade evaluator, reroute pathing, package builder
 - [x] **Phase 6: Dynamic Pick Valuation** - Standings-aware pick engine, demand signals, timing recommendations
 - [x] **Phase 7: Rookie Board & Draft Room** - Format-aware rookie tiers, roster-fit overlays, draft room view
-- [ ] **Phase 8: Historical Prospect Lab** - 10+ year database, backtested position models, archetype clustering
-- [ ] **Phase 9: Portfolio & Retrospectives** - Cross-league exposure, season-over-season snapshots, retrospective grading
-- [ ] **Phase 10: Pick Accuracy & Draft Order** - Draft order rules engine, format-aware pick slot projections (FS-01)
-- [x] **Phase 11: Roster & Lineup Intelligence** - Optimal lineup calculator, title-window score, roster management layer (FS-02, FS-04) (completed 2026-03-25)
-- [ ] **Phase 12: Manager Rookie & Pick Profiles** - Rookie-draft behavior mining, pick-premium scoring, profile-aware suggestions (FS-06)
-- [ ] **Phase 13: Context Awareness** - Dynasty calendar state, NFL context freshness, time-aware recommendations (FS-03, FS-08)
-- [ ] **Phase 14: Trust Infrastructure** - League rule support matrix, unsupported-format flagging, fallback behavior (FS-07)
+- [x] **Phase 8: Historical Prospect Lab** - 10+ year database, backtested position models, archetype clustering
+- [x] **Phase 9: Portfolio & Retrospectives** - Cross-league exposure, season-over-season snapshots, retrospective grading
+- [x] **Phase 10: Pick Accuracy & Draft Order** - Draft order rules engine, format-aware pick slot projections (FS-01)
+- [x] **Phase 11: Roster & Lineup Intelligence** - Optimal lineup calculator, title-window score, roster management layer (FS-02, FS-04) (completed 2026-03-29)
+- [x] **Phase 12: Manager Rookie & Pick Profiles** - Rookie-draft behavior mining, pick-premium scoring, profile-aware suggestions (FS-06)
+- [x] **Phase 13: Context Awareness** - Dynasty calendar state, NFL context freshness, time-aware recommendations (FS-03, FS-08)
+- [x] **Phase 14: Trust Infrastructure** - League rule support matrix, unsupported-format flagging, fallback behavior (FS-07)
 - [x] **Phase 15: Waiver & Startup Workflows** - FAAB/waiver intelligence, startup draft mode, orphan intake checklist (FS-05, FS-09) (completed 2026-03-28)
 - [ ] **Phase 16: Portfolio Thesis Expansion** - Thesis-level exposure tracking, concentration flags, diversification suggestions (FS-10)
 - [ ] **Phase 17: Recommendation Contract & Market Intelligence** - Structured recommendation cards, anti-overreaction priors, player context flags, model-vs-market gap layer (REC-01–06, MKT-01–05)
@@ -101,7 +101,7 @@ Plans:
 - [x] 03-02-PLAN.md -- Frontend scaffold: Vite + React 19 + TanStack Router/Query + shadcn/ui init + route shells + API queries
 - [x] 03-03-PLAN.md -- Frontend views: LeagueCard grid, drill-in with risers/fallers + exploit windows + snapshot controls + human-verify
 
-**Known gap (DASH-03 / PORT-03):** Cross-league concentration risk alerts not implemented in dashboard. Behavioral exploit windows are present; player ownership concentration surface deferred to Phase 9 (PORT-03).
+**Status update (DASH-03 / PORT-03):** Cross-league concentration risk now ships on the `/portfolio` screen and in the league drill-in via `ConcentrationAlertBanner`. The original LeagueCard grid still does not surface a dedicated portfolio alert row.
 
 ---
 
@@ -141,9 +141,7 @@ Plans:
 - [x] 05-03-PLAN.md -- Frontend evaluator core: shadcn installs, TypeScript types, TradeInputPanel, EvaluationOutputPanel, StrategicDistinctionBanner, DimensionScoreRow, /trades route
 - [x] 05-04-PLAN.md -- Frontend completion: RerouteSheet, PackageBuilderPanel, entry point buttons on league drill-in + manager dossier, human-verify checkpoint
 
-**Known gap:** Multi-team third-party trade legs are parsed and passed through the API but TradeEngine does not score them. UI shows a note acknowledging this. Deferred to Phase 9.
-
-**Known gap:** Trade evaluator only surfaces picks for the counterparty — their rostered players are not available to select as assets. Fix required in the counterparty asset lookup. Deferred to Phase 9.
+**Current state:** Counterparty and third-party roster players are searchable in the trade UI/API. Multi-team sidecar legs are now scored informationally and lower confidence, but reroutes and package-builder outputs remain disabled for multi-team deals until those helpers model sidecar legs explicitly.
 
 ---
 
@@ -198,12 +196,14 @@ Plans:
 
 **Research complete:** ML model selection (scikit-learn Random Forest for RB/WR/TE, Logistic Regression for QB), nflreadpy ETL pipeline, walk-forward time-based backtesting, K-means archetype clustering, and comp finding methodology all specified.
 
+**Documentation note:** Phase 8 shipped in code before its plan summaries were written. Retrospective summaries were added on 2026-03-29 after backend test and frontend build verification.
+
 Plans:
-- [ ] 08-01-PLAN.md -- Data foundation: prospects package scaffold, constants, Pydantic models, DuckDB migration, ProspectRepo, NflReadPyLoader, FeatureBuilder with outcome labeling
-- [ ] 08-02-PLAN.md -- ML engines: HitClassifier (three-bucket labeling), ProspectModel (position-specific walk-forward backtesting), ArchetypeClusterer (K-means)
-- [ ] 08-03-PLAN.md -- CompFinder (historical comps by feature distance within ADP tier) + DivergenceEngine (over/undervalue flags with per-signal sub-flags)
-- [ ] 08-04-PLAN.md -- CLI pipeline script (full model orchestration) + FastAPI /prospects router (model-outputs + comps endpoints) + main.py registration
-- [ ] 08-05-PLAN.md -- Frontend: TypeScript types, TanStack Query hooks, RookiePlayerCard Phase 8 extensions (hit-rate badge, over/undervalue flag, historical comps), sort controls, human-verify checkpoint
+- [x] 08-01-PLAN.md -- Data foundation: prospects package scaffold, constants, Pydantic models, DuckDB migration, ProspectRepo, NflReadPyLoader, FeatureBuilder with outcome labeling
+- [x] 08-02-PLAN.md -- ML engines: HitClassifier (three-bucket labeling), ProspectModel (position-specific walk-forward backtesting), ArchetypeClusterer (K-means)
+- [x] 08-03-PLAN.md -- CompFinder (historical comps by feature distance within ADP tier) + DivergenceEngine (over/undervalue flags with per-signal sub-flags)
+- [x] 08-04-PLAN.md -- CLI pipeline script (full model orchestration) + FastAPI /prospects router (model-outputs + comps endpoints) + main.py registration
+- [x] 08-05-PLAN.md -- Frontend: shared API types/query hooks, RookiePlayerCard Phase 8 extensions (hit-rate badge, over/undervalue flag, historical comps), sort controls, human-verify checkpoint
 
 ---
 
@@ -216,14 +216,15 @@ Plans:
   2. User can compare any team's current state to a historical snapshot -- scorecard, direction label, player values, and pick capital all comparable side by side
   3. System grades past direction labels against actual season outcomes and surfaces calibration quality (was "true contender" calibrated?)
   4. System grades past prospect tier assignments against NFL outcomes and surfaces model accuracy per position and tier
-**Plans**: 5 plans
+**Plans**: 6 plans
 
 Plans:
-- [ ] 09-01-PLAN.md -- Backend foundation: portfolio package scaffold, constants, models, PortfolioRepo, migration 007, SnapshotService capital_score patch
-- [ ] 09-02-PLAN.md -- Backend: SnapshotDiffEngine (anchor detection, delta-forward diff), snapshot diff router, main.py registration
-- [ ] 09-03-PLAN.md -- Backend: PortfolioEngine (hedge recs, correlated risk), RetroEngine (direction + prospect grading), portfolio router
-- [ ] 09-04-PLAN.md -- Frontend: Portfolio page with ExposureMatrix, CorrelatedRiskSection, health indicator, nav link, TypeScript types, query hooks
-- [ ] 09-05-PLAN.md -- Frontend: SnapshotComparisonSheet, AnchorSelector, SnapshotDiffView, league drill-in integration, human-verify checkpoint
+- [x] 09-01-PLAN.md -- Backend foundation: portfolio package scaffold, constants, models, PortfolioRepo, migration 012, SnapshotService capital_score patch
+- [x] 09-02-PLAN.md -- Backend: SnapshotDiffEngine (anchor detection, delta-forward diff), snapshot diff router, main.py registration
+- [x] 09-03-PLAN.md -- Backend: PortfolioEngine (hedge recs, correlated risk), RetroEngine (direction + prospect grading), portfolio router
+- [x] 09-04-PLAN.md -- Frontend: Portfolio page with ExposureMatrix, CorrelatedRiskSection, health indicator, nav link, TypeScript types, query hooks
+- [x] 09-05-PLAN.md -- Frontend: SnapshotComparisonSheet, AnchorSelector, SnapshotDiffView, league drill-in integration, human-verify checkpoint
+- [x] 09-06-PLAN.md -- Frontend: inline concentration-risk follow-through in the league drill-in via `ConcentrationAlertBanner`
 
 ---
 
@@ -242,10 +243,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 10-01-PLAN.md -- Backend foundation: enums, LeagueDraftOrderRule model, migration 012, triple-managed schema, PickRepo CRUD, API endpoints
-- [ ] 10-02-PLAN.md -- Pick engine: rule-dispatching expected_draft_slot, blocked state, citation rendering, batch optimization
-- [ ] 10-03-PLAN.md -- Backend regression tests: inverse standings, max PF, tiebreaker, playoff ordering fixtures + integration tests
-- [ ] 10-04-PLAN.md -- Frontend: DraftOrderRuleForm, RuleCitation component, pick surface updates, blocked state rendering
+- [x] 10-01-PLAN.md -- Backend foundation: enums, LeagueDraftOrderRule model, migration 013, triple-managed schema, PickRepo CRUD, API endpoints
+- [x] 10-02-PLAN.md -- Pick engine: rule-dispatching expected_draft_slot, blocked state, citation rendering, batch optimization
+- [x] 10-03-PLAN.md -- Backend regression tests: inverse standings, max PF, tiebreaker, playoff ordering fixtures + integration tests
+- [x] 10-04-PLAN.md -- Frontend: DraftOrderRuleForm, RuleCitation component, pick surface updates, blocked state rendering
 
 ---
 
@@ -261,13 +262,15 @@ Plans:
   5. Taxi eligibility, IR occupancy, and manual exceptions are modeled per league
 **Plans**: 6 plans
 
+**Implementation status:** Phase 11 is complete. Plans 11-05 and 11-06 closed the taxi manual-exceptions gap, formalized FS traceability, and shipped the Lineup Strength 2.0 / Roster Hygiene 2.0 depth work.
+
 Plans:
 - [x] 11-01-PLAN.md -- Backend foundation: lineup package, models, constants, migration 014, LineupRepo, triple-write schema
 - [x] 11-02-PLAN.md -- Engines: LineupEngine (replacement-level, title-window), HygieneEngine (consolidation/cut/stash/taxi), IntelligenceService wiring, API routers, unit + integration tests
 - [x] 11-03-PLAN.md -- Frontend types, query hooks, TitleWindowPanel, LineupStrengthCard, TaxiIRSlotSummary, TaxiConfigForm
 - [x] 11-04-PLAN.md -- Frontend hygiene: RosterHygienePanel, HygieneSuggestionRow, route wiring into league team screen, human-verify checkpoint
-- [ ] 11-05-PLAN.md -- Gap closure: add manual_exceptions field to LeagueTaxiConfig (model, triple-write schema, repo, API, frontend form); define FS-02 and FS-04 in REQUIREMENTS.md with traceability entries
-- [ ] 11-06-PLAN.md -- Helpfulness Overhaul depth: Lineup Strength 2.0 (contender benchmarking, median baseline, elite insulation guard, upgrade leverage point, weak-by-median vs. weak-relative-to-contender signals, TE format adjustment); Roster Hygiene 2.0 (8 action buckets with timing/packaging rationale, HYG-04 veteran protection, HYG-05 coverage guarantee); player context flags (LS-01–06, HYG-01–05, REC-06)
+- [x] 11-05-PLAN.md -- Gap closure: add manual_exceptions field to LeagueTaxiConfig (model, triple-write schema, repo, API, frontend form); define FS-02 and FS-04 in REQUIREMENTS.md with traceability entries
+- [x] 11-06-PLAN.md -- Helpfulness Overhaul depth: Lineup Strength 2.0 (contender benchmarking, median baseline, elite insulation guard, upgrade leverage point, weak-by-median vs. weak-relative-to-contender signals, TE format adjustment); Roster Hygiene 2.0 (8 action buckets with timing/packaging rationale, HYG-04 veteran protection, HYG-05 coverage guarantee); player context flags (LS-01–06, HYG-01–05, REC-06)
 
 ---
 
@@ -283,15 +286,15 @@ Plans:
   5. Dossier adds derived behavioral fields: likely motivations now, recent urgency state, time-of-calendar sensitivity, veteran appetite score, rookie fever index, value rigidity, reroute susceptibility (MGR2-01)
   6. "Best asset to target" and "best asset to send" are surfaced as separate outputs per manager (MGR2-02)
   7. Dossier top section frames as an exploit map: how to trade with this manager, what they overpay for, what not to send (MGR2-03)
-**Plans**: 5 plans
+**Plans**: 6 plans
 
 Plans:
-- [ ] 12-01-PLAN.md -- Backend foundation: rookie_pick package, constants, models, RookiePickRepo, migration 015, schema triple-write, SleeperClient/mapper extension
-- [ ] 12-02-PLAN.md -- RookiePickProfileEngine, ManagerProfile extension, profiling router updates, on-demand draft-pick ingest endpoint
-- [ ] 12-03-PLAN.md -- Trade model extension (picks_buyer reroute type), RerouteEngine picks_buyer logic, PackageBuilder pick-premium integration, draft room warnings
-- [ ] 12-04-PLAN.md -- Frontend dossier: RookiePickMarketCard, DossierDraftPicksTab, 4th tab conditional rendering
-- [ ] 12-05-PLAN.md -- Frontend list + draft room: Picks Buyer badge in ManagerListRow, manager_tendency type extension, human-verify checkpoint
-- [ ] 12-06-PLAN.md -- Manager Dossier 2.0: behavioral fields (urgency state, appetite vectors, rigidity), separate best_asset_to_target/send outputs, exploit map dossier top section (MGR2-01–04)
+- [x] 12-01-PLAN.md -- Backend foundation: rookie_pick package, constants, models, RookiePickRepo, migration 015, schema triple-write, SleeperClient/mapper extension
+- [x] 12-02-PLAN.md -- RookiePickProfileEngine, ManagerProfile extension, profiling router updates, on-demand draft-pick ingest endpoint
+- [x] 12-03-PLAN.md -- Trade model extension (picks_buyer reroute type), RerouteEngine picks_buyer logic, PackageBuilder pick-premium integration, draft room warnings
+- [x] 12-04-PLAN.md -- Frontend dossier: RookiePickMarketCard, DossierDraftPicksTab, 4th tab conditional rendering
+- [x] 12-05-PLAN.md -- Frontend list + draft room: Picks Buyer badge in ManagerListRow, manager_tendency type extension, human-verify checkpoint
+- [x] 12-06-PLAN.md -- Manager Dossier 2.0: behavioral fields (urgency state, appetite vectors, rigidity), separate best_asset_to_target/send outputs, exploit map dossier top section (MGR2-01–04)
 
 ---
 
@@ -308,10 +311,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 13-01-PLAN.md -- Backend foundation: context package scaffold, constants, models, ContextRepo, Alembic migration 016, triple-write schema (startup_tasks + conftest), freezegun install, Wave 0 test stubs
-- [ ] 13-02-PLAN.md -- CalendarService (auto-detect + override), FreshnessService (domain staleness), FastAPI /context router, main.py registration, full parametrized tests
-- [ ] 13-03-PLAN.md -- Engine enrichment: attach RecommendationContext to picks, rookie board, trade evaluation, and dashboard router responses (wrapper-only)
-- [ ] 13-04-PLAN.md -- Frontend: TypeScript types, TanStack Query hooks, CalendarStateBadge, FreshnessWarningBar, CalendarOverridePanel, picks surface wiring, human-verify checkpoint
+- [x] 13-01-PLAN.md -- Backend foundation: context package scaffold, constants, models, ContextRepo, Alembic migration 016, triple-write schema (startup_tasks + conftest), freezegun install, Wave 0 test stubs
+- [x] 13-02-PLAN.md -- CalendarService (auto-detect + override), FreshnessService (domain staleness), FastAPI /context router, main.py registration, full parametrized tests
+- [x] 13-03-PLAN.md -- Engine enrichment: attach RecommendationContext to picks, rookie board, trade evaluation, and dashboard router responses (wrapper-only)
+- [x] 13-04-PLAN.md -- Frontend: TypeScript types, TanStack Query hooks, CalendarStateBadge, FreshnessWarningBar, CalendarOverridePanel, picks surface wiring, human-verify checkpoint
 
 ---
 
@@ -325,7 +328,12 @@ Plans:
   3. Partially supported rules require manual acknowledgment where recommendations may be distorted
   4. A league-level warning banner appears when a rule set falls outside the trusted support matrix
   5. Fallback behavior is defined and applied for every partially supported rule
-**Plans**: 0 plans
+**Plans**: 3 plans
+
+Plans:
+- [x] 14-01-PLAN.md -- Backend core: trust package scaffold, support-matrix constants, format scanner, confidence modifiers, unit tests
+- [x] 14-02-PLAN.md -- Backend persistence + HTTP layer: TrustRepo, acknowledgment storage, `/trust` scan/acknowledge endpoints, triple-write schema
+- [x] 14-03-PLAN.md -- Frontend: typed trust contracts, query/mutation helpers, `FormatWarningBanner`, league overview wiring
 
 ---
 
@@ -342,12 +350,12 @@ Plans:
 **Plans**: 6 plans
 
 Plans:
-- [ ] 15-01-PLAN.md -- Foundation: migration 018, triple-write schema, waiver package scaffold, SleeperMapper extensions, Wave 0 test stubs
-- [ ] 15-02-PLAN.md -- WaiverEngine: FAAB bid range algorithm, free agent availability, waiver state derivation (TDD)
-- [ ] 15-03-PLAN.md -- StartupEngine: startup detection, build template assignment, trade-up/down heuristics (TDD)
-- [ ] 15-04-PLAN.md -- OrphanEngine: 5-dimension intake scoring, action plan generation, WaiverRepo persistence (TDD)
-- [ ] 15-05-PLAN.md -- FastAPI routers (waiver + startup), main.py registration, integration tests GREEN
-- [ ] 15-06-PLAN.md -- Frontend: TypeScript types, query hooks, 3 routes, 13 components, LeagueDetailPage tab integration, human-verify checkpoint
+- [x] 15-01-PLAN.md -- Foundation: migration 018, triple-write schema, waiver package scaffold, SleeperMapper extensions, Wave 0 test stubs
+- [x] 15-02-PLAN.md -- WaiverEngine: FAAB bid range algorithm, free agent availability, waiver state derivation (TDD)
+- [x] 15-03-PLAN.md -- StartupEngine: startup detection, build template assignment, trade-up/down heuristics (TDD)
+- [x] 15-04-PLAN.md -- OrphanEngine: 5-dimension intake scoring, action plan generation, WaiverRepo persistence (TDD)
+- [x] 15-05-PLAN.md -- FastAPI routers (waiver + startup), main.py registration, integration tests GREEN
+- [x] 15-06-PLAN.md -- Frontend: TypeScript types, query hooks, 3 routes, 13 components, LeagueDetailPage tab integration, human-verify checkpoint
 
 ---
 
@@ -435,6 +443,22 @@ Plans:
 ## Cross-Cutting Backlog
 
 The items in `.planning/FANTASY-BACKLOG.md` have been sequenced into Phases 10-16 above. The backlog file is retained as the source-of-truth for the original task breakdowns and validation criteria.
+
+### Phase 21: player value trends and market inefficiency trade suggestions
+
+**Goal:** Season-over-season component tracking, trend projection (will rise/maintain/fall), and a cross-league opportunity feed ranked by gap magnitude × confidence
+**Requirements**: TBD
+**Depends on:** Phase 20
+**Plans:** 7 plans
+
+Plans:
+- [ ] 21-01-PLAN.md — Wave 0: player_trends triple-write schema + 30 failing test stubs
+- [ ] 21-02-PLAN.md — TrendEngine: models, constants, trend_repo, season-over-season computation (TDD)
+- [ ] 21-03-PLAN.md — OpportunityEngine: feed construction, conflict detection, similarity, calendar escalation (TDD)
+- [ ] 21-04-PLAN.md — D-11 anti-overreaction weakening + trend_to_supporting_factor() (TDD)
+- [ ] 21-05-PLAN.md — /opportunities router, main.py registration, frontend types + query options
+- [ ] 21-06-PLAN.md — Frontend: OpportunityFeedPage + all card sub-components
+- [ ] 21-07-PLAN.md — Dashboard: Opportunities stat tile + View Opportunities navigation link
 
 ---
 
