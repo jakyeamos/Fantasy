@@ -4,6 +4,11 @@ Create a CSV with at least these columns:
 - `player_name`
 - `position`
 
+You can optionally add a sibling enrichment file named like `2026.enrichment.csv`.
+The loader will left-join it onto the base file by `player_name` and `position`, use
+enrichment values when the same column exists in both files, and keep base values
+for columns the enrichment file does not provide.
+
 Useful optional columns:
 - `player_id`
 - `expected_draft_ovr`
@@ -66,8 +71,19 @@ cd backend
   --positions QB,RB,WR,TE
 ```
 
+To source-backfill a sibling enrichment file from live StatMuse and PFF pages:
+
+```bash
+python3 data/prospects/backfill_enrichment.py \
+  --base-csv data/prospects/2026.csv \
+  --enrichment-csv data/prospects/2026.enrichment.csv \
+  --season 2025
+```
+
 Notes:
 - `expected_draft_ovr` is used as draft capital when actual NFL picks do not exist yet.
 - If `adp` is missing, the pipeline falls back to `expected_draft_ovr` or `draft_ovr`.
 - If `player_id` is missing, the pipeline generates a stable `pre_<year>_<name>` identifier.
 - The loader will derive model-facing features like `college_rec_ypg`, `college_yprr`, `college_ypa`, `college_pass_td_rate`, and `college_qb_rush_ypg` from the raw stat columns when those direct proxy columns are not provided.
+- The enrichment sidecar is the safest place to backfill raw production or combine numbers without rewriting the base ranking board.
+- `backfill_enrichment.py` does not generate estimates. It only writes values that were fetched from live sources and leaves unavailable fields blank.

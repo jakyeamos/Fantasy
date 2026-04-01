@@ -288,3 +288,83 @@ def test_run_pipeline_pre_draft_mode_scores_csv_class(monkeypatch, tmp_path):
     assert result["scoring_class_year"] == 2026
     assert result["prospects_scored"] == 1
     assert rows == [("Future QB", 2026), ("Future QB", 2026)]
+
+
+def test_run_pipeline_pre_draft_sidecar_enrichment_merges_raw_columns(monkeypatch, tmp_path):
+    db_path = tmp_path / "phase8.duckdb"
+    csv_path = tmp_path / "2026-pre-draft.csv"
+    enrichment_path = tmp_path / "2026-pre-draft.enrichment.csv"
+    _prepare_db(str(db_path))
+    conn = duckdb.connect(str(db_path))
+    conn.executemany(
+        """
+        INSERT INTO historical_prospect_features (
+            player_id, draft_year, position, player_name, age_at_draft, draft_ovr,
+            forty, weight, height, vertical, bench, cone, shuttle,
+            college_games, college_targets, college_receptions, college_receiving_yards,
+            college_receiving_tds, college_routes_run, college_carries, college_rushing_yards,
+            college_rushing_tds, college_pass_attempts, college_completions,
+            college_passing_yards, college_passing_tds, college_interceptions,
+            college_rec_ypg, college_rush_ypg, college_yprr, college_ypt, college_ypc,
+            college_ypa, college_pass_td_rate, college_qb_rush_yards, college_qb_rush_tds,
+            college_qb_rush_ypg, college_scramble_rate, college_mkt_share_proxy,
+            college_td_rate, college_completion_pct_proxy, adp, archetype_label, outcome_bucket
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            ("hist_hit", 2020, "QB", "Hit", 21.0, 5, 4.55, 220.0, 75.0, 35.0, None, None, None, 13, None, None, None, None, None, 110.0, 610.0, 9.0, 420.0, 280.0, 3300.0, 27.0, 7.0, None, None, None, None, None, 7.86, 0.064, 610.0, 9.0, 46.9, 0.11, None, None, 0.68, 5.0, "Dual Threat", "hit"),
+            ("hist_med", 2021, "QB", "Med", 22.0, 20, 4.70, 218.0, 74.0, 33.0, None, None, None, 13, None, None, None, None, None, 70.0, 260.0, 4.0, 390.0, 240.0, 2880.0, 19.0, 10.0, None, None, None, None, None, 7.38, 0.049, 260.0, 4.0, 20.0, 0.06, None, None, 0.63, 20.0, "Dual Threat", "mediocre"),
+            ("hist_bust", 2022, "QB", "Bust", 24.0, 80, 4.90, 210.0, 73.0, 29.0, None, None, None, 12, None, None, None, None, None, 38.0, 132.0, 2.0, 360.0, 204.0, 2250.0, 13.0, 11.0, None, None, None, None, None, 6.25, 0.036, 132.0, 2.0, 11.0, 0.02, None, None, 0.56, 80.0, "Dual Threat", "bust"),
+        ],
+    )
+    conn.close()
+    csv_path.write_text(
+        dedent(
+            """\
+            player_name,position,expected_draft_ovr,age_at_draft,forty,weight,height,adp
+            Future QB,QB,4,21,4.70,220,75,2
+            """
+        ),
+        encoding="utf-8",
+    )
+    enrichment_path.write_text(
+        dedent(
+            """\
+            player_name,position,forty,vertical,college_games,college_pass_attempts,college_completions,college_passing_yards,college_passing_tds,college_interceptions,college_qb_rush_yards,college_qb_rush_tds,college_scramble_rate
+            Future QB,QB,4.55,35,13,430,289,3340,28,6,455,8,0.12
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr("fantasy.prospects.pipeline.NflReadPyLoader", _FakeLoader)
+    monkeypatch.setattr("fantasy.prospects.pipeline.ProspectModel", _FakeModel)
+    monkeypatch.setattr("fantasy.prospects.pipeline.ArchetypeClusterer", _FakeClusterer)
+    monkeypatch.setattr("fantasy.prospects.pipeline.CompFinder", _FakeCompFinder)
+    monkeypatch.setattr("fantasy.prospects.pipeline.DivergenceEngine", _FakeDivergence)
+
+    result = run_pipeline(
+        str(db_path),
+        positions=["QB"],
+        current_class_year=2026,
+        mode="pre_draft",
+        pre_draft_csv=str(csv_path),
+    )
+
+    conn = duckdb.connect(str(db_path))
+    persisted = conn.execute(
+        """
+        SELECT forty, vertical, college_passing_yards, college_ypa, college_qb_rush_ypg
+        FROM historical_prospect_features
+        WHERE player_name = 'Future QB' AND draft_year = 2026
+        """
+    ).fetchone()
+    conn.close()
+
+    assert result["prospects_scored"] == 1
+    assert persisted is not None
+    assert persisted[0] == 4.55
+    assert persisted[1] == 35.0
+    assert persisted[2] == 3340.0
+    assert round(float(persisted[3] or 0.0), 3) == round(3340 / 430, 3)
+    assert round(float(persisted[4] or 0.0), 3) == round(455 / 13, 3)

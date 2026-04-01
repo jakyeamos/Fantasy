@@ -55,3 +55,19 @@ def test_five_lenses(phase2_seed_data):
         "lens_direction",
     ]:
         assert getattr(value, field) is not None
+
+
+def test_compute_player_writes_player_trend_row(phase2_seed_data):
+    engine = ValuationEngine(phase2_seed_data)
+
+    engine.compute_player("league_x", 1, "wr1", "true_contender")
+
+    row = phase2_seed_data.execute(
+        """
+        SELECT player_id, season, startup_adp
+        FROM player_trends
+        WHERE player_id = 'wr1'
+        LIMIT 1
+        """
+    ).fetchone()
+    assert row == ("wr1", 2025, 10.0)

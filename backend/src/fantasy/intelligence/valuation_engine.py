@@ -9,6 +9,10 @@ from fantasy.intelligence.constants import (
     POSITIONAL_PEAK_AGE,
 )
 from fantasy.intelligence.models import PlayerValue
+from fantasy.market.market_service import MarketService
+from fantasy.player_flags.flag_engine import FlagEngine
+from fantasy.recommendation.anti_overreaction import apply_stabilization
+from fantasy.trends.trend_repo import TrendRepo
 
 
 def _clamp01(value: float) -> float:
@@ -16,10 +20,25 @@ def _clamp01(value: float) -> float:
 
 
 class ValuationEngine:
-    def __init__(self, conn: duckdb.DuckDBPyConnection):
+    def __init__(
+        self,
+        conn: duckdb.DuckDBPyConnection,
+        market_service: MarketService | None = None,
+        flag_engine: FlagEngine | None = None,
+    ):
         self._conn = conn
+        self._trend_repo = TrendRepo(conn)
+        self._market_service = market_service or MarketService(conn)
+        self._flag_engine = flag_engine or FlagEngine(conn)
 
-    def compute_player(self, league_id: str, roster_id: int, player_id: str, direction_label: str) -> PlayerValue:
+    def compute_player(
+        self,
+        league_id: str,
+        roster_id: int,
+        player_id: str,
+        direction_label: str,
+        trend_result=None,
+    ) -> PlayerValue:
         player_row = self._conn.execute(
             """
             SELECT full_name, COALESCE(position, 'UNKNOWN'), COALESCE(age, 24)
@@ -34,7 +53,7 @@ class ValuationEngine:
 
         league_row = self._conn.execute(
             """
-            SELECT ppr, superflex, tep
+            SELECT season, ppr, superflex, tep
             FROM leagues
             WHERE league_id = ?
             LIMIT 1
@@ -43,6 +62,12 @@ class ValuationEngine:
         ).fetchone()
         if league_row is None:
             raise ValueError(f"league not found: {league_id}")
+        season = int(league_row[0])
+        league_settings = (
+            float(league_row[1]),
+            bool(league_row[2]),
+            bool(league_row[3]),
+        )
 
         stats_row = self._conn.execute(
             """
@@ -71,13 +96,13 @@ class ValuationEngine:
         best_week = float(stats_row[2]) if stats_row and stats_row[2] is not None else None
         adp = float(adp_row[0]) if adp_row and adp_row[0] is not None else None
 
-        current_production = self._production_score(ppg, position, league_row)
+        current_production = self._production_score(ppg, position, league_settings)
         role_stability = _clamp01(games_played / 17.0) if games_played else 0.45
         short_term = _clamp01(0.7 * current_production + 0.3 * role_stability)
         age_curve = self._age_curve_score(position, age)
         fragility = _clamp01(1.0 - role_stability)
         market_liquidity = _clamp01(1.0 - min(adp or 200.0, 250.0) / 250.0)
-        positional_scarcity = self._positional_scarcity(position, league_row)
+        positional_scarcity = self._positional_scarcity(position, league_settings)
         ceiling = _clamp01(((best_week if best_week is not None else (ppg or 10.0)) / 30.0))
         floor = _clamp01(((ppg if ppg is not None else 8.0) / 20.0) * max(role_stability, 0.5))
         rerollability = self._rerollability(position, age)
@@ -101,17 +126,53 @@ class ValuationEngine:
             comp_rerollability=rerollability,
             comp_contract=contract,
         )
+        try:
+            active_flag_types = [
+                flag.flag_type for flag in self._flag_engine.derive_flags_for_player(player_id)
+            ]
+        except duckdb.Error:
+            active_flag_types = []
+        player_value = apply_stabilization(player_value, active_flag_types)
         player_value.lens_production = _clamp01(
-            (current_production + short_term + ceiling + floor) / 4.0
+            (
+                (player_value.comp_current_production or 0.0)
+                + (player_value.comp_short_term or 0.0)
+                + (player_value.comp_ceiling or 0.0)
+                + (player_value.comp_floor or 0.0)
+            )
+            / 4.0
         )
-        player_value.lens_market = _clamp01(
+        market_proxy = _clamp01(
             (market_liquidity + positional_scarcity + rerollability) / 3.0
         )
+        try:
+            player_value.lens_market = _clamp01(
+                self._market_service.get_lens_market_value(player_id, league_id)
+            )
+        except duckdb.Error:
+            player_value.lens_market = market_proxy
         player_value.lens_insulation = _clamp01(
-            (insulation + role_stability + (1.0 - fragility) + contract) / 4.0
+            (
+                (player_value.comp_insulation or 0.0)
+                + (player_value.comp_role_stability or 0.0)
+                + (1.0 - (player_value.comp_fragility or 0.0))
+                + (player_value.comp_contract or 0.0)
+            )
+            / 4.0
         )
         player_value.lens_team_fit = _clamp01((positional_scarcity + role_stability) / 2.0)
-        player_value.lens_direction = self._direction_lens(player_value, direction_label)
+        # TODO(Phase 17): populate trend_result automatically inside the league compute
+        # pipeline so every card-emitting engine gets the same trend-aware direction prior.
+        player_value.lens_direction = self._direction_lens(
+            player_value,
+            direction_label,
+            trend_result=trend_result,
+        )
+        self._trend_repo.write_from_player_value(
+            player_value,
+            season=season,
+            startup_adp=adp,
+        )
         return player_value
 
     def compute_all(self, league_id: str, roster_id: int, direction_label: str) -> dict[str, PlayerValue]:
@@ -170,7 +231,7 @@ class ValuationEngine:
             base += 0.10
         return _clamp01(base)
 
-    def _direction_lens(self, value: PlayerValue, direction_label: str) -> float:
+    def _direction_lens(self, value: PlayerValue, direction_label: str, trend_result=None) -> float:
         weights = DIRECTION_VALUE_WEIGHTS[direction_label]
         component_scores = {
             "current_production": value.comp_current_production or 0.0,
@@ -192,7 +253,21 @@ class ValuationEngine:
             score = component_scores[component]
             total += (score if weight >= 0 else (1.0 - score)) * abs(weight)
             weight_sum += abs(weight)
-        return _clamp01(total / max(weight_sum, 1e-9))
+        raw_score = _clamp01(total / max(weight_sum, 1e-9))
+        if trend_result is not None and getattr(trend_result, "trend_label", None) == "will_fall":
+            if self._is_elite(value):
+                reduction = {"HIGH": 0.70, "MEDIUM": 0.40, "LOW": 0.15}.get(
+                    getattr(trend_result, "confidence", None),
+                    0.0,
+                )
+                raw_score *= 1.0 - reduction
+        return _clamp01(raw_score)
+
+    def _is_elite(self, value: PlayerValue) -> bool:
+        insulation = value.comp_insulation or 0.0
+        ceiling = value.comp_ceiling or 0.0
+        floor = value.comp_floor or 0.0
+        return (insulation + ceiling + floor) / 3.0 >= 0.70
 
 
 __all__ = ["ValuationEngine"]
