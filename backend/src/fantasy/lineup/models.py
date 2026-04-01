@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+from fantasy.lineup.constants import HYGIENE_ACTION_TYPES, TITLE_WINDOW_LABELS
+from fantasy.recommendation.models import RecommendationCard
 
 
 class LeagueTaxiConfig(BaseModel):
@@ -10,6 +13,7 @@ class LeagueTaxiConfig(BaseModel):
     taxi_slots: int
     taxi_years_eligible: int
     years_pro_cutoff: int
+    manual_exceptions: list[str] = Field(default_factory=list)
 
 
 class LineupSlotScore(BaseModel):
@@ -20,6 +24,13 @@ class LineupSlotScore(BaseModel):
     starter_value: float
     replacement_level: float
     score: float
+    contender_benchmark: float = 0.0
+    upgrade_leverage_score: float = 0.0
+    weak_by_median: bool = False
+    weak_relative_to_contender: bool = False
+    elite_insulation_guard: bool = False
+    format_urgency_weight: float = 1.0
+    player_context_flags: list[str] = Field(default_factory=list)
 
 
 class LineupResult(BaseModel):
@@ -29,18 +40,22 @@ class LineupResult(BaseModel):
     computed_at: str | None = None
     slot_scores: list[LineupSlotScore]
     total_lineup_score: float
-    title_window_label: str
+    title_window_label: TITLE_WINDOW_LABELS
     title_window_composite: float
     ceiling_score: float
     stability_score: float
     depth_score: float
+    recommendation_cards: list[RecommendationCard] | None = None
+    contender_benchmark_used: bool = False
+    upgrade_leverage_point: str = ""
+    upgrade_title_equity_delta: float = 0.0
 
 
 class HygieneSuggestion(BaseModel):
     """Single roster hygiene suggestion (D-10 through D-14)."""
 
     model_config = ConfigDict(frozen=False)
-    action_type: str
+    action_type: HYGIENE_ACTION_TYPES
     primary_player_ids: list[str]
     primary_player_names: list[str]
     target_player_id: str | None = None
@@ -49,6 +64,9 @@ class HygieneSuggestion(BaseModel):
     counterparty_name: str | None = None
     reasoning: str
     direction_fit_score: float
+    timing_rationale: str = ""
+    packaging_rationale: str | None = None
+    player_context_flags: list[str] = Field(default_factory=list)
 
 
 class HygieneResult(BaseModel):
@@ -57,6 +75,7 @@ class HygieneResult(BaseModel):
     roster_id: int
     computed_at: str | None = None
     suggestions: list[HygieneSuggestion]
+    recommendation_cards: list[RecommendationCard] | None = None
 
     @property
     def consolidate(self) -> list[HygieneSuggestion]:

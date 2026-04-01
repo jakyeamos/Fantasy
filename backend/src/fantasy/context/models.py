@@ -18,8 +18,6 @@ class CalendarContext(BaseModel):
     model_config = ConfigDict(frozen=False)
 
     active_state: str
-    is_override: bool
-    override_set_by: str | None
     detected_at: datetime
 
 
@@ -38,4 +36,3 @@ class FreshnessRow(BaseModel):
     domain: str
     last_updated: datetime | None
     notes: str | None = None
-

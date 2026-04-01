@@ -1,7 +1,9 @@
 import type { PickValue, TradeAsset, TradeEvaluation } from "@/api/types"
 import { PickValueSummaryRow } from "@/components/picks/PickValueSummaryRow"
+import { RecommendationCardList } from "@/components/recommendations/RecommendationCardList"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 import { DimensionScoreRow } from "@/components/trade/DimensionScoreRow"
 import { StrategicDistinctionBanner } from "@/components/trade/StrategicDistinctionBanner"
 
@@ -90,6 +92,15 @@ export function EvaluationOutputPanel({
               </div>
             ))}
           </div>
+        ) : null}
+        {evaluation.recommendation_cards && evaluation.recommendation_cards.length > 0 ? (
+          <>
+            <Separator className="my-4" />
+            <div className="space-y-3">
+              <p className="terminal-label text-muted-foreground">Recommendations</p>
+              <RecommendationCardList cards={evaluation.recommendation_cards} />
+            </div>
+          </>
         ) : null}
         <div className="flex flex-wrap gap-3">
           <Button onClick={onOpenReroutes}>See reroutes</Button>

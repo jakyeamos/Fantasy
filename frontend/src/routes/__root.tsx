@@ -102,6 +102,13 @@ function RootLayout() {
       }
     }
 
+    if (pathname === "/opportunities") {
+      return {
+        title: "Opportunity Feed",
+        subtitle: "Market inefficiencies",
+      }
+    }
+
     if (pathname === "/trades") {
       return {
         title: "Trade Evaluator",

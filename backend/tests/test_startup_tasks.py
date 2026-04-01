@@ -128,6 +128,7 @@ def test_ensure_runtime_schema_creates_missing_phase_tables(db):
         "startup_contexts",
         "orphan_intakes",
         "action_plans",
+        "player_trends",
     ]:
         db.execute(f"DROP TABLE {table_name}")
 
@@ -152,6 +153,7 @@ def test_ensure_runtime_schema_creates_missing_phase_tables(db):
     assert "startup_contexts" in tables
     assert "orphan_intakes" in tables
     assert "action_plans" in tables
+    assert "player_trends" in tables
 
 
 def test_league_draft_order_rules_table_created_by_startup(db):

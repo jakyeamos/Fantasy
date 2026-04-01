@@ -116,6 +116,7 @@ SCHEMA_SQL = [
         position VARCHAR,
         team VARCHAR,
         age INTEGER,
+        mfl_id VARCHAR,
         metadata_blob VARCHAR,
         refreshed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
@@ -381,13 +382,14 @@ SCHEMA_SQL = [
     """,
     """
     CREATE TABLE IF NOT EXISTS league_taxi_configs (
-        id                  INTEGER PRIMARY KEY,
-        league_id           VARCHAR NOT NULL UNIQUE,
-        taxi_slots          INTEGER NOT NULL,
-        taxi_years_eligible INTEGER NOT NULL,
-        years_pro_cutoff    INTEGER NOT NULL,
-        created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        id                     INTEGER PRIMARY KEY,
+        league_id              VARCHAR NOT NULL UNIQUE,
+        taxi_slots             INTEGER NOT NULL,
+        taxi_years_eligible    INTEGER NOT NULL,
+        years_pro_cutoff       INTEGER NOT NULL,
+        manual_exceptions_json VARCHAR NOT NULL DEFAULT '[]',
+        created_at             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
     """,
     """
@@ -412,6 +414,7 @@ SCHEMA_SQL = [
         stability_score         FLOAT NOT NULL,
         depth_score             FLOAT NOT NULL,
         slot_scores_json        VARCHAR NOT NULL,
+        recommendation_cards_json VARCHAR NOT NULL DEFAULT '[]',
         UNIQUE (league_id, roster_id)
     )
     """,
@@ -422,6 +425,7 @@ SCHEMA_SQL = [
         roster_id               INTEGER NOT NULL,
         computed_at             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         suggestions_json        VARCHAR NOT NULL,
+        recommendation_cards_json VARCHAR NOT NULL DEFAULT '[]',
         UNIQUE (league_id, roster_id)
     )
     """,
@@ -561,6 +565,57 @@ SCHEMA_SQL = [
         items_json VARCHAR NOT NULL,
         summary VARCHAR NOT NULL,
         UNIQUE (league_id, roster_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS player_context_flags (
+        id INTEGER PRIMARY KEY,
+        player_id VARCHAR NOT NULL,
+        flag_type VARCHAR NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP,
+        source VARCHAR NOT NULL DEFAULT 'sleeper_ingest',
+        metadata_json VARCHAR,
+        UNIQUE (player_id, flag_type)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_values (
+        id INTEGER PRIMARY KEY,
+        player_id VARCHAR NOT NULL,
+        fetched_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        fantasycalc_value DOUBLE,
+        fantasycalc_rank INTEGER,
+        fantasycalc_trend30 DOUBLE,
+        adp_baseline DOUBLE,
+        UNIQUE (player_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS player_trends (
+        id                       INTEGER PRIMARY KEY,
+        player_id                VARCHAR NOT NULL,
+        season                   INTEGER NOT NULL,
+        trend_label              VARCHAR,
+        confidence               VARCHAR,
+        delta_magnitude          FLOAT,
+        adp_delta                FLOAT,
+        comp_current_production  FLOAT,
+        comp_short_term          FLOAT,
+        comp_role_stability      FLOAT,
+        comp_age_curve           FLOAT,
+        comp_insulation          FLOAT,
+        comp_market_liquidity    FLOAT,
+        comp_positional_scarcity FLOAT,
+        comp_fragility           FLOAT,
+        comp_ceiling             FLOAT,
+        comp_floor               FLOAT,
+        comp_rerollability       FLOAT,
+        comp_contract            FLOAT,
+        startup_adp              FLOAT,
+        backfilled               BOOLEAN NOT NULL DEFAULT FALSE,
+        computed_at              TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (player_id, season)
     )
     """,
 ]

@@ -19,6 +19,8 @@ WEAKNESS_LABELS: dict[str, str] = {
     "positional_insulation": "You need more insulation at scarce lineup spots.",
 }
 
+HIGHER_IS_WORSE_FIELDS = {"fragility", "age_risk"}
+
 SCORECARD_FIELDS = [
     "win_now",
     "future_value",
@@ -387,7 +389,12 @@ class SnapshotService:
     ) -> str:
         if not scorecard:
             return "Run Phase 2 intelligence to surface the primary roster weakness."
-        weakest = min(scorecard.items(), key=lambda item: item[1])[0]
+        weakest = min(
+            scorecard.items(),
+            key=lambda item: (
+                1.0 - item[1] if item[0] in HIGHER_IS_WORSE_FIELDS else item[1]
+            ),
+        )[0]
         if (
             weakest == "flexibility"
             and starters is not None

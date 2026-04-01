@@ -5,6 +5,7 @@ from typing import Any
 
 import duckdb
 
+from fantasy.lineup.constants import UPGRADE_LEVERAGE_BASE_EQUITY
 from fantasy.lineup.models import (
     HygieneResult,
     HygieneSuggestion,
@@ -12,6 +13,7 @@ from fantasy.lineup.models import (
     LineupResult,
     LineupSlotScore,
 )
+from fantasy.recommendation.models import RecommendationCard
 
 
 def _loads(raw: str | None, fallback: Any) -> Any:
@@ -34,21 +36,36 @@ class LineupRepo:
         return int(row[0]) if row else 1
 
     def get_taxi_config(self, league_id: str) -> LeagueTaxiConfig | None:
-        row = self._conn.execute(
-            """
-            SELECT taxi_slots, taxi_years_eligible, years_pro_cutoff
-            FROM league_taxi_configs
-            WHERE league_id = ?
-            LIMIT 1
-            """,
-            [league_id],
-        ).fetchone()
+        try:
+            row = self._conn.execute(
+                """
+                SELECT taxi_slots,
+                       taxi_years_eligible,
+                       years_pro_cutoff,
+                       COALESCE(manual_exceptions_json, '[]') AS manual_exceptions_json
+                FROM league_taxi_configs
+                WHERE league_id = ?
+                LIMIT 1
+                """,
+                [league_id],
+            ).fetchone()
+        except duckdb.Error:
+            row = self._conn.execute(
+                """
+                SELECT taxi_slots, taxi_years_eligible, years_pro_cutoff
+                FROM league_taxi_configs
+                WHERE league_id = ?
+                LIMIT 1
+                """,
+                [league_id],
+            ).fetchone()
         if row is None:
             return None
         return LeagueTaxiConfig(
             taxi_slots=int(row[0]),
             taxi_years_eligible=int(row[1]),
             years_pro_cutoff=int(row[2]),
+            manual_exceptions=_loads(row[3] if len(row) > 3 else None, []),
         )
 
     def save_taxi_config(self, league_id: str, config: LeagueTaxiConfig) -> LeagueTaxiConfig:
@@ -60,13 +77,15 @@ class LineupRepo:
         self._conn.execute(
             """
             INSERT INTO league_taxi_configs (
-                id, league_id, taxi_slots, taxi_years_eligible, years_pro_cutoff
+                id, league_id, taxi_slots, taxi_years_eligible, years_pro_cutoff,
+                manual_exceptions_json
             )
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT (league_id) DO UPDATE SET
                 taxi_slots = EXCLUDED.taxi_slots,
                 taxi_years_eligible = EXCLUDED.taxi_years_eligible,
                 years_pro_cutoff = EXCLUDED.years_pro_cutoff,
+                manual_exceptions_json = EXCLUDED.manual_exceptions_json,
                 updated_at = now()
             """,
             [
@@ -75,6 +94,7 @@ class LineupRepo:
                 config.taxi_slots,
                 config.taxi_years_eligible,
                 config.years_pro_cutoff,
+                json.dumps(config.manual_exceptions, separators=(",", ":")),
             ],
         )
         return config
@@ -97,9 +117,9 @@ class LineupRepo:
             INSERT INTO lineup_scores (
                 id, league_id, roster_id, total_lineup_score, title_window_label,
                 title_window_composite, ceiling_score, stability_score, depth_score,
-                slot_scores_json
+                slot_scores_json, recommendation_cards_json
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (league_id, roster_id) DO UPDATE SET
                 total_lineup_score = EXCLUDED.total_lineup_score,
                 title_window_label = EXCLUDED.title_window_label,
@@ -108,6 +128,7 @@ class LineupRepo:
                 stability_score = EXCLUDED.stability_score,
                 depth_score = EXCLUDED.depth_score,
                 slot_scores_json = EXCLUDED.slot_scores_json,
+                recommendation_cards_json = EXCLUDED.recommendation_cards_json,
                 computed_at = now()
             """,
             [
@@ -121,6 +142,10 @@ class LineupRepo:
                 result.stability_score,
                 result.depth_score,
                 slot_json,
+                json.dumps(
+                    [card.model_dump() for card in result.recommendation_cards or []],
+                    separators=(",", ":"),
+                ),
             ],
         )
 
@@ -129,7 +154,8 @@ class LineupRepo:
             """
             SELECT league_id, roster_id, CAST(computed_at AS VARCHAR),
                    total_lineup_score, title_window_label, title_window_composite,
-                   ceiling_score, stability_score, depth_score, slot_scores_json
+                   ceiling_score, stability_score, depth_score, slot_scores_json,
+                   recommendation_cards_json
             FROM lineup_scores
             WHERE league_id = ? AND roster_id = ?
             LIMIT 1
@@ -140,6 +166,21 @@ class LineupRepo:
             return None
         slots_raw = _loads(row[9], [])
         slot_scores = [LineupSlotScore(**s) for s in slots_raw]
+        cards_raw = _loads(row[10], [])
+        best_slot = max(
+            slot_scores,
+            key=lambda slot: (
+                slot.upgrade_leverage_score * slot.format_urgency_weight,
+                slot.upgrade_leverage_score,
+                slot.score,
+            ),
+            default=None,
+        )
+        weighted_leverage = (
+            best_slot.upgrade_leverage_score * best_slot.format_urgency_weight
+            if best_slot
+            else 0.0
+        )
         return LineupResult(
             league_id=str(row[0]),
             roster_id=int(row[1]),
@@ -151,6 +192,18 @@ class LineupRepo:
             ceiling_score=float(row[6]),
             stability_score=float(row[7]),
             depth_score=float(row[8]),
+            recommendation_cards=[RecommendationCard(**card) for card in cards_raw],
+            contender_benchmark_used=any(
+                slot.contender_benchmark > 0.0 for slot in slot_scores
+            ),
+            upgrade_leverage_point=(
+                f"{best_slot.player_name} ({best_slot.position})"
+                if best_slot
+                else ""
+            ),
+            upgrade_title_equity_delta=float(
+                min(1.0, weighted_leverage * UPGRADE_LEVERAGE_BASE_EQUITY)
+            ),
         )
 
     def save_hygiene_result(self, result: HygieneResult) -> None:
@@ -169,20 +222,31 @@ class LineupRepo:
         self._conn.execute(
             """
             INSERT INTO hygiene_suggestions (
-                id, league_id, roster_id, suggestions_json
+                id, league_id, roster_id, suggestions_json, recommendation_cards_json
             )
-            VALUES (?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
             ON CONFLICT (league_id, roster_id) DO UPDATE SET
                 suggestions_json = EXCLUDED.suggestions_json,
+                recommendation_cards_json = EXCLUDED.recommendation_cards_json,
                 computed_at = now()
             """,
-            [row_id, result.league_id, result.roster_id, sug_json],
+            [
+                row_id,
+                result.league_id,
+                result.roster_id,
+                sug_json,
+                json.dumps(
+                    [card.model_dump() for card in result.recommendation_cards or []],
+                    separators=(",", ":"),
+                ),
+            ],
         )
 
     def get_hygiene_result(self, league_id: str, roster_id: int) -> HygieneResult | None:
         row = self._conn.execute(
             """
-            SELECT league_id, roster_id, CAST(computed_at AS VARCHAR), suggestions_json
+            SELECT league_id, roster_id, CAST(computed_at AS VARCHAR), suggestions_json,
+                   recommendation_cards_json
             FROM hygiene_suggestions
             WHERE league_id = ? AND roster_id = ?
             LIMIT 1
@@ -193,11 +257,13 @@ class LineupRepo:
             return None
         raw = _loads(row[3], [])
         suggestions = [HygieneSuggestion(**s) for s in raw]
+        cards = [RecommendationCard(**card) for card in _loads(row[4], [])]
         return HygieneResult(
             league_id=str(row[0]),
             roster_id=int(row[1]),
             computed_at=row[2],
             suggestions=suggestions,
+            recommendation_cards=cards,
         )
 
     def get_slot_occupancy(self, league_id: str, roster_id: int) -> dict:

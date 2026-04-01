@@ -5,13 +5,7 @@ import type { DashboardLeagueSummary } from "@/api/types"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { formatModelLabel } from "@/lib/utils"
-
-function badgeVariant(confidenceBand: DashboardLeagueSummary["confidence_band"]) {
-  if (confidenceBand === "High") return "default"
-  if (confidenceBand === "Medium") return "secondary"
-  return "outline"
-}
+import { directionReadBadgeVariant, formatModelLabel } from "@/lib/utils"
 
 function formatSnapshot(snapshot: string | null) {
   if (!snapshot) return "No snapshot yet"
@@ -55,8 +49,8 @@ export function LeagueCard(props: DashboardLeagueSummary) {
                 <CardTitle className="mt-2 text-xl">{props.league_name}</CardTitle>
               </div>
             </div>
-            <Badge variant={badgeVariant(props.confidence_band)}>
-              {props.confidence_band}
+            <Badge variant={directionReadBadgeVariant(props.direction_read)}>
+              {props.direction_read}
             </Badge>
           </div>
           <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-4">
@@ -65,6 +59,11 @@ export function LeagueCard(props: DashboardLeagueSummary) {
               <p className="mt-2 text-xl font-semibold tracking-tight text-foreground">
                 {formatModelLabel(props.direction_label)}
               </p>
+              {props.direction_note ? (
+                <p className="mt-2 max-w-xs text-xs leading-5 text-muted-foreground">
+                  {props.direction_note}
+                </p>
+              ) : null}
             </div>
             <ArrowRight className="size-4 text-muted-foreground transition-colors group-hover:text-primary" />
           </div>

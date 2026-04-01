@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query"
 
 import { lineupScoreOptions } from "@/api/queries"
+import { RecommendationCardList } from "@/components/recommendations/RecommendationCardList"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 
 type TitleWindowPanelProps = {
@@ -68,6 +70,17 @@ export function TitleWindowPanel({ leagueId, rosterId }: TitleWindowPanelProps) 
           Starter ceiling is {ceilingWord} for this league.
         </p>
       </CardHeader>
+      <CardContent>
+        {data.recommendation_cards && data.recommendation_cards.length > 0 ? (
+          <>
+            <Separator className="mb-4" />
+            <div className="space-y-3">
+              <p className="terminal-label text-muted-foreground">Lineup Recommendations</p>
+              <RecommendationCardList cards={data.recommendation_cards} />
+            </div>
+          </>
+        ) : null}
+      </CardContent>
     </Card>
   )
 }

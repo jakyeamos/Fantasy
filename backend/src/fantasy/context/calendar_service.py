@@ -43,20 +43,11 @@ class CalendarService:
         self._repo = repo
         self._now = now
 
-    def active_state(self, league_id: str) -> str:
-        override = self._repo.get_override(league_id)
-        if override is not None:
-            return override
+    def active_state(self, _league_id: str) -> str:
         return _detect_state(self._now())
 
-    def get_context(self, league_id: str) -> CalendarContext:
-        override = self._repo.get_override(league_id)
-        is_override = override is not None
-        state = override if is_override else _detect_state(self._now())
+    def get_context(self, _league_id: str) -> CalendarContext:
         return CalendarContext(
-            active_state=state,
-            is_override=is_override,
-            override_set_by="user" if is_override else None,
+            active_state=_detect_state(self._now()),
             detected_at=self._now(),
         )
-

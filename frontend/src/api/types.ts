@@ -1,9 +1,14 @@
+export type DirectionReadBand = "Clear" | "Leaning" | "Hybrid" | "Tentative" | "--"
+
 export interface DashboardLeagueSummary {
   league_id: string
   league_name: string
   user_roster_id: number | null
   direction_label: string
   confidence_band: "High" | "Medium" | "Low" | "--"
+  direction_read: DirectionReadBand
+  direction_alternates: string[]
+  direction_note: string | null
   summary_signal: string
   primary_weakness: string
   top_exploit_window: string | null
@@ -48,6 +53,9 @@ export interface LeagueDetailResponse {
   user_roster_player_ids: string[]
   direction_label: string
   confidence_band: "High" | "Medium" | "Low" | "--"
+  direction_read: DirectionReadBand
+  direction_alternates: string[]
+  direction_note: string | null
   primary_weakness: string
   risers: RiserFallerEntry[]
   fallers: RiserFallerEntry[]
@@ -191,6 +199,70 @@ export interface PackageBuilderResult {
   fair_close: PackageOffer
 }
 
+export type RecommendationTypeLabel =
+  | "trade"
+  | "start"
+  | "drop"
+  | "hold"
+  | "shop"
+  | "package"
+  | "taxi"
+  | "reroll"
+  | "bid"
+  | "stash"
+  | "direction"
+
+export type GapClassification =
+  | "buy_low"
+  | "sell_high"
+  | "hold_despite_weak_market"
+  | "ignore_false_discount"
+  | "market_right_model_cautious"
+  | "league_specific_opportunity"
+
+export type HorizonLabel = "immediate" | "this_week" | "30_days" | "offseason" | "next_season"
+
+export type ConfidenceLabel = "HIGH" | "MEDIUM" | "LOW"
+
+export interface SupportingFactor {
+  factor_name: string
+  direction: "positive" | "negative" | "neutral"
+  magnitude: "high" | "medium" | "low"
+  explanation: string
+}
+
+export interface ModelVsMarketGap {
+  market_rank: number | null
+  model_rank: number | null
+  market_value: number | null
+  model_value: number | null
+  gap_magnitude: number | null
+  gap_direction: "model_above" | "model_below" | "aligned" | null
+  gap_classification: GapClassification | null
+  explanation: string | null
+}
+
+export interface RecommendationCard {
+  recommendation_type: RecommendationTypeLabel
+  priority_rank: number
+  headline: string
+  action: string
+  target_entity_type: "player" | "pick" | "position" | "manager"
+  target_entity_ids: string[]
+  why_summary: string
+  supporting_factors: SupportingFactor[]
+  confidence_label: ConfidenceLabel
+  confidence_score: number
+  downside_of_inaction: string
+  what_would_change_this_call: string
+  horizon: HorizonLabel
+  league_specificity_notes: string | null
+  manager_specificity_notes: string | null
+  model_vs_market_gap: ModelVsMarketGap | null
+  cta_label: string
+  cta_destination: string
+}
+
 export interface TradeEvaluation {
   market_fairness: DimensionScore
   roster_fit: DimensionScore
@@ -203,6 +275,7 @@ export interface TradeEvaluation {
   reroutes?: RerouteResult[] | null
   package?: PackageBuilderResult | null
   recommendation_context?: RecommendationContext | null
+  recommendation_cards?: RecommendationCard[] | null
 }
 
 export interface PlayerSearchResult {
@@ -349,6 +422,7 @@ export interface RookieBoardResponse {
   class_strength_signal: number
   tiers: RookieTier[]
   computed_at: string
+  recommendation_cards?: RecommendationCard[] | null
 }
 
 export interface RookieBoardWithContext {
@@ -376,6 +450,7 @@ export interface DraftRoomResponse {
   trade_verdict: TradeVerdict
   best_in_abstract: RookiePlayer | null
   tendency_warnings: TendencyWarning[]
+  recommendation_cards?: RecommendationCard[] | null
 }
 
 export interface ExposureRow {
@@ -436,8 +511,6 @@ export interface FreshnessTag {
 
 export interface CalendarContext {
   active_state: CalendarState
-  is_override: boolean
-  override_set_by: string | null
   detected_at: string
 }
 
@@ -474,6 +547,13 @@ export interface LineupSlotScore {
   starter_value: number
   replacement_level: number
   score: number
+  contender_benchmark: number
+  upgrade_leverage_score: number
+  weak_by_median: boolean
+  weak_relative_to_contender: boolean
+  elite_insulation_guard: boolean
+  format_urgency_weight: number
+  player_context_flags: string[]
 }
 
 export interface LineupResult {
@@ -487,10 +567,24 @@ export interface LineupResult {
   ceiling_score: number
   stability_score: number
   depth_score: number
+  recommendation_cards?: RecommendationCard[] | null
+  contender_benchmark_used: boolean
+  upgrade_leverage_point: string
+  upgrade_title_equity_delta: number
 }
 
 export interface HygieneSuggestion {
-  action_type: "consolidate" | "cut" | "stash" | "taxi"
+  action_type:
+    | "consolidate"
+    | "cut"
+    | "stash"
+    | "taxi"
+    | "hold"
+    | "shop"
+    | "package"
+    | "handcuff_speculative"
+    | "reroll_into_pick"
+    | "throw_in_now"
   primary_player_ids: string[]
   primary_player_names: string[]
   target_player_id: string | null
@@ -499,6 +593,9 @@ export interface HygieneSuggestion {
   counterparty_name: string | null
   reasoning: string
   direction_fit_score: number
+  timing_rationale: string
+  packaging_rationale: string | null
+  player_context_flags: string[]
 }
 
 export interface HygieneResult {
@@ -506,12 +603,14 @@ export interface HygieneResult {
   roster_id: number
   computed_at: string | null
   suggestions: HygieneSuggestion[]
+  recommendation_cards?: RecommendationCard[] | null
 }
 
 export interface LeagueTaxiConfig {
   taxi_slots: number
   taxi_years_eligible: number
   years_pro_cutoff: number
+  manual_exceptions: string[]
 }
 
 export interface TaxiConfigResponse {
@@ -550,6 +649,7 @@ export interface WaiverRecommendationsResponse {
   remaining_faab: number | null
   total_faab: number | null
   recommendations: WaiverRecommendation[]
+  recommendation_cards?: RecommendationCard[] | null
   data_freshness_warning: boolean
   computed_at: string
 }
@@ -613,5 +713,41 @@ export interface ActionPlan {
   generated_at: string
   plan_type: "orphan_intake" | "startup" | "new_connection"
   items: ActionPlanItem[]
+  recommendation_cards?: RecommendationCard[] | null
   summary: string
+}
+
+export type TrendLabel = "will_rise" | "will_maintain" | "will_fall"
+export type TrendConfidence = "HIGH" | "MEDIUM" | "LOW"
+export type SuggestedAction = "buy" | "sell" | "hold"
+
+export interface SimilarPlayer {
+  player_id: string
+  player_name: string
+  similarity_score: number
+  archetype_label: string | null
+  context: string
+}
+
+export interface OpportunityFeedItem {
+  player_id: string
+  player_name: string
+  position: string
+  trend_label: TrendLabel
+  trend_confidence: TrendConfidence
+  adp_gap: number
+  suggested_action: SuggestedAction
+  impact_score: number
+  why_summary: string
+  owned_in_leagues: string[]
+  similar_players: SimilarPlayer[]
+  conflict_explanation: string | null
+  calendar_escalated: boolean
+  calendar_escalation_label: string | null
+}
+
+export interface OpportunityFeedResponse {
+  items: OpportunityFeedItem[]
+  total: number
+  computed_at: string
 }

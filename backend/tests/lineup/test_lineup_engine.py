@@ -3,7 +3,12 @@ from __future__ import annotations
 import duckdb
 
 from fantasy.intelligence.models import ScorecardInputs, TeamScorecard
-from fantasy.lineup.constants import FADING_WINDOW_THRESHOLD, PEAK_WINDOW_THRESHOLD
+from fantasy.lineup.constants import (
+    ELITE_INSULATION_THRESHOLD,
+    FADING_WINDOW_THRESHOLD,
+    PEAK_WINDOW_THRESHOLD,
+    TE_NON_PREMIUM_URGENCY_WEIGHT,
+)
 from fantasy.lineup.lineup_engine import LineupEngine
 
 
@@ -17,6 +22,8 @@ def _base_inputs(
     position_medians: dict[str, float] | None = None,
     player_positions: dict[str, str] | None = None,
     player_ages: dict[str, int] | None = None,
+    player_games_played: dict[str, int] | None = None,
+    league_settings: dict[str, object] | None = None,
 ) -> ScorecardInputs:
     pos = player_positions or {p: "QB" for p in starters}
     ages = player_ages or {p: 24 for p in starters + bench}
@@ -32,16 +39,33 @@ def _base_inputs(
         player_ages=ages,
         player_positions=pos,
         weekly_fantasy_pts=weekly or {},
-        player_games_played={},
+        player_games_played=player_games_played or {},
         adp_ranks={},
         pick_rows=[],
         correction_overrides={},
-        league_settings={},
+        league_settings=league_settings or {},
         position_medians=position_medians or {"QB": 5.0, "RB": 5.0, "WR": 5.0, "TE": 5.0},
     )
 
 
-def test_compute_replacement_level_qb_min_across_rosters():
+def _scorecard(league_id: str, roster_id: int, *, fragility: float, positional_insulation: float) -> TeamScorecard:
+    return TeamScorecard(
+        league_id=league_id,
+        roster_id=roster_id,
+        win_now=0.5,
+        future_value=0.5,
+        depth=0.5,
+        pick_capital=0.5,
+        flexibility=0.5,
+        fragility=fragility,
+        age_risk=0.5,
+        liquidity=0.5,
+        positional_insulation=positional_insulation,
+        composite=0.5,
+    )
+
+
+def test_compute_replacement_level_qb_uses_median_across_rosters():
     conn = duckdb.connect(":memory:")
     eng = LineupEngine(conn)
     all_in = {
@@ -68,7 +92,7 @@ def test_compute_replacement_level_qb_min_across_rosters():
         ),
     }
     repl = eng._compute_replacement_level(all_in, "QB", flex_pool=False)
-    assert repl == 15.0
+    assert repl == 18.0
 
 
 def test_compute_replacement_level_falls_back_to_median_when_no_starters():
@@ -110,7 +134,7 @@ def test_flex_replacement_uses_flex_pool():
         ),
     }
     repl = eng._compute_replacement_level(all_in, "", flex_pool=True)
-    assert repl == 9.0
+    assert repl == 10.5
 
 
 def test_compute_all_three_team_league_has_slot_scores():
@@ -261,3 +285,102 @@ def test_slot_score_position_uses_player_position_not_slot_label():
     results = eng.compute_all("league_t", all_in)
     slot = results[1].slot_scores[0]
     assert slot.position == "QB", f"expected QB, got {slot.position!r}"
+
+
+def test_lineup_strength_2_contender_benchmark_and_upgrade_leverage():
+    conn = duckdb.connect(":memory:")
+    eng = LineupEngine(conn)
+    all_in = {
+        roster_id: _base_inputs(
+            roster_id,
+            roster_positions=["QB", "BN"],
+            starters=[f"q{roster_id}"],
+            bench=[],
+            weekly={f"q{roster_id}": weekly},
+            player_positions={f"q{roster_id}": "QB"},
+        )
+        for roster_id, weekly in {
+            1: 30.0,
+            2: 28.0,
+            3: 20.0,
+            4: 18.0,
+            5: 16.0,
+            6: 14.0,
+        }.items()
+    }
+    scorecards = {
+        roster_id: _scorecard(
+            "league_t",
+            roster_id,
+            fragility=0.2,
+            positional_insulation=0.2,
+        )
+        for roster_id in all_in
+    }
+
+    results = eng.compute_all("league_t", all_in, scorecards)
+
+    contender_slot = results[3].slot_scores[0]
+    low_slot = results[6].slot_scores[0]
+
+    assert results[3].contender_benchmark_used is True
+    assert contender_slot.contender_benchmark >= contender_slot.replacement_level
+    assert contender_slot.upgrade_leverage_score > 0.0
+    assert contender_slot.weak_by_median is False
+    assert contender_slot.weak_relative_to_contender is True
+    assert results[3].upgrade_leverage_point == "q3 (QB)"
+    assert 0.0 < results[3].upgrade_title_equity_delta <= 1.0
+    assert low_slot.weak_by_median is True
+    assert low_slot.weak_relative_to_contender is True
+
+
+def test_elite_insulation_guard_te_weight_and_context_flags():
+    conn = duckdb.connect(":memory:")
+    eng = LineupEngine(conn)
+    all_in = {
+        roster_id: _base_inputs(
+            roster_id,
+            roster_positions=["TE", "BN"],
+            starters=[f"te{roster_id}"],
+            bench=[],
+            weekly={f"te{roster_id}": weekly},
+            player_positions={f"te{roster_id}": "TE"},
+            player_ages={f"te{roster_id}": age},
+            player_games_played={f"te{roster_id}": games},
+            league_settings={"te_premium": te_premium},
+        )
+        for roster_id, weekly, age, games, te_premium in [
+            (1, 16.0, 27, 16, True),
+            (2, 15.0, 32, 5, False),
+            (3, 12.0, 27, 16, False),
+            (4, 11.0, 27, 16, False),
+            (5, 10.0, 27, 16, False),
+            (6, 9.0, 27, 16, False),
+        ]
+    }
+    scorecards = {
+        1: _scorecard("league_t", 1, fragility=0.1, positional_insulation=0.2),
+        2: _scorecard(
+            "league_t",
+            2,
+            fragility=0.1,
+            positional_insulation=ELITE_INSULATION_THRESHOLD + 0.05,
+        ),
+        3: _scorecard("league_t", 3, fragility=0.1, positional_insulation=0.2),
+        4: _scorecard("league_t", 4, fragility=0.1, positional_insulation=0.2),
+        5: _scorecard("league_t", 5, fragility=0.1, positional_insulation=0.2),
+        6: _scorecard("league_t", 6, fragility=0.1, positional_insulation=0.2),
+    }
+
+    results = eng.compute_all("league_t", all_in, scorecards)
+
+    premium_slot = results[1].slot_scores[0]
+    guarded_slot = results[2].slot_scores[0]
+
+    assert premium_slot.format_urgency_weight == 1.0
+    assert guarded_slot.format_urgency_weight == TE_NON_PREMIUM_URGENCY_WEIGHT
+    assert guarded_slot.elite_insulation_guard is True
+    assert guarded_slot.upgrade_leverage_score == 0.0
+    assert guarded_slot.weak_relative_to_contender is False
+    assert "age_cliff_proximity" in guarded_slot.player_context_flags
+    assert "injury_recovery" in guarded_slot.player_context_flags

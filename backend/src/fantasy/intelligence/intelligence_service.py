@@ -67,6 +67,10 @@ class IntelligenceService:
             values[roster_id] = self._valuation_engine.compute_all(
                 league_id, roster_id, direction.primary_label
             )
+        self._persist_values(values)
+
+        for roster_id, result in lineup_results.items():
+            lineup_results[roster_id] = self._lineup_engine.attach_recommendation_cards(result)
 
         hygiene_results: dict[int, HygieneResult] = {}
         for roster_id, inp in all_inputs.items():
@@ -85,7 +89,6 @@ class IntelligenceService:
 
         self._persist_scorecards(scorecards)
         self._persist_directions(league_id, directions)
-        self._persist_values(values)
         return {
             "scorecards": scorecards,
             "directions": directions,

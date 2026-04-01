@@ -10,13 +10,13 @@ import {
   leagueDetailOptions,
   saveDraftOrderRule,
 } from "@/api/queries"
-import { CalendarOverridePanel } from "@/components/context/CalendarOverridePanel"
+import { CalendarContextPanel } from "@/components/context/CalendarContextPanel"
 import { CalendarStateBadge } from "@/components/context/CalendarStateBadge"
 import { ConcentrationAlertBanner } from "@/components/ConcentrationAlertBanner"
 import { ExploitWindowPanel } from "@/components/ExploitWindowPanel"
 import { FormatWarningBanner } from "@/components/FormatWarningBanner"
-import { RosterHygienePanel } from "@/components/hygiene/RosterHygienePanel"
 import { LineupStrengthCard } from "@/components/lineup/LineupStrengthCard"
+import { RosterHygienePanel } from "@/components/lineup/RosterHygienePanel"
 import { TaxiConfigForm } from "@/components/lineup/TaxiConfigForm"
 import { TaxiIRSlotSummary } from "@/components/lineup/TaxiIRSlotSummary"
 import { TitleWindowPanel } from "@/components/lineup/TitleWindowPanel"
@@ -30,17 +30,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Skeleton } from "@/components/ui/skeleton"
-import { formatModelLabel } from "@/lib/utils"
+import { directionReadBadgeVariant, formatModelLabel } from "@/lib/utils"
 
 export const Route = createFileRoute("/league/$leagueId")({
   component: LeagueDetailPage,
 })
-
-function badgeVariant(confidence: "High" | "Medium" | "Low" | "--") {
-  if (confidence === "High") return "default"
-  if (confidence === "Medium") return "secondary"
-  return "outline"
-}
 
 const basisLabels: Record<LeagueDraftOrderRule["non_playoff_basis"], string> = {
   inverse_standings: "Inverse standings",
@@ -303,20 +297,32 @@ function LeagueDetailPage() {
                 <p className="terminal-label text-muted-foreground">League briefing</p>
                 <CardTitle className="mt-2 text-3xl">{league.league_name}</CardTitle>
               </div>
-              <Badge variant={badgeVariant(league.confidence_band)}>
-                {league.confidence_band}
+              <Badge variant={directionReadBadgeVariant(league.direction_read)}>
+                {league.direction_read}
               </Badge>
               {calendarQuery.data ? (
-                <CalendarStateBadge
-                  state={calendarQuery.data.active_state}
-                  isOverride={calendarQuery.data.is_override}
-                />
+                <CalendarStateBadge state={calendarQuery.data.active_state} />
               ) : null}
             </div>
             <div>
               <p className="font-headline text-2xl font-extrabold">
                 {formatModelLabel(league.direction_label)}
               </p>
+              {league.direction_note ? (
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
+                  {league.direction_note}
+                </p>
+              ) : null}
+              {league.direction_alternates.length > 0 ? (
+                <>
+                  <p className="mt-4 terminal-label text-muted-foreground">
+                    Nearby paths
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    {league.direction_alternates.map((label) => formatModelLabel(label)).join(" • ")}
+                  </p>
+                </>
+              ) : null}
               <p className="mt-3 terminal-label text-muted-foreground">
                 Roster note
               </p>
@@ -416,7 +422,7 @@ function LeagueDetailPage() {
       </Card>
 
       {calendarQuery.data ? (
-        <CalendarOverridePanel leagueId={leagueId} context={calendarQuery.data} />
+        <CalendarContextPanel context={calendarQuery.data} />
       ) : null}
 
       {/* Phase 11 lineup intelligence panels render above overview summary cards. */}

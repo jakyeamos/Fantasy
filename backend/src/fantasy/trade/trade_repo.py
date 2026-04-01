@@ -52,7 +52,8 @@ class TradeRepo:
         rows = self._conn.execute(
             f"""
             SELECT pv.roster_id, pv.player_id, p.full_name, p.position,
-                   pv.comp_insulation, pv.comp_market_liquidity, pv.comp_age_curve,
+                   pv.comp_current_production, pv.comp_insulation, pv.comp_market_liquidity,
+                   pv.comp_age_curve, pv.comp_ceiling, pv.comp_floor,
                    pv.comp_positional_scarcity, pv.comp_short_term, pv.lens_market,
                    pv.lens_insulation, pv.lens_team_fit, pv.lens_direction,
                    pv.lens_production
@@ -74,16 +75,19 @@ class TradeRepo:
                 "player_id": player_id,
                 "full_name": str(row[2] or player_id),
                 "position": str(row[3] or "UNKNOWN"),
-                "comp_insulation": float(row[4]) if row[4] is not None else None,
-                "comp_market_liquidity": float(row[5]) if row[5] is not None else None,
-                "comp_age_curve": float(row[6]) if row[6] is not None else None,
-                "comp_positional_scarcity": float(row[7]) if row[7] is not None else None,
-                "comp_short_term": float(row[8]) if row[8] is not None else None,
-                "lens_market": float(row[9]) if row[9] is not None else None,
-                "lens_insulation": float(row[10]) if row[10] is not None else None,
-                "lens_team_fit": float(row[11]) if row[11] is not None else None,
-                "lens_direction": float(row[12]) if row[12] is not None else None,
-                "lens_production": float(row[13]) if row[13] is not None else None,
+                "comp_current_production": float(row[4]) if row[4] is not None else None,
+                "comp_insulation": float(row[5]) if row[5] is not None else None,
+                "comp_market_liquidity": float(row[6]) if row[6] is not None else None,
+                "comp_age_curve": float(row[7]) if row[7] is not None else None,
+                "comp_ceiling": float(row[8]) if row[8] is not None else None,
+                "comp_floor": float(row[9]) if row[9] is not None else None,
+                "comp_positional_scarcity": float(row[10]) if row[10] is not None else None,
+                "comp_short_term": float(row[11]) if row[11] is not None else None,
+                "lens_market": float(row[12]) if row[12] is not None else None,
+                "lens_insulation": float(row[13]) if row[13] is not None else None,
+                "lens_team_fit": float(row[14]) if row[14] is not None else None,
+                "lens_direction": float(row[15]) if row[15] is not None else None,
+                "lens_production": float(row[16]) if row[16] is not None else None,
             }
         return [chosen[player_id] for player_id in player_ids if player_id in chosen]
 

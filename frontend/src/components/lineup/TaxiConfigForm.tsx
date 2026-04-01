@@ -21,6 +21,7 @@ export function TaxiConfigForm({ leagueId }: TaxiConfigFormProps) {
   const [taxiSlots, setTaxiSlots] = useState(0)
   const [taxiYearsEligible, setTaxiYearsEligible] = useState(2)
   const [yearsProCutoff, setYearsProCutoff] = useState(2)
+  const [manualExceptions, setManualExceptions] = useState("")
 
   useEffect(() => {
     if (editing) return
@@ -28,7 +29,10 @@ export function TaxiConfigForm({ leagueId }: TaxiConfigFormProps) {
       setTaxiSlots(cfg.taxi_slots)
       setTaxiYearsEligible(cfg.taxi_years_eligible)
       setYearsProCutoff(cfg.years_pro_cutoff)
+      setManualExceptions((cfg.manual_exceptions ?? []).join(", "))
+      return
     }
+    setManualExceptions("")
   }, [editing, cfg])
 
   const saveMutation = useMutation({
@@ -76,6 +80,9 @@ export function TaxiConfigForm({ leagueId }: TaxiConfigFormProps) {
             <p className="mt-2 text-sm text-muted-foreground">
               Taxi slots: {cfg.taxi_slots} · Years eligible: {cfg.taxi_years_eligible} · Years pro
               cutoff: {cfg.years_pro_cutoff}
+              {cfg.manual_exceptions.length > 0
+                ? ` · Exceptions: ${cfg.manual_exceptions.length} player(s)`
+                : ""}
             </p>
           </div>
           <Button variant="outline" size="sm" type="button" onClick={() => setEditing(true)}>
@@ -104,6 +111,10 @@ export function TaxiConfigForm({ leagueId }: TaxiConfigFormProps) {
               taxi_slots: taxiSlots,
               taxi_years_eligible: taxiYearsEligible,
               years_pro_cutoff: yearsProCutoff,
+              manual_exceptions: manualExceptions
+                .split(",")
+                .map((value) => value.trim())
+                .filter((value) => value.length > 0),
             })
           }}
         >
@@ -142,6 +153,22 @@ export function TaxiConfigForm({ leagueId }: TaxiConfigFormProps) {
               value={yearsProCutoff}
               onChange={(ev) => setYearsProCutoff(Number(ev.target.value))}
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="manual-exceptions">
+              Manual exceptions (player IDs, comma-separated)
+            </Label>
+            <input
+              id="manual-exceptions"
+              type="text"
+              className="h-11 w-full max-w-xs rounded-lg border border-border bg-card px-3 text-sm"
+              value={manualExceptions}
+              onChange={(ev) => setManualExceptions(ev.target.value)}
+              placeholder="e.g. 4046, 7564"
+            />
+            <p className="text-xs text-muted-foreground">
+              Player IDs your league allows on taxi outside normal eligibility rules.
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button type="submit" disabled={saveMutation.isPending}>

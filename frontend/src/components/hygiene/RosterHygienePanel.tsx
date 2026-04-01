@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 
 import { hygieneOptions } from "@/api/queries"
+import { RecommendationCardList } from "@/components/recommendations/RecommendationCardList"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -40,13 +41,36 @@ export function RosterHygienePanel({ leagueId, rosterId }: RosterHygienePanelPro
     return null
   }
 
-  const consolidate = data.suggestions.filter((s) => s.action_type === "consolidate")
-  const cut = data.suggestions.filter((s) => s.action_type === "cut")
-  const stash = data.suggestions.filter((s) => s.action_type === "stash")
-  const taxi = data.suggestions.filter((s) => s.action_type === "taxi")
-
-  const hasAny =
-    consolidate.length + cut.length + stash.length + taxi.length > 0
+  const sections = [
+    {
+      title: "Upgrade packages",
+      actionTypes: ["consolidate", "package", "throw_in_now"] as const,
+    },
+    {
+      title: "Market actions",
+      actionTypes: ["shop", "hold"] as const,
+    },
+    {
+      title: "Bench triage",
+      actionTypes: ["cut", "reroll_into_pick"] as const,
+    },
+    {
+      title: "Developmental holds",
+      actionTypes: ["stash", "handcuff_speculative"] as const,
+    },
+    {
+      title: "Taxi moves",
+      actionTypes: ["taxi"] as const,
+    },
+  ]
+  const populatedSections = sections
+    .map((section) => ({
+      ...section,
+      suggestions: data.suggestions.filter((suggestion) =>
+        section.actionTypes.includes(suggestion.action_type),
+      ),
+    }))
+    .filter((section) => section.suggestions.length > 0)
 
   return (
     <Card>
@@ -55,48 +79,34 @@ export function RosterHygienePanel({ leagueId, rosterId }: RosterHygienePanelPro
         <CardTitle>Roster Moves</CardTitle>
       </CardHeader>
       <CardContent>
-        {!hasAny ? (
+        {data.recommendation_cards && data.recommendation_cards.length > 0 ? (
+          <div className="mb-6 space-y-3">
+            <p className="terminal-label text-muted-foreground">Recommendations</p>
+            <RecommendationCardList cards={data.recommendation_cards} />
+          </div>
+        ) : null}
+        {populatedSections.length === 0 ? (
           <>
             <p className="text-sm font-medium">Roster Looks Clean</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              No consolidation, cut, or stash suggestions at this time. Check back after the next
-              ingest.
+              No roster triage, package, or taxi suggestions are active right now. Check back
+              after the next ingest.
             </p>
           </>
         ) : (
           <div className="space-y-0 divide-y divide-border/40">
-            {consolidate.length > 0 ? (
-              <div>
-                <p className="terminal-label text-muted-foreground py-2">Consolidate</p>
-                {consolidate.map((s, i) => (
-                  <HygieneSuggestionRow key={`c-${i}`} suggestion={s} leagueId={leagueId} />
+            {populatedSections.map((section) => (
+              <div key={section.title}>
+                <p className="terminal-label py-2 text-muted-foreground">{section.title}</p>
+                {section.suggestions.map((suggestion, index) => (
+                  <HygieneSuggestionRow
+                    key={`${section.title}-${index}`}
+                    suggestion={suggestion}
+                    leagueId={leagueId}
+                  />
                 ))}
               </div>
-            ) : null}
-            {cut.length > 0 ? (
-              <div>
-                <p className="terminal-label text-muted-foreground py-2">Cut</p>
-                {cut.map((s, i) => (
-                  <HygieneSuggestionRow key={`k-${i}`} suggestion={s} leagueId={leagueId} />
-                ))}
-              </div>
-            ) : null}
-            {stash.length > 0 ? (
-              <div>
-                <p className="terminal-label text-muted-foreground py-2">Stash</p>
-                {stash.map((s, i) => (
-                  <HygieneSuggestionRow key={`s-${i}`} suggestion={s} leagueId={leagueId} />
-                ))}
-              </div>
-            ) : null}
-            {taxi.length > 0 ? (
-              <div>
-                <p className="terminal-label text-muted-foreground py-2">Move to Taxi</p>
-                {taxi.map((s, i) => (
-                  <HygieneSuggestionRow key={`t-${i}`} suggestion={s} leagueId={leagueId} />
-                ))}
-              </div>
-            ) : null}
+            ))}
           </div>
         )}
       </CardContent>

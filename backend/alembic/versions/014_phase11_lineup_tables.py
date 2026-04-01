@@ -12,13 +12,14 @@ def upgrade() -> None:
     op.execute(
         """
         CREATE TABLE IF NOT EXISTS league_taxi_configs (
-            id                  INTEGER PRIMARY KEY,
-            league_id           VARCHAR NOT NULL UNIQUE,
-            taxi_slots          INTEGER NOT NULL,
-            taxi_years_eligible INTEGER NOT NULL,
-            years_pro_cutoff    INTEGER NOT NULL,
-            created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            id                     INTEGER PRIMARY KEY,
+            league_id              VARCHAR NOT NULL UNIQUE,
+            taxi_slots             INTEGER NOT NULL,
+            taxi_years_eligible    INTEGER NOT NULL,
+            years_pro_cutoff       INTEGER NOT NULL,
+            manual_exceptions_json VARCHAR NOT NULL DEFAULT '[]',
+            created_at             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
         """
     )

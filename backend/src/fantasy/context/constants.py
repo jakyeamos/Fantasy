@@ -24,7 +24,6 @@ CALENDAR_WINDOWS: list[tuple[int, int, int, int, str]] = [
 ]
 
 FALLBACK_STATE: str = "early_season"
-OVERRIDE_TTL_DAYS: int = 30
 
 FRESHNESS_THRESHOLDS: dict[str, int] = {
     "injuries": 48,
@@ -51,4 +50,3 @@ CALENDAR_GUIDANCE: dict[tuple[str, str], str] = {
     ("preseason", "general"): "Preseason volatility can create false certainty - treat camp headlines carefully.",
     ("early_season", "general"): "Early-season usage shifts fast - exploit market overreactions before they settle.",
 }
-

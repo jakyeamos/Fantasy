@@ -99,6 +99,7 @@ export function RookiePlayerCard({
                 <p className="text-xs text-muted-foreground">No historical comps surfaced for this profile yet.</p>
               )}
             </div>
+            {/* TODO Phase 17: MarketGapPanel here once model_vs_market_gap is added to ProspectModelOutput. */}
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">Phase 8 model output unavailable for this prospect.</p>

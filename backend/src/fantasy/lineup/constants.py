@@ -17,7 +17,24 @@ TITLE_WINDOW_FRAGILITY_BOOST = 0.15
 
 HYGIENE_MAX_SUGGESTIONS_PER_TYPE = 5
 
-HYGIENE_ACTION_TYPES = Literal["consolidate", "cut", "stash", "taxi"]
+HYGIENE_ACTION_TYPES = Literal[
+    "consolidate",
+    "cut",
+    "stash",
+    "taxi",
+    "hold",
+    "shop",
+    "package",
+    "handcuff_speculative",
+    "reroll_into_pick",
+    "throw_in_now",
+]
+
+ELITE_INSULATION_THRESHOLD = 0.65
+CONTENDER_TIER_FRACTION = 0.33
+TE_NON_PREMIUM_URGENCY_WEIGHT = 0.6
+UPGRADE_LEVERAGE_BASE_EQUITY = 0.08
+AGE_CLIFF_PROXIMITY_SEASONS = 2
 
 CUT_VALUE_FLOOR = 0.10
 

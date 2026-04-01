@@ -25,11 +25,9 @@ const CLASSES: Record<CalendarState, string> = {
 
 export function CalendarStateBadge({
   state,
-  isOverride = false,
   className,
 }: {
   state: CalendarState
-  isOverride?: boolean
   className?: string
 }) {
   return (
@@ -41,9 +39,6 @@ export function CalendarStateBadge({
       )}
     >
       {LABELS[state]}
-      {isOverride ? (
-        <span className="rounded bg-black/10 px-1 text-[10px]">manual</span>
-      ) : null}
     </span>
   )
 }

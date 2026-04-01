@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from fantasy.recommendation.models import RecommendationCard
+
 
 RiskBand = Literal["Low", "Moderate", "High"]
 WarningType = Literal["positional_run", "value_gap", "manager_tendency"]
@@ -40,6 +42,7 @@ class RookieBoardResult(BaseModel):
     class_strength_signal: float
     tiers: list[RookieTier]
     computed_at: datetime
+    recommendation_cards: list[RecommendationCard] | None = None
 
 
 class TendencyWarning(BaseModel):
@@ -68,3 +71,4 @@ class DraftRoomResult(BaseModel):
     trade_verdict: TradeVerdict
     best_in_abstract: RookiePlayer | None = None
     tendency_warnings: list[TendencyWarning] = Field(default_factory=list)
+    recommendation_cards: list[RecommendationCard] | None = None

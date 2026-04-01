@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 from fantasy.context.models import RecommendationContext
+from fantasy.recommendation.models import RecommendationCard
 
 
 class TradeAsset(BaseModel):
@@ -81,6 +82,7 @@ class TradeEvaluation(BaseModel):
     reroutes: list[RerouteResult] | None = None
     package: PackageBuilderResult | None = None
     recommendation_context: RecommendationContext | None = None
+    recommendation_cards: list[RecommendationCard] | None = None
 
 
 class TradeRequest(BaseModel):

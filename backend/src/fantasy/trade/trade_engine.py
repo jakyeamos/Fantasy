@@ -5,6 +5,7 @@ from typing import Any
 import duckdb
 
 from fantasy.intelligence.constants import REBUILD_DIRECTION_LABELS
+from fantasy.recommendation.card_engine import RecommendationCardEngine
 from fantasy.trade.constants import (
     DIRECTION_ADVANCING_THRESHOLD,
     DIRECTION_NEGATIVE_THRESHOLD,
@@ -27,7 +28,9 @@ def _clamp_score(value: float) -> float:
 
 class TradeEngine:
     def __init__(self, conn: duckdb.DuckDBPyConnection):
+        self._conn = conn
         self._repo = TradeRepo(conn)
+        self._card_engine = RecommendationCardEngine(conn)
 
     def _extract_player_ids(self, assets: list[TradeAsset]) -> list[str]:
         return [
@@ -423,7 +426,7 @@ class TradeEngine:
                 manager_exploit_quality,
             ],
         )
-        return TradeEvaluation(
+        evaluation = TradeEvaluation(
             market_fairness=market_fairness,
             roster_fit=roster_fit,
             direction_fit=direction_fit,
@@ -437,3 +440,12 @@ class TradeEngine:
                 direction_label,
             ),
         )
+        evaluation.recommendation_cards = self._card_engine.build_trade_card(
+            evaluation,
+            request.league_id,
+            request.user_roster_id,
+            sending_values=sending_values,
+            receiving_values=receiving_values,
+            direction_label=direction_label,
+        )
+        return evaluation

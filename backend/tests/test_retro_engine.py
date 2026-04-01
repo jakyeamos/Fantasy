@@ -60,6 +60,8 @@ def test_grade_direction_labels_contender_wrong(db):
 
 
 def test_grade_prospect_tiers_table_missing(db):
+    db.execute("DROP TABLE IF EXISTS prospect_model_outputs")
+
     result = RetroEngine(db).grade_prospect_tiers("2025")
 
     assert result["status"] == "skipped"
@@ -68,19 +70,12 @@ def test_grade_prospect_tiers_table_missing(db):
 def test_grade_prospect_tiers_basic(db):
     db.execute(
         """
-        CREATE TABLE prospect_model_outputs (
-            player_id VARCHAR NOT NULL,
-            position VARCHAR NOT NULL,
-            predicted_tier INTEGER NOT NULL,
-            predicted_bucket VARCHAR NOT NULL,
-            draft_season VARCHAR NOT NULL
+        INSERT INTO prospect_model_outputs (
+            league_id, draft_season, player_id, player_name, position, archetype_label,
+            hit_rate_bucket, tier, predicted_tier, predicted_bucket, risk_band
         )
-        """
-    )
-    db.execute(
-        """
-        INSERT INTO prospect_model_outputs (player_id, position, predicted_tier, predicted_bucket, draft_season)
-        VALUES ('rookie_hit', 'WR', 1, 'hit', '2025')
+        VALUES ('league_x', 2025, 'rookie_hit', 'Rookie Hit', 'WR', 'separator',
+                'hit', 1, 1, 'hit', 'Low')
         """
     )
     db.execute(

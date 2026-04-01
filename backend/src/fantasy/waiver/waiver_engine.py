@@ -8,6 +8,7 @@ from typing import Any
 
 import duckdb
 
+from fantasy.recommendation.card_engine import RecommendationCardEngine
 from fantasy.waiver.constants import (
     DIRECTION_URGENCY,
     FAAB_CEILING_PCT,
@@ -184,6 +185,7 @@ def get_faab_state(
 class WaiverEngine:
     def __init__(self, conn: duckdb.DuckDBPyConnection) -> None:
         self._conn = conn
+        self._card_engine = RecommendationCardEngine(conn)
 
     def _league_median_remaining(self, league_id: str, total_budget: int) -> int:
         rows = self._conn.execute(
@@ -458,7 +460,7 @@ class WaiverEngine:
             reverse=True,
         )
 
-        return WaiverRecommendationsResponse(
+        result = WaiverRecommendationsResponse(
             league_id=league_id,
             roster_id=roster_id,
             waiver_type_label=str(state["waiver_type_label"]),
@@ -469,8 +471,12 @@ class WaiverEngine:
             data_freshness_warning=bool(state["data_freshness_warning"]),
             computed_at=datetime.now(timezone.utc).isoformat(),
         )
-
-
+        result.recommendation_cards = self._card_engine.build_waiver_cards(
+            result.recommendations,
+            league_id,
+        )
+        return result
+ 
 __all__ = [
     "WaiverEngine",
     "compute_bid_range",

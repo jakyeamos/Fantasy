@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from fantasy.recommendation.models import RecommendationCard
+
 
 class WaiverRecommendation(BaseModel):
     model_config = ConfigDict(frozen=False)
@@ -33,6 +35,7 @@ class WaiverRecommendationsResponse(BaseModel):
     remaining_faab: int | None = None
     total_faab: int | None = None
     recommendations: list[WaiverRecommendation]
+    recommendation_cards: list[RecommendationCard] | None = None
     data_freshness_warning: bool = False
     computed_at: str
 
@@ -108,4 +111,5 @@ class ActionPlan(BaseModel):
     generated_at: str
     plan_type: Literal["orphan_intake", "startup", "new_connection"]
     items: list[ActionPlanItem]
+    recommendation_cards: list[RecommendationCard] | None = None
     summary: str

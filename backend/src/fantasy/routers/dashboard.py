@@ -73,6 +73,11 @@ WEAKNESS_LABELS: dict[str, str] = {
     "positional_insulation": "You need more insulation at scarce lineup spots.",
 }
 
+HIGHER_IS_WORSE_FIELDS = {"fragility", "age_risk"}
+
+DirectionReadBand = Literal["Clear", "Leaning", "Hybrid", "Tentative", "--"]
+_HYBRID_DIRECTION_GAP = 0.03
+
 
 class DashboardLeagueSummary(BaseModel):
     model_config = ConfigDict(frozen=False)
@@ -82,6 +87,9 @@ class DashboardLeagueSummary(BaseModel):
     user_roster_id: int | None = None
     direction_label: str
     confidence_band: Literal["High", "Medium", "Low", "--"]
+    direction_read: DirectionReadBand = "--"
+    direction_alternates: list[str] = Field(default_factory=list)
+    direction_note: str | None = None
     summary_signal: str
     primary_weakness: str
     top_exploit_window: str | None = None
@@ -124,6 +132,9 @@ class LeagueDetailResponse(BaseModel):
     user_roster_player_ids: list[str] = Field(default_factory=list)
     direction_label: str
     confidence_band: Literal["High", "Medium", "Low", "--"]
+    direction_read: DirectionReadBand = "--"
+    direction_alternates: list[str] = Field(default_factory=list)
+    direction_note: str | None = None
     primary_weakness: str
     risers: list[RiserFallerEntry]
     fallers: list[RiserFallerEntry]
@@ -168,6 +179,93 @@ def _band(confidence: float | None) -> Literal["High", "Medium", "Low", "--"]:
     if confidence >= 0.4:
         return "Medium"
     return "Low"
+
+
+def _format_model_label(value: str) -> str:
+    return " ".join(
+        part.capitalize()
+        for part in value.replace("-", "_").split("_")
+        if part
+    )
+
+
+def _alternate_labels(alternates: list[dict[str, Any]]) -> list[str]:
+    labels: list[str] = []
+    for alternate in alternates:
+        label = str(alternate.get("label", "")).strip()
+        if not label or label in labels:
+            continue
+        labels.append(label)
+    return labels
+
+
+def _hybrid_alternates(alternates: list[dict[str, Any]]) -> list[str]:
+    labels: list[str] = []
+    for alternate in alternates:
+        label = str(alternate.get("label", "")).strip()
+        if not label or label in labels:
+            continue
+        try:
+            gap = float(alternate.get("gap", 1.0))
+        except (TypeError, ValueError):
+            gap = 1.0
+        if gap <= _HYBRID_DIRECTION_GAP:
+            labels.append(label)
+    return labels
+
+
+def _join_direction_labels(labels: list[str]) -> str:
+    formatted = [_format_model_label(label) for label in labels]
+    if not formatted:
+        return ""
+    if len(formatted) == 1:
+        return formatted[0]
+    if len(formatted) == 2:
+        return f"{formatted[0]} and {formatted[1]}"
+    return f"{', '.join(formatted[:-1])}, and {formatted[-1]}"
+
+
+def _direction_read(
+    confidence: float | None,
+    alternates: list[dict[str, Any]],
+) -> DirectionReadBand:
+    if confidence is None:
+        return "--"
+    if _hybrid_alternates(alternates):
+        return "Hybrid"
+    if confidence >= 0.7:
+        return "Clear"
+    if confidence >= 0.4:
+        return "Leaning"
+    return "Tentative"
+
+
+def _direction_note(
+    direction_label: str,
+    direction_read: DirectionReadBand,
+    alternates: list[dict[str, Any]],
+) -> str | None:
+    formatted_primary = _format_model_label(direction_label)
+    close_alternates = _hybrid_alternates(alternates)
+    all_alternates = _alternate_labels(alternates)
+    if direction_read == "--":
+        return None
+    if direction_read == "Hybrid":
+        mix = _join_direction_labels([direction_label, *close_alternates[:2]])
+        return f"Hybrid read: this roster sits between {mix}."
+    if direction_read == "Clear":
+        return f"Clear read: {formatted_primary} stands apart from the nearby roster paths."
+    if direction_read == "Leaning" and all_alternates:
+        return (
+            f"Leaning read: {formatted_primary} leads, "
+            f"with {_format_model_label(all_alternates[0])} as the closest alternate."
+        )
+    if direction_read == "Tentative":
+        return (
+            f"Tentative read: {formatted_primary} leads, but the roster shape still "
+            "needs more separation from the rest of the board."
+        )
+    return f"Leaning read: {formatted_primary} currently has the strongest signal."
 
 
 def _ordinal(value: int) -> str:
@@ -307,7 +405,12 @@ def _derive_primary_weakness(
         field: float(value)
         for field, value in zip(SCORECARD_FIELDS, scorecard_row, strict=False)
     }
-    weakest = min(scorecard.items(), key=lambda item: item[1])[0]
+    weakest = min(
+        scorecard.items(),
+        key=lambda item: (
+            1.0 - item[1] if item[0] in HIGHER_IS_WORSE_FIELDS else item[1]
+        ),
+    )[0]
     if (
         weakest == "flexibility"
         and conn is not None
@@ -728,12 +831,15 @@ def get_dashboard_summary(
         )
         direction_label = "Analysis not yet run"
         confidence_band: Literal["High", "Medium", "Low", "--"] = "--"
+        direction_read: DirectionReadBand = "--"
+        direction_alternates: list[str] = []
+        direction_note: str | None = None
         summary_signal = "Run Phase 2 intelligence to surface your top edge."
         primary_weakness = "Run Phase 2 intelligence to surface the primary roster weakness."
         if roster_id is not None:
             direction_row = conn.execute(
                 """
-                SELECT primary_label, confidence
+                SELECT primary_label, confidence, alternates_json
                 FROM team_directions
                 WHERE league_id = ? AND roster_id = ?
                 """,
@@ -741,7 +847,16 @@ def get_dashboard_summary(
             ).fetchone()
             if direction_row is not None:
                 direction_label = str(direction_row[0])
-                confidence_band = _band(float(direction_row[1]))
+                confidence = float(direction_row[1])
+                alternates = _loads(direction_row[2], [])
+                confidence_band = _band(confidence)
+                direction_read = _direction_read(confidence, alternates)
+                direction_alternates = _alternate_labels(alternates)
+                direction_note = _direction_note(
+                    direction_label,
+                    direction_read,
+                    alternates,
+                )
             scorecard_row = conn.execute(
                 """
                 SELECT win_now, future_value, depth, pick_capital, flexibility,
@@ -771,6 +886,9 @@ def get_dashboard_summary(
                 user_roster_id=roster_id,
                 direction_label=direction_label,
                 confidence_band=confidence_band,
+                direction_read=direction_read,
+                direction_alternates=direction_alternates,
+                direction_note=direction_note,
                 summary_signal=summary_signal,
                 primary_weakness=primary_weakness,
                 top_exploit_window=_top_exploit_window(conn, str(league_id), roster_id),
@@ -802,13 +920,16 @@ def get_league_detail(
     )
     direction_label = "Analysis not yet run"
     confidence_band: Literal["High", "Medium", "Low", "--"] = "--"
+    direction_read: DirectionReadBand = "--"
+    direction_alternates: list[str] = []
+    direction_note: str | None = None
     primary_weakness = "Run Phase 2 intelligence to surface the primary roster weakness."
     user_roster_player_ids: list[str] = []
 
     if roster_id is not None:
         direction_row = conn.execute(
             """
-            SELECT primary_label, confidence
+            SELECT primary_label, confidence, alternates_json
             FROM team_directions
             WHERE league_id = ? AND roster_id = ?
             """,
@@ -816,7 +937,16 @@ def get_league_detail(
         ).fetchone()
         if direction_row is not None:
             direction_label = str(direction_row[0])
-            confidence_band = _band(float(direction_row[1]))
+            confidence = float(direction_row[1])
+            alternates = _loads(direction_row[2], [])
+            confidence_band = _band(confidence)
+            direction_read = _direction_read(confidence, alternates)
+            direction_alternates = _alternate_labels(alternates)
+            direction_note = _direction_note(
+                direction_label,
+                direction_read,
+                alternates,
+            )
         scorecard_row = conn.execute(
             """
             SELECT win_now, future_value, depth, pick_capital, flexibility,
@@ -857,6 +987,9 @@ def get_league_detail(
         user_roster_player_ids=user_roster_player_ids,
         direction_label=direction_label,
         confidence_band=confidence_band,
+        direction_read=direction_read,
+        direction_alternates=direction_alternates,
+        direction_note=direction_note,
         primary_weakness=primary_weakness,
         risers=risers,
         fallers=fallers,

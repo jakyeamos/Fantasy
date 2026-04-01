@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TradesRouteImport } from './routes/trades'
 import { Route as PortfolioRouteImport } from './routes/portfolio'
+import { Route as OpportunitiesRouteImport } from './routes/opportunities'
 import { Route as DraftRoomRouteImport } from './routes/draft-room'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LeagueLeagueIdRouteImport } from './routes/league.$leagueId'
@@ -29,6 +30,11 @@ const TradesRoute = TradesRouteImport.update({
 const PortfolioRoute = PortfolioRouteImport.update({
   id: '/portfolio',
   path: '/portfolio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpportunitiesRoute = OpportunitiesRouteImport.update({
+  id: '/opportunities',
+  path: '/opportunities',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DraftRoomRoute = DraftRoomRouteImport.update({
@@ -83,6 +89,7 @@ const LeagueLeagueIdManagersManagerIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/draft-room': typeof DraftRoomRoute
+  '/opportunities': typeof OpportunitiesRoute
   '/portfolio': typeof PortfolioRoute
   '/trades': typeof TradesRoute
   '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
@@ -96,6 +103,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/draft-room': typeof DraftRoomRoute
+  '/opportunities': typeof OpportunitiesRoute
   '/portfolio': typeof PortfolioRoute
   '/trades': typeof TradesRoute
   '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/draft-room': typeof DraftRoomRoute
+  '/opportunities': typeof OpportunitiesRoute
   '/portfolio': typeof PortfolioRoute
   '/trades': typeof TradesRoute
   '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/draft-room'
+    | '/opportunities'
     | '/portfolio'
     | '/trades'
     | '/league/$leagueId'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/draft-room'
+    | '/opportunities'
     | '/portfolio'
     | '/trades'
     | '/league/$leagueId'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/draft-room'
+    | '/opportunities'
     | '/portfolio'
     | '/trades'
     | '/league/$leagueId'
@@ -165,6 +177,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DraftRoomRoute: typeof DraftRoomRoute
+  OpportunitiesRoute: typeof OpportunitiesRoute
   PortfolioRoute: typeof PortfolioRoute
   TradesRoute: typeof TradesRoute
   LeagueLeagueIdRoute: typeof LeagueLeagueIdRouteWithChildren
@@ -184,6 +197,13 @@ declare module '@tanstack/react-router' {
       path: '/portfolio'
       fullPath: '/portfolio'
       preLoaderRoute: typeof PortfolioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/opportunities': {
+      id: '/opportunities'
+      path: '/opportunities'
+      fullPath: '/opportunities'
+      preLoaderRoute: typeof OpportunitiesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/draft-room': {
@@ -289,6 +309,7 @@ const LeagueLeagueIdRouteWithChildren = LeagueLeagueIdRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DraftRoomRoute: DraftRoomRoute,
+  OpportunitiesRoute: OpportunitiesRoute,
   PortfolioRoute: PortfolioRoute,
   TradesRoute: TradesRoute,
   LeagueLeagueIdRoute: LeagueLeagueIdRouteWithChildren,

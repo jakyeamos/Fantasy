@@ -9,6 +9,8 @@ from fantasy.routers.dashboard import (
     _build_exploit_windows,
     _derive_primary_weakness,
     _derive_summary_signal,
+    _direction_note,
+    _direction_read,
 )
 
 
@@ -51,6 +53,8 @@ def test_dashboard_summary_returns_league_card(phase3_seed_data):
     league = response.json()[0]
     assert league["league_id"] == "league_x"
     assert league["confidence_band"] in {"High", "Medium", "Low", "--"}
+    assert league["direction_read"] in {"Clear", "Leaning", "Hybrid", "Tentative", "--"}
+    assert isinstance(league["direction_alternates"], list)
     assert league["summary_signal"]
     assert league["primary_weakness"]
     assert league["top_exploit_window"] is not None
@@ -101,6 +105,22 @@ def test_dashboard_flexibility_note_calls_out_dominant_position(phase3_seed_data
     assert note == "WRs are 4 of 6 starters/bench players (67%)."
 
 
+def test_dashboard_primary_weakness_does_not_treat_low_fragility_as_bad():
+    note = _derive_primary_weakness(
+        (0.8, 0.8, 0.8, 0.8, 0.2, 0.1, 0.3, 0.8, 0.8),
+    )
+
+    assert note == "Position mix is skewed toward one position group."
+
+
+def test_dashboard_primary_weakness_treats_high_fragility_as_bad():
+    note = _derive_primary_weakness(
+        (0.8, 0.8, 0.8, 0.8, 0.4, 0.9, 0.2, 0.8, 0.8),
+    )
+
+    assert note == "You have too many brittle weekly outcomes right now."
+
+
 def test_dashboard_league_returns_risers_fallers_and_windows(phase3_seed_data):
     app = create_app()
     app.dependency_overrides[get_read_db_conn] = _override_conn(phase3_seed_data)
@@ -129,10 +149,38 @@ def test_dashboard_league_returns_risers_fallers_and_windows(phase3_seed_data):
     payload = response.json()
     assert payload["league_id"] == "league_x"
     assert "user_roster_id" in payload
+    assert payload["direction_read"] in {"Clear", "Leaning", "Hybrid", "Tentative", "--"}
+    assert isinstance(payload["direction_alternates"], list)
     assert isinstance(payload["exploit_windows"], list)
     assert payload["exploit_windows"]
     assert isinstance(payload["risers"], list)
     assert isinstance(payload["fallers"], list)
+
+
+def test_direction_read_marks_close_boundary_as_hybrid():
+    alternates = [
+        {"label": "retool", "score": 0.605, "gap": 0.004},
+        {"label": "elite_value_accumulation", "score": 0.595, "gap": 0.013},
+    ]
+
+    result = _direction_read(0.288, alternates)
+
+    assert result == "Hybrid"
+    assert _direction_note("productive_struggle", result, alternates) == (
+        "Hybrid read: this roster sits between Productive Struggle, Retool, "
+        "and Elite Value Accumulation."
+    )
+
+
+def test_direction_read_keeps_diffuse_low_signal_tentative():
+    alternates = [
+        {"label": "fringe_playoff", "score": 0.41, "gap": 0.07},
+        {"label": "true_contender", "score": 0.38, "gap": 0.10},
+    ]
+
+    result = _direction_read(0.22, alternates)
+
+    assert result == "Tentative"
 
 
 def test_exploit_windows_skip_unknown_position_chase_and_generic_windows_are_not_high(

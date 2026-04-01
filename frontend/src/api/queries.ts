@@ -20,6 +20,7 @@ import type {
   ManagerProfile,
   ManagerSummary,
   OrphanIntake,
+  OpportunityFeedResponse,
   PickSearchResult,
   PickValue,
   PortfolioExposureResponse,
@@ -217,6 +218,12 @@ export const portfolioExposureOptions = () =>
     queryFn: () => getJson<PortfolioExposureResponse>("/portfolio/exposure"),
     staleTime: 5 * 60 * 1000,
   })
+
+export const opportunityFeedOptions = queryOptions({
+  queryKey: ["opportunities", "feed"],
+  queryFn: () => getJson<OpportunityFeedResponse>("/opportunities"),
+  staleTime: 5 * 60 * 1000,
+})
 
 export const portfolioHealthOptions = () =>
   queryOptions({

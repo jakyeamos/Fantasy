@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link, createFileRoute } from "@tanstack/react-router"
-import { ArrowRight, Radar, ShieldAlert, Sparkles } from "lucide-react"
+import { ArrowRight, Radar, ShieldAlert, Sparkles, TrendingUp } from "lucide-react"
 
-import { dashboardSummaryOptions } from "@/api/queries"
+import { dashboardSummaryOptions, opportunityFeedOptions } from "@/api/queries"
 import { LeagueCard } from "@/components/LeagueCard"
 import { SnapshotStatus } from "@/components/SnapshotStatus"
 import { buttonClasses } from "@/components/ui/button"
@@ -34,6 +34,7 @@ function DashboardSkeleton() {
 
 function DashboardPage() {
   const query = useQuery(dashboardSummaryOptions)
+  const oppQuery = useQuery(opportunityFeedOptions)
 
   if (query.isLoading) {
     return <DashboardSkeleton />
@@ -61,25 +62,26 @@ function DashboardPage() {
     .sort()
     .at(-1) ?? null
   const actionableLeagues = query.data.filter((league) => league.top_exploit_window).length
-  const highConfidenceLeagues = query.data.filter(
-    (league) => league.confidence_band === "High",
+  const clearReadLeagues = query.data.filter(
+    (league) => league.direction_read === "Clear",
   ).length
+  const opportunitiesCount = oppQuery.isLoading ? "—" : String(oppQuery.data?.total ?? 0)
 
   return (
     <div className="space-y-8">
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_repeat(3,minmax(0,1fr))]">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_repeat(4,minmax(0,1fr))]">
         <Card className="overflow-hidden">
           <CardHeader className="space-y-4">
             <div className="flex items-center gap-2">
               <Sparkles className="size-4 text-primary" />
-              <p className="terminal-label text-primary/85">Global Confidence Index</p>
+              <p className="terminal-label text-primary/85">Global Direction Index</p>
             </div>
             <div className="space-y-3">
               <h2 className="font-headline text-4xl font-extrabold tracking-tight">
                 League intelligence at a glance
               </h2>
               <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-                Scan every league by direction, confidence, exploit window, and
+                Scan every league by direction, read clarity, exploit window, and
                 snapshot freshness. Use this view as the front door into each roster,
                 its market posture, and its next likely edge.
               </p>
@@ -87,10 +89,16 @@ function DashboardPage() {
           </CardHeader>
           <CardContent className="flex flex-wrap items-center justify-between gap-4 border-t border-border/40 pt-5">
             <SnapshotStatus lastSnapshotAt={lastSnapshotAt} />
-            <Link to="/portfolio" className={buttonClasses({ variant: "outline" })}>
-              Open Portfolio
-              <ArrowRight className="size-3.5" />
-            </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link to="/portfolio" className={buttonClasses({ variant: "outline" })}>
+                Open Portfolio
+                <ArrowRight className="size-3.5" />
+              </Link>
+              <Link to="/opportunities" className={buttonClasses({ variant: "outline" })}>
+                View Opportunities
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
           </CardContent>
         </Card>
 
@@ -103,9 +111,9 @@ function DashboardPage() {
             tone: "text-primary",
           },
           {
-            label: "High Confidence",
-            value: String(highConfidenceLeagues),
-            helper: "Reliable reads",
+            label: "Clear Reads",
+            value: String(clearReadLeagues),
+            helper: "Strong separation",
             icon: Sparkles,
             tone: "text-accent",
           },
@@ -115,6 +123,13 @@ function DashboardPage() {
             helper: "Actionable markets",
             icon: ShieldAlert,
             tone: "text-destructive",
+          },
+          {
+            label: "Opportunities",
+            value: opportunitiesCount,
+            helper: "Buy, sell, and hold signals",
+            icon: TrendingUp,
+            tone: "text-primary",
           },
         ].map((item) => (
           <Card key={item.label}>

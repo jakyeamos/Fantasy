@@ -21,19 +21,20 @@ def test_auto_detect_calendar_states(db) -> None:
     assert service.active_state("league_x") == "post_combine"
 
 
-def test_manual_override_beats_auto_detection(db) -> None:
-    repo = ContextRepo(db)
-    repo.upsert_override("league_x", "startup")
-
+def test_persisted_override_is_ignored_for_calendar_truth(db) -> None:
+    db.execute(
+        """
+        INSERT INTO calendar_overrides (id, league_id, state, set_by, set_at, expires_at)
+        VALUES (1, 'league_x', 'startup', 'user', CURRENT_TIMESTAMP, NULL)
+        """
+    )
     service = CalendarService(
-        repo=repo,
+        repo=ContextRepo(db),
         now=lambda: datetime(2026, 9, 15, tzinfo=timezone.utc),
     )
 
     context = service.get_context("league_x")
-    assert context.active_state == "startup"
-    assert context.is_override is True
-    assert context.override_set_by == "user"
+    assert context.active_state == "early_season"
 
 
 def test_calendar_guidance_varies_by_state() -> None:
