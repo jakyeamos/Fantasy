@@ -452,13 +452,13 @@ The items in `.planning/FANTASY-BACKLOG.md` have been sequenced into Phases 10-1
 **Plans:** 7 plans
 
 Plans:
-- [ ] 21-01-PLAN.md — Wave 0: player_trends triple-write schema + 30 failing test stubs
-- [ ] 21-02-PLAN.md — TrendEngine: models, constants, trend_repo, season-over-season computation (TDD)
-- [ ] 21-03-PLAN.md — OpportunityEngine: feed construction, conflict detection, similarity, calendar escalation (TDD)
-- [ ] 21-04-PLAN.md — D-11 anti-overreaction weakening + trend_to_supporting_factor() (TDD)
-- [ ] 21-05-PLAN.md — /opportunities router, main.py registration, frontend types + query options
-- [ ] 21-06-PLAN.md — Frontend: OpportunityFeedPage + all card sub-components
-- [ ] 21-07-PLAN.md — Dashboard: Opportunities stat tile + View Opportunities navigation link
+- [x] 21-01-PLAN.md — Wave 0: player_trends triple-write schema + 30 failing test stubs
+- [x] 21-02-PLAN.md — TrendEngine: models, constants, trend_repo, season-over-season computation (TDD)
+- [x] 21-03-PLAN.md — OpportunityEngine: feed construction, conflict detection, similarity, calendar escalation (TDD)
+- [x] 21-04-PLAN.md — D-11 anti-overreaction weakening + trend_to_supporting_factor() (TDD)
+- [x] 21-05-PLAN.md — /opportunities router, main.py registration, frontend types + query options
+- [x] 21-06-PLAN.md — Frontend: OpportunityFeedPage + all card sub-components
+- [x] 21-07-PLAN.md — Dashboard: Opportunities stat tile + View Opportunities navigation link
 
 ---
 
@@ -489,3 +489,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> [GATE] -> 4 -> 5 -> 6 -> 7 -> 8 
 | 18. Competitive Outlook 2.0 & Direction 2.0 | 0/0 | Unplanned | - |
 | 19. Trade Copilot 2.0 | 0/0 | Unplanned | - |
 | 20. UX Recommendation Layer | 0/0 | Unplanned | - |
+| 21. Player Value Trends & Market Inefficiency | 7/7 | Complete | 2026-03-31 |

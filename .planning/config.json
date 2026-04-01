@@ -22,5 +22,6 @@
     "context_warnings": true,
     "workflow_guard": true,
     "research_questions": false
-  }
+  },
+  "brave_search": true
 }

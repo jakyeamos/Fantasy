@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-stopped_at: Phase 17 UI-SPEC approved
-last_updated: "2026-03-28T18:33:52.331Z"
+status: implementing
+stopped_at: Phase 21 implementation complete
+last_updated: "2026-04-01T02:46:20Z"
 progress:
-  total_phases: 20
-  completed_phases: 13
-  total_plans: 70
-  completed_plans: 63
+  total_phases: 21
+  completed_phases: 16
+  total_plans: 83
+  completed_plans: 77
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Tell me what my team is, what my best path is, who to trade with, what kind of deal to make, and whether the prospect or pick decision I'm considering is actually sharp in this format and league.
-**Current focus:** Phase 11 — roster-lineup-intelligence
+**Current focus:** Phase 21 — player value trends and market inefficiency trade suggestions
 
 ## Current Position
 
-Phase: 11 (roster-lineup-intelligence) — EXECUTING
-Plan: 4 of 4
+Phase: 21 (player-value-trends-and-market-inefficiency-trade-suggestions) — COMPLETE
+Plan: 7 of 7
 
 ## Performance Metrics
 
@@ -55,6 +55,11 @@ Plan: 4 of 4
 
 ## Accumulated Context
 
+### Roadmap Evolution
+
+- Phase 21 added: player value trends and market inefficiency trade suggestions
+- Phase 21 executed end to end: trend engine, opportunity feed route, opportunity feed UI, and dashboard entry points
+
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
@@ -76,6 +81,9 @@ Recent decisions affecting current work:
 - [Phase 11]: Used the DraftOrderRule-style summary/edit flow for TaxiConfigForm to maintain league settings UX consistency.
 - [Phase 11]: Consolidation rows explicitly surface counterparty manager name and keep the Evaluate This Package CTA.
 - [Phase 11]: Overview route keeps new lineup and hygiene panels roster-gated while preserving existing panel stack.
+- [Phase 21]: `player_trends` is persisted through valuation write-through and read via a dedicated trends package.
+- [Phase 21]: Opportunity ranking is gap magnitude first, confidence second; low-confidence opportunities still surface when the gap is large enough.
+- [Phase 21]: Veteran decline signals can still convert to buy suggestions when the user has contender contexts on the board.
 
 ### Pending Todos
 
@@ -90,6 +98,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-28T18:33:52.319Z
-Stopped at: Phase 17 UI-SPEC approved
-Resume file: .planning/phases/17-recommendation-market-intelligence/17-UI-SPEC.md
+Last session: 2026-03-31T16:05:01.243Z
+Stopped at: Phase 21 implementation complete
+Resume file: .planning/phases/21-player-value-trends-and-market-inefficiency-trade-suggestions/21-07-SUMMARY.md

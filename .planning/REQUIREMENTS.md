@@ -61,6 +61,12 @@
 - [x] **PICK-05**: User can highlight players likely available at a given pick slot on the rookie board via slot availability filtering based on league draft tendencies (roster-fit reranking replaced by slot availability filtering per D-05/D-06)
 - [x] **PICK-06**: Draft room view answers: best in abstract, best relative to this league's draft tendencies, and when trading the pick is superior (3 questions; "best for this roster" descoped per D-07)
 
+### Format-Specific Intelligence
+
+- [x] **FS-01**: System computes pick values and projected draft slots using each league's actual draft-order rules, not a universal inverse-standings assumption (Phase 10)
+- [x] **FS-02**: System distinguishes a strong roster in abstract from a lineup that can actually win in the current format through an optimal lineup calculator, title-window label, and lineup-level direction signal (Phase 11)
+- [x] **FS-04**: System surfaces actionable low-level roster moves below the trade layer including stash, cut, move-to-taxi, and consolidation suggestions per team, with taxi/IR occupancy and manual exceptions modeled per league (Phase 11)
+
 ### Prospect Lab
 
 - [ ] **PROS-01**: System maintains a historical prospect database covering 10+ years with positional splits (QB, RB, WR, TE)
@@ -115,20 +121,20 @@
 
 ### Lineup Strength 2.0
 
-- [ ] **LS-01**: Lineup scoring benchmarks against both league median and playoff/contender-team median — weakness means different things at each level
-- [ ] **LS-02**: Lineup benchmarks use median as default, not average, to reduce bias from outlier rosters
-- [ ] **LS-03**: Anti-overreaction guard: an elite-tier player (insulation score in top tier) cannot be labeled below replacement from raw recent production alone without contextual flags
-- [ ] **LS-04**: Every team receives at least one "best upgrade leverage point" recommendation with an estimated title equity improvement
-- [ ] **LS-05**: Lineup output separates "weak by median points" from "weak relative to contender path" — these are distinct signals
-- [ ] **LS-06**: Format premium adjustments apply: TE premium reduces urgency of TE weakness relative to equivalent RB weakness in standard formats
+- [x] **LS-01**: Lineup scoring benchmarks against both league median and playoff/contender-team median — weakness means different things at each level
+- [x] **LS-02**: Lineup benchmarks use median as default, not average, to reduce bias from outlier rosters
+- [x] **LS-03**: Anti-overreaction guard: an elite-tier player (insulation score in top tier) cannot be labeled below replacement from raw recent production alone without contextual flags
+- [x] **LS-04**: Every team receives at least one "best upgrade leverage point" recommendation with an estimated title equity improvement
+- [x] **LS-05**: Lineup output separates "weak by median points" from "weak relative to contender path" — these are distinct signals
+- [x] **LS-06**: Format premium adjustments apply: TE premium reduces urgency of TE weakness relative to equivalent RB weakness in standard formats
 
 ### Roster Hygiene 2.0
 
-- [ ] **HYG-01**: Hygiene engine emits 8 distinct action buckets: cut, hold, shop, package, taxi, handcuff/speculative hold, re-roll into pick, use as throw-in now
-- [ ] **HYG-02**: Every hygiene action includes timing logic: why now vs. hold for later, what triggers an action change
-- [ ] **HYG-03**: Packaging logic is explicit: "this player is more useful as a 2-for-1 sweetener than a standalone sell" is a valid and surfaced recommendation
-- [ ] **HYG-04**: Productive veterans with near-zero trade market are never lazily classified as sells — must show a willing buyer archetype or be classified as "hold despite weak market"
-- [ ] **HYG-05**: Every roster receives at least one determination each of: dead roster spot, liquid shop piece, and package candidate — where evidence supports it
+- [x] **HYG-01**: Hygiene engine emits 8 distinct action buckets: cut, hold, shop, package, taxi, handcuff/speculative hold, re-roll into pick, use as throw-in now
+- [x] **HYG-02**: Every hygiene action includes timing logic: why now vs. hold for later, what triggers an action change
+- [x] **HYG-03**: Packaging logic is explicit: "this player is more useful as a 2-for-1 sweetener than a standalone sell" is a valid and surfaced recommendation
+- [x] **HYG-04**: Productive veterans with near-zero trade market are never lazily classified as sells — must show a willing buyer archetype or be classified as "hold despite weak market"
+- [x] **HYG-05**: Every roster receives at least one determination each of: dead roster spot, liquid shop piece, and package candidate — where evidence supports it
 
 ### Trade Copilot 2.0
 
@@ -234,13 +240,15 @@
 | PORT-04 | Phase 9 | Pending |
 | PORT-05 | Phase 9 | Pending |
 | PORT-06 | Phase 9 | Pending |
-
+| FS-01 | Phase 10 | Complete |
+| FS-02 | Phase 11 | Complete |
+| FS-04 | Phase 11 | Complete |
 | REC-01 | Phase 17 | Pending |
 | REC-02 | Phase 17 | Pending |
 | REC-03 | Phase 17 | Pending |
 | REC-04 | Phase 17 | Pending |
 | REC-05 | Phase 17 | Pending |
-| REC-06 | Phase 11-05 / Phase 17 | Pending |
+| REC-06 | Phase 11 / Phase 17 | Partial - lineup/hygiene context flags complete |
 | MKT-01 | Phase 17 | Pending |
 | MKT-02 | Phase 17 | Pending |
 | MKT-03 | Phase 17 | Pending |
@@ -256,17 +264,17 @@
 | DIR2-04 | Phase 18 | Pending |
 | DIR2-05 | Phase 18 | Pending |
 | DIR2-06 | Phase 18 | Pending |
-| LS-01 | Phase 11-05 | Pending |
-| LS-02 | Phase 11-05 | Pending |
-| LS-03 | Phase 11-05 | Pending |
-| LS-04 | Phase 11-05 | Pending |
-| LS-05 | Phase 11-05 | Pending |
-| LS-06 | Phase 11-05 | Pending |
-| HYG-01 | Phase 11-05 | Pending |
-| HYG-02 | Phase 11-05 | Pending |
-| HYG-03 | Phase 11-05 | Pending |
-| HYG-04 | Phase 11-05 | Pending |
-| HYG-05 | Phase 11-05 | Pending |
+| LS-01 | Phase 11 | Complete |
+| LS-02 | Phase 11 | Complete |
+| LS-03 | Phase 11 | Complete |
+| LS-04 | Phase 11 | Complete |
+| LS-05 | Phase 11 | Complete |
+| LS-06 | Phase 11 | Complete |
+| HYG-01 | Phase 11 | Complete |
+| HYG-02 | Phase 11 | Complete |
+| HYG-03 | Phase 11 | Complete |
+| HYG-04 | Phase 11 | Complete |
+| HYG-05 | Phase 11 | Complete |
 | TRADE2-01 | Phase 19 | Pending |
 | TRADE2-02 | Phase 19 | Pending |
 | TRADE2-03 | Phase 19 | Pending |
@@ -284,10 +292,10 @@
 | UX-05 | Phase 20 | Pending |
 
 **Coverage:**
-- v1 requirements: 46 total, mapped: 46 ✓
+- v1 requirements: 49 total, mapped: 49 ✓
 - v1.1 requirements: 47 total, mapped: 47 ✓
-- Grand total: 93 requirements
+- Grand total: 96 requirements
 
 ---
 *Requirements defined: 2026-03-11*
-*Last updated: 2026-03-26 — v1.1 Helpfulness Overhaul requirements added (REC, MKT, COMP, DIR2, LS, HYG, TRADE2, MGR2, UX); phases 17–20 created; phases 11-05 and 12 augmented with 2.0 scope*
+*Last updated: 2026-03-29 — Format-Specific Intelligence requirements formalized (FS-01, FS-02, FS-04); Phase 11 taxi manual exceptions gap closure executed; v1.1 Helpfulness Overhaul requirements retained*
