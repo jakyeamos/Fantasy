@@ -31,7 +31,21 @@ class PortfolioRepo:
     def __init__(self, conn: duckdb.DuckDBPyConnection):
         self._conn = conn
 
-    def _portfolio_owner_selection(self) -> tuple[str | None, bool]:
+    def _portfolio_owner_selection(
+        self, owner_id: str | None = None
+    ) -> tuple[str | None, bool]:
+        if owner_id is not None:
+            row = self._conn.execute(
+                """
+                SELECT owner_id
+                FROM rosters
+                WHERE owner_id = ?
+                LIMIT 1
+                """,
+                [owner_id],
+            ).fetchone()
+            return (str(row[0]), False) if row else (None, False)
+
         settings = get_settings()
 
         if settings.PORTFOLIO_OWNER_ID:
@@ -44,7 +58,7 @@ class PortfolioRepo:
                 """,
                 [settings.PORTFOLIO_OWNER_ID],
             ).fetchone()
-            return (str(row[0]), False) if row else (None, False)
+            return (str(row[0]), False) if row else (None, True)
 
         if settings.PORTFOLIO_OWNER_DISPLAY_NAME:
             row = self._conn.execute(
@@ -60,7 +74,7 @@ class PortfolioRepo:
                 """,
                 [settings.PORTFOLIO_OWNER_DISPLAY_NAME],
             ).fetchone()
-            return (str(row[0]), False) if row else (None, False)
+            return (str(row[0]), False) if row else (None, True)
 
         row = self._conn.execute(
             """
@@ -74,7 +88,7 @@ class PortfolioRepo:
         ).fetchone()
         return (str(row[0]), True) if row else (None, True)
 
-    def _portfolio_roster_rows(self) -> list[dict[str, Any]]:
+    def _portfolio_roster_rows(self, owner_id: str | None = None) -> list[dict[str, Any]]:
         league_rows = self._conn.execute(
             """
             SELECT league_id
@@ -85,7 +99,7 @@ class PortfolioRepo:
         if not league_rows:
             return []
 
-        owner_id, allow_fallback = self._portfolio_owner_selection()
+        owner_id, allow_fallback = self._portfolio_owner_selection(owner_id)
         portfolio_rows: list[dict[str, Any]] = []
         for league_row in league_rows:
             league_id = str(league_row[0])
@@ -145,8 +159,8 @@ class PortfolioRepo:
             for row in rows
         }
 
-    def load_exposure_rows(self) -> list[ExposureRow]:
-        roster_rows = self._portfolio_roster_rows()
+    def load_exposure_rows(self, owner_id: str | None = None) -> list[ExposureRow]:
+        roster_rows = self._portfolio_roster_rows(owner_id)
         player_ids = sorted(
             {
                 player_id
@@ -198,8 +212,10 @@ class PortfolioRepo:
         results.sort(key=lambda row: (-row.league_count, row.full_name.lower(), row.player_id))
         return results
 
-    def load_correlated_risk_rows(self) -> list[CorrelatedRiskRow]:
-        roster_rows = self._portfolio_roster_rows()
+    def load_correlated_risk_rows(
+        self, owner_id: str | None = None
+    ) -> list[CorrelatedRiskRow]:
+        roster_rows = self._portfolio_roster_rows(owner_id)
         player_ids = sorted(
             {
                 player_id

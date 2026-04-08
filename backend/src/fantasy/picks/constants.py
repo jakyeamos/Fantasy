@@ -74,9 +74,12 @@ TOTAL_SEASON_GAMES: int = 14             # standard dynasty regular season
 DIRECTION_DEMAND_MAP: dict[str, float] = {
     "hard_rebuild": 1.0,
     "elite_value_accumulation": 0.9,
+    "soft_rebuild": 0.85,
     "one_year_punt": 0.8,
+    "value_retool": 0.7,
     "retool": 0.6,
     "productive_struggle": 0.5,
+    "transition_contender": 0.45,
     "fringe_playoff": 0.4,
     "fragile_contender": 0.2,
     "true_contender": 0.1,

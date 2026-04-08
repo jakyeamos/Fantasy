@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime, timedelta
 from typing import Any, Literal
 
@@ -14,7 +15,7 @@ from fantasy.context.constants import CALENDAR_GUIDANCE
 from fantasy.context.context_repo import ContextRepo
 from fantasy.context.freshness_service import FreshnessService
 from fantasy.context.models import RecommendationContext
-from fantasy.intelligence.constants import REBUILD_DIRECTION_LABELS
+from fantasy.intelligence.constants import DIRECTION_WEIGHTS, REBUILD_DIRECTION_LABELS
 from fantasy.routers.deps import get_read_db_conn
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -76,7 +77,105 @@ WEAKNESS_LABELS: dict[str, str] = {
 HIGHER_IS_WORSE_FIELDS = {"fragility", "age_risk"}
 
 DirectionReadBand = Literal["Clear", "Leaning", "Hybrid", "Tentative", "--"]
-_HYBRID_DIRECTION_GAP = 0.03
+_HYBRID_DIRECTION_GAP = 0.02
+_DIRECTION_DIMENSION_LABELS: dict[str, str] = {
+    "win_now": "Win-Now Output",
+    "future_value": "Future Value",
+    "depth": "Depth",
+    "pick_capital": "Pick Capital",
+    "flexibility": "Flexibility",
+    "fragility": "Fragility",
+    "age_risk": "Age Risk",
+    "liquidity": "Liquidity",
+    "positional_insulation": "Positional Insulation",
+}
+
+_DIRECTION_DIMENSION_STATE_COPY: dict[str, dict[str, str]] = {
+    "win_now": {
+        "high": "Weekly production is still a real part of this roster.",
+        "mixed": "The roster can score now without forcing a full win-now posture.",
+        "low": "Immediate lineup output is limited.",
+    },
+    "future_value": {
+        "high": "Insulated future value is clearly present.",
+        "mixed": "Future value exists, but it is not the whole story.",
+        "low": "Long-term insulation is thin.",
+    },
+    "depth": {
+        "high": "The roster has playable depth behind the starters.",
+        "mixed": "Depth is serviceable without being a major edge.",
+        "low": "Depth falls off quickly behind the main pieces.",
+    },
+    "pick_capital": {
+        "high": "Draft capital gives this roster extra optionality.",
+        "mixed": "Pick leverage is present, but not decisive.",
+        "low": "Pick capital is limited.",
+    },
+    "flexibility": {
+        "high": "The roster has multiple ways to pivot its next move.",
+        "mixed": "Some pivots are available, but the build is not fully open-ended.",
+        "low": "The roster is more locked into its current shape.",
+    },
+    "fragility": {
+        "high": "Week-to-week outcomes look volatile and narrow.",
+        "mixed": "There is some fragility, but it does not define the whole roster.",
+        "low": "The roster is relatively insulated from brittle weekly outcomes.",
+    },
+    "age_risk": {
+        "high": "The core carries visible age-related downside.",
+        "mixed": "Some age pressure exists, but it is not overwhelming.",
+        "low": "Age-related downside is fairly contained.",
+    },
+    "liquidity": {
+        "high": "This roster holds assets that should stay movable in the market.",
+        "mixed": "Some market liquidity is present, but not across the whole core.",
+        "low": "The roster has fewer clean market exits if you need to pivot.",
+    },
+    "positional_insulation": {
+        "high": "Scarce lineup spots are relatively protected.",
+        "mixed": "Insulation exists at key spots, but not across the full lineup.",
+        "low": "Scarce lineup spots are still exposed.",
+    },
+}
+
+_DIRECTION_DIMENSION_DESIRES: dict[str, dict[str, str]] = {
+    "win_now": {
+        "higher": "usable current-season output",
+        "lower": "less immediate scoring pressure",
+    },
+    "future_value": {
+        "higher": "future leverage",
+        "lower": "less dependence on future insulation",
+    },
+    "depth": {
+        "higher": "playable depth",
+        "lower": "less reliance on bench depth",
+    },
+    "pick_capital": {
+        "higher": "pick leverage",
+        "lower": "less dependence on draft capital",
+    },
+    "flexibility": {
+        "higher": "roster optionality",
+        "lower": "a more committed roster shape",
+    },
+    "fragility": {
+        "higher": "volatility and narrow weekly paths",
+        "lower": "less fragility risk",
+    },
+    "age_risk": {
+        "higher": "age pressure on the core",
+        "lower": "less age-cliff exposure",
+    },
+    "liquidity": {
+        "higher": "market liquidity",
+        "lower": "less dependence on tradable liquidity",
+    },
+    "positional_insulation": {
+        "higher": "lineup insulation at scarce spots",
+        "lower": "less insulation-driven roster value",
+    },
+}
 
 
 class DashboardLeagueSummary(BaseModel):
@@ -95,6 +194,18 @@ class DashboardLeagueSummary(BaseModel):
     top_exploit_window: str | None = None
     last_snapshot_at: str | None = None
     last_ingest_at: str | None = None
+
+
+class LeagueRosterOption(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    roster_id: int
+    owner_id: str | None = None
+    owner_display_name: str | None = None
+    wins: int = 0
+    losses: int = 0
+    ties: int = 0
+    points_for: float = 0.0
 
 
 class RiserFallerEntry(BaseModel):
@@ -123,18 +234,76 @@ class ExploitWindowManager(BaseModel):
     triggers: list[ExploitTrigger]
 
 
+class DirectionFitFlag(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    dimension: str
+    label: str
+    strength: Literal["Strong Fit", "Supporting", "Secondary"]
+    detail: str
+
+
+class ComparativeMetricSummary(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    key: Literal["win_now", "future_value", "title_window"]
+    label: str
+    rank: int
+    league_size: int
+    score: float
+    gap_to_leader: float
+    edge_vs_median: float
+
+
+class PowerRankingEntry(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    roster_id: int
+    manager_name: str
+    rank: int
+    score: float
+    is_user: bool = False
+    direction_label: str | None = None
+    title_window_label: str | None = None
+    record: str | None = None
+
+
+class MatchupPrediction(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    roster_id: int
+    manager_name: str
+    win_probability: float
+    verdict: Literal["favored", "toss_up", "underdog"]
+    reason: str
+
+
+class LeagueCompetitiveLandscape(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    metric_summaries: list[ComparativeMetricSummary] = Field(default_factory=list)
+    win_now_rankings: list[PowerRankingEntry] = Field(default_factory=list)
+    future_value_rankings: list[PowerRankingEntry] = Field(default_factory=list)
+    title_window_rankings: list[PowerRankingEntry] = Field(default_factory=list)
+    matchup_predictions: list[MatchupPrediction] = Field(default_factory=list)
+
+
 class LeagueDetailResponse(BaseModel):
     model_config = ConfigDict(frozen=False)
 
     league_id: str
     league_name: str
     user_roster_id: int | None = None
+    user_roster_name: str | None = None
+    user_owner_id: str | None = None
     user_roster_player_ids: list[str] = Field(default_factory=list)
     direction_label: str
     confidence_band: Literal["High", "Medium", "Low", "--"]
     direction_read: DirectionReadBand = "--"
     direction_alternates: list[str] = Field(default_factory=list)
     direction_note: str | None = None
+    direction_reasoning: str | None = None
+    direction_fit_flags: list[DirectionFitFlag] = Field(default_factory=list)
     primary_weakness: str
     risers: list[RiserFallerEntry]
     fallers: list[RiserFallerEntry]
@@ -142,6 +311,7 @@ class LeagueDetailResponse(BaseModel):
     last_snapshot_at: str | None = None
     last_ingest_at: str | None = None
     recommendation_context: RecommendationContext | None = None
+    competitive_landscape: LeagueCompetitiveLandscape | None = None
 
 
 def _build_recommendation_context(
@@ -268,6 +438,155 @@ def _direction_note(
     return f"Leaning read: {formatted_primary} currently has the strongest signal."
 
 
+def _bucket_label(value: float) -> str:
+    if value >= 0.67:
+        return "High"
+    if value <= 0.33:
+        return "Low"
+    return "Mixed"
+
+
+def _fit_strength(value: float) -> Literal["Strong Fit", "Supporting", "Secondary"]:
+    if value >= 0.72:
+        return "Strong Fit"
+    if value >= 0.55:
+        return "Supporting"
+    return "Secondary"
+
+
+def _band_phrase(value: float) -> str:
+    if value >= 0.67:
+        return "high"
+    if value <= 0.33:
+        return "low"
+    return "mixed"
+
+
+def _team_specific_flag_detail(
+    direction_label: str,
+    dimension: str,
+    value: float,
+    scorecard: dict[str, float],
+) -> str:
+    formatted_direction = _format_model_label(direction_label)
+    score_text = f"{value:.2f}"
+
+    if dimension == "future_value":
+        return (
+            f"Future value grades as {_band_phrase(value)} on this roster's scorecard ({score_text}). "
+            f"There is some forward insulation here, but with win-now output at "
+            f"{scorecard['win_now']:.2f} and pick capital at {scorecard['pick_capital']:.2f}, "
+            f"the team still looks like a {formatted_direction} build instead of a pure stash-and-wait roster."
+        )
+    if dimension == "win_now":
+        return (
+            f"Win-now output is {_band_phrase(value)} for this roster ({score_text}). "
+            f"The current lineup can still post points, which is why this team does not read like a full tear-down, "
+            f"even with future value at {scorecard['future_value']:.2f}."
+        )
+    if dimension == "liquidity":
+        return (
+            f"Liquidity comes in {_band_phrase(value)} on this roster ({score_text}). "
+            f"There are enough movable assets here to pivot if the market opens, which supports a {formatted_direction} lane "
+            f"without forcing an all-in push."
+        )
+    if dimension == "pick_capital":
+        return (
+            f"Pick capital shows as {_band_phrase(value)} for this roster ({score_text}). "
+            f"That gives the team some future leverage, but not enough by itself to overpower the current roster direction."
+        )
+    if dimension == "depth":
+        return (
+            f"Depth grades {_band_phrase(value)} for this team ({score_text}). "
+            f"The roster has enough playable support pieces to stay functional, but depth is not carrying the identity of the build."
+        )
+    if dimension == "flexibility":
+        return (
+            f"Flexibility lands in the {_band_phrase(value)} range for this roster ({score_text}). "
+            f"The team has multiple pivot paths, but it is not so open-ended that the direction becomes undefined."
+        )
+    if dimension == "fragility":
+        return (
+            f"Fragility grades {_band_phrase(value)} on this roster ({score_text}). "
+            f"That tells you how narrow the weekly margin is: lower fragility supports this direction, while higher fragility would push it toward a thinner, shakier read."
+        )
+    if dimension == "age_risk":
+        return (
+            f"Age risk comes in {_band_phrase(value)} for this core ({score_text}). "
+            f"That matters because this roster is balancing current output with how quickly the value base could decay."
+        )
+    if dimension == "positional_insulation":
+        return (
+            f"Positional insulation reads {_band_phrase(value)} for this roster ({score_text}). "
+            f"Scarce lineup spots are protected enough to keep the build stable, but not so insulated that the team jumps into a cleaner contender bucket."
+        )
+
+    return (
+        f"{_DIRECTION_DIMENSION_LABELS.get(dimension, dimension.replace('_', ' ').title())} "
+        f"grades as {_band_phrase(value)} for this roster ({score_text}), which helps explain the "
+        f"{formatted_direction} read."
+    )
+
+
+def _direction_fit_flags(
+    direction_label: str,
+    scorecard_row: tuple[Any, ...] | None,
+) -> list[DirectionFitFlag]:
+    if scorecard_row is None:
+        return []
+    weights = DIRECTION_WEIGHTS.get(direction_label)
+    if weights is None:
+        return []
+
+    scorecard = {
+        field: float(value)
+        for field, value in zip(SCORECARD_FIELDS, scorecard_row, strict=False)
+    }
+
+    ranked_dimensions = sorted(
+        scorecard.items(),
+        key=lambda item: abs(weights.get(item[0], 0.0))
+        * (
+            item[1]
+            if weights.get(item[0], 0.0) >= 0.0
+            else 1.0 - item[1]
+        ),
+        reverse=True,
+    )
+
+    flags: list[DirectionFitFlag] = []
+    for dimension, value in ranked_dimensions:
+        weight = weights.get(dimension, 0.0)
+        if abs(weight) < 1e-9:
+            continue
+        fit_value = value if weight >= 0.0 else 1.0 - value
+        desired_key = "higher" if weight >= 0.0 else "lower"
+        level = _bucket_label(value).lower()
+        dimension_label = _DIRECTION_DIMENSION_LABELS.get(
+            dimension,
+            dimension.replace("_", " ").title(),
+        )
+        detail = " ".join(
+            [
+                _team_specific_flag_detail(direction_label, dimension, value, scorecard),
+                _DIRECTION_DIMENSION_STATE_COPY[dimension][level],
+                f"{_format_model_label(direction_label)} fits when the roster shows "
+                f"{_DIRECTION_DIMENSION_DESIRES[dimension][desired_key]}.",
+            ]
+        )
+        flags.append(
+            DirectionFitFlag(
+                dimension=dimension,
+                label=f"{_bucket_label(value)} {dimension_label}",
+                strength=_fit_strength(fit_value),
+                detail=detail,
+            )
+        )
+        if len(flags) == 3:
+            break
+    return flags
+
+
 def _ordinal(value: int) -> str:
     if 10 <= value % 100 <= 20:
         suffix = "th"
@@ -326,6 +645,301 @@ def _derive_summary_signal(
 
     label = SUMMARY_SIGNAL_NEUTRAL_LABELS[best_field]
     return f"{label} is {rank_label} of {league_size} in this league."
+
+
+def _median_value(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    midpoint = len(ordered) // 2
+    if len(ordered) % 2 != 0:
+        return float(ordered[midpoint])
+    return float((ordered[midpoint - 1] + ordered[midpoint]) / 2)
+
+
+def _record_label(
+    wins: int | None,
+    losses: int | None,
+    ties: int | None,
+) -> str | None:
+    if wins is None or losses is None:
+        return None
+    if ties is None or ties == 0:
+        return f"{wins}-{losses}"
+    return f"{wins}-{losses}-{ties}"
+
+
+def _league_competition_rows(
+    conn: duckdb.DuckDBPyConnection,
+    league_id: str,
+) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        """
+        SELECT
+            r.roster_id,
+            COALESCE(
+                NULLIF(r.owner_display_name, ''),
+                NULLIF(r.owner_id, ''),
+                'Roster ' || CAST(r.roster_id AS VARCHAR)
+            ) AS manager_name,
+            td.primary_label,
+            ts.win_now,
+            ts.future_value,
+            ls.title_window_composite,
+            ls.title_window_label,
+            ls.ceiling_score,
+            ls.stability_score,
+            ls.depth_score,
+            st.wins,
+            st.losses,
+            st.ties
+        FROM rosters r
+        LEFT JOIN team_directions td
+            ON td.league_id = r.league_id AND td.roster_id = r.roster_id
+        LEFT JOIN team_scorecards ts
+            ON ts.league_id = r.league_id AND ts.roster_id = r.roster_id
+        LEFT JOIN lineup_scores ls
+            ON ls.league_id = r.league_id AND ls.roster_id = r.roster_id
+        LEFT JOIN standings st
+            ON st.league_id = r.league_id AND st.roster_id = r.roster_id
+        WHERE r.league_id = ?
+        ORDER BY r.roster_id
+        """,
+        [league_id],
+    ).fetchall()
+
+    competition_rows: list[dict[str, Any]] = []
+    for row in rows:
+        wins = int(row[10]) if row[10] is not None else None
+        losses = int(row[11]) if row[11] is not None else None
+        ties = int(row[12]) if row[12] is not None else None
+        competition_rows.append(
+            {
+                "roster_id": int(row[0]),
+                "manager_name": str(row[1]),
+                "direction_label": str(row[2]) if row[2] is not None else None,
+                "win_now": float(row[3]) if row[3] is not None else None,
+                "future_value": float(row[4]) if row[4] is not None else None,
+                "title_window": float(row[5]) if row[5] is not None else None,
+                "title_window_label": str(row[6]) if row[6] is not None else None,
+                "ceiling_score": float(row[7]) if row[7] is not None else None,
+                "stability_score": float(row[8]) if row[8] is not None else None,
+                "depth_score": float(row[9]) if row[9] is not None else None,
+                "record": _record_label(wins, losses, ties),
+            }
+        )
+    return competition_rows
+
+
+def _rank_metric_rows(
+    rows: list[dict[str, Any]],
+    key: Literal["win_now", "future_value", "title_window"],
+) -> list[dict[str, Any]]:
+    ranked = [row for row in rows if row.get(key) is not None]
+    return sorted(
+        ranked,
+        key=lambda row: (-float(row[key]), int(row["roster_id"])),
+    )
+
+
+def _build_metric_summary(
+    rows: list[dict[str, Any]],
+    user_roster_id: int,
+    key: Literal["win_now", "future_value", "title_window"],
+    label: str,
+) -> ComparativeMetricSummary | None:
+    ranked = _rank_metric_rows(rows, key)
+    if not ranked:
+        return None
+
+    user_row = next((row for row in ranked if int(row["roster_id"]) == user_roster_id), None)
+    if user_row is None:
+        return None
+
+    user_score = float(user_row[key])
+    values = [float(row[key]) for row in ranked]
+    leader_score = float(values[0])
+    median_score = _median_value(values)
+    rank = next(
+        index
+        for index, row in enumerate(ranked, start=1)
+        if int(row["roster_id"]) == user_roster_id
+    )
+    return ComparativeMetricSummary(
+        key=key,
+        label=label,
+        rank=rank,
+        league_size=len(ranked),
+        score=round(user_score, 3),
+        gap_to_leader=round(max(0.0, leader_score - user_score), 3),
+        edge_vs_median=round(user_score - median_score, 3),
+    )
+
+
+def _build_power_rankings(
+    rows: list[dict[str, Any]],
+    user_roster_id: int | None,
+    key: Literal["win_now", "future_value", "title_window"],
+) -> list[PowerRankingEntry]:
+    ranked = _rank_metric_rows(rows, key)
+    return [
+        PowerRankingEntry(
+            roster_id=int(row["roster_id"]),
+            manager_name=str(row["manager_name"]),
+            rank=index,
+            score=round(float(row[key]), 3),
+            is_user=user_roster_id is not None and int(row["roster_id"]) == user_roster_id,
+            direction_label=str(row["direction_label"]) if row["direction_label"] else None,
+            title_window_label=(
+                str(row["title_window_label"]) if row["title_window_label"] else None
+            ),
+            record=str(row["record"]) if row["record"] else None,
+        )
+        for index, row in enumerate(ranked, start=1)
+    ]
+
+
+def _join_phrases(parts: list[str]) -> str:
+    cleaned = [part.strip() for part in parts if part.strip()]
+    if not cleaned:
+        return ""
+    if len(cleaned) == 1:
+        return cleaned[0]
+    if len(cleaned) == 2:
+        return f"{cleaned[0]} and {cleaned[1]}"
+    return f"{', '.join(cleaned[:-1])}, and {cleaned[-1]}"
+
+
+def _matchup_reason(components: dict[str, float]) -> str:
+    labels = {
+        "title_window": "title-window strength",
+        "ceiling": "ceiling",
+        "stability": "weekly stability",
+        "depth": "depth",
+        "win_now": "win-now base",
+    }
+    positives = [
+        labels[key]
+        for key, value in sorted(components.items(), key=lambda item: abs(item[1]), reverse=True)
+        if value > 0.03
+    ]
+    negatives = [
+        labels[key]
+        for key, value in sorted(components.items(), key=lambda item: abs(item[1]), reverse=True)
+        if value < -0.03
+    ]
+    if positives and not negatives:
+        return f"Your edge comes from stronger {_join_phrases(positives[:2])}."
+    if negatives and not positives:
+        return f"This opponent currently has the better {_join_phrases(negatives[:2])}."
+    if positives and negatives:
+        return (
+            f"You lead in {positives[0]}, but they answer with better {negatives[0]}."
+        )
+    return "These rosters project close across ceiling, stability, and depth."
+
+
+def _build_matchup_predictions(
+    rows: list[dict[str, Any]],
+    user_roster_id: int,
+) -> list[MatchupPrediction]:
+    user_row = next((row for row in rows if int(row["roster_id"]) == user_roster_id), None)
+    if user_row is None:
+        return []
+    required_keys = ("title_window", "ceiling_score", "stability_score", "depth_score")
+    if any(user_row.get(key) is None for key in required_keys):
+        return []
+
+    predictions: list[MatchupPrediction] = []
+    for opponent in rows:
+        if int(opponent["roster_id"]) == user_roster_id:
+            continue
+        if any(opponent.get(key) is None for key in required_keys):
+            continue
+
+        components = {
+            "title_window": float(user_row["title_window"]) - float(opponent["title_window"]),
+            "ceiling": float(user_row["ceiling_score"]) - float(opponent["ceiling_score"]),
+            "stability": float(user_row["stability_score"]) - float(opponent["stability_score"]),
+            "depth": float(user_row["depth_score"]) - float(opponent["depth_score"]),
+            "win_now": (
+                float(user_row["win_now"]) - float(opponent["win_now"])
+                if user_row.get("win_now") is not None and opponent.get("win_now") is not None
+                else 0.0
+            ),
+        }
+        matchup_edge = (
+            1.35 * components["title_window"]
+            + 0.8 * components["ceiling"]
+            + 0.6 * components["stability"]
+            + 0.45 * components["depth"]
+            + 0.35 * components["win_now"]
+        )
+        win_probability = 1.0 / (1.0 + math.exp(-(matchup_edge * 2.25)))
+        if win_probability >= 0.6:
+            verdict: Literal["favored", "toss_up", "underdog"] = "favored"
+        elif win_probability <= 0.4:
+            verdict = "underdog"
+        else:
+            verdict = "toss_up"
+        predictions.append(
+            MatchupPrediction(
+                roster_id=int(opponent["roster_id"]),
+                manager_name=str(opponent["manager_name"]),
+                win_probability=round(win_probability, 3),
+                verdict=verdict,
+                reason=_matchup_reason(components),
+            )
+        )
+
+    return sorted(
+        predictions,
+        key=lambda prediction: (prediction.win_probability, prediction.roster_id),
+    )
+
+
+def _build_competitive_landscape(
+    conn: duckdb.DuckDBPyConnection,
+    league_id: str,
+    user_roster_id: int | None,
+) -> LeagueCompetitiveLandscape | None:
+    if user_roster_id is None:
+        return None
+
+    rows = _league_competition_rows(conn, league_id)
+    if not rows:
+        return None
+
+    metric_summaries = [
+        summary
+        for summary in (
+            _build_metric_summary(rows, user_roster_id, "win_now", "Win Now"),
+            _build_metric_summary(rows, user_roster_id, "future_value", "Future Value"),
+            _build_metric_summary(rows, user_roster_id, "title_window", "Title Window"),
+        )
+        if summary is not None
+    ]
+    win_now_rankings = _build_power_rankings(rows, user_roster_id, "win_now")
+    future_value_rankings = _build_power_rankings(rows, user_roster_id, "future_value")
+    title_window_rankings = _build_power_rankings(rows, user_roster_id, "title_window")
+    matchup_predictions = _build_matchup_predictions(rows, user_roster_id)
+
+    if (
+        not metric_summaries
+        and not win_now_rankings
+        and not future_value_rankings
+        and not title_window_rankings
+        and not matchup_predictions
+    ):
+        return None
+
+    return LeagueCompetitiveLandscape(
+        metric_summaries=metric_summaries,
+        win_now_rankings=win_now_rankings,
+        future_value_rankings=future_value_rankings,
+        title_window_rankings=title_window_rankings,
+        matchup_predictions=matchup_predictions,
+    )
 
 
 def _position_group_phrase(position: str, count: int) -> tuple[str, str]:
@@ -440,7 +1054,7 @@ def _portfolio_owner_selection(
             """,
             [settings.PORTFOLIO_OWNER_ID],
         ).fetchone()
-        return (str(row[0]), False) if row else (None, False)
+        return (str(row[0]), False) if row else (None, True)
 
     if settings.PORTFOLIO_OWNER_DISPLAY_NAME:
         row = conn.execute(
@@ -456,7 +1070,7 @@ def _portfolio_owner_selection(
             """,
             [settings.PORTFOLIO_OWNER_DISPLAY_NAME],
         ).fetchone()
-        return (str(row[0]), False) if row else (None, False)
+        return (str(row[0]), False) if row else (None, True)
 
     row = conn.execute(
         """
@@ -508,6 +1122,56 @@ def _user_roster_for_league(
     if fallback is None:
         return None, None
     return int(fallback[0]), fallback[1]
+
+
+def _requested_roster_for_league(
+    conn: duckdb.DuckDBPyConnection,
+    league_id: str,
+    requested_roster_id: int | None,
+    portfolio_owner_id: str | None,
+    *,
+    allow_fallback: bool,
+) -> tuple[int | None, str | None, str | None]:
+    if requested_roster_id is not None and requested_roster_id > 0:
+        requested = conn.execute(
+            """
+            SELECT roster_id, owner_id, owner_display_name
+            FROM rosters
+            WHERE league_id = ? AND roster_id = ?
+            LIMIT 1
+            """,
+            [league_id, requested_roster_id],
+        ).fetchone()
+        if requested is not None:
+            return (
+                int(requested[0]),
+                str(requested[1]) if requested[1] is not None else None,
+                str(requested[2]) if requested[2] is not None else None,
+            )
+
+    roster_id, owner_id = _user_roster_for_league(
+        conn,
+        league_id,
+        portfolio_owner_id,
+        allow_fallback=allow_fallback,
+    )
+    if roster_id is None:
+        return None, None, None
+
+    row = conn.execute(
+        """
+        SELECT owner_display_name
+        FROM rosters
+        WHERE league_id = ? AND roster_id = ?
+        LIMIT 1
+        """,
+        [league_id, roster_id],
+    ).fetchone()
+    return (
+        roster_id,
+        str(owner_id) if owner_id is not None else None,
+        str(row[0]) if row and row[0] is not None else None,
+    )
 
 
 def _latest_snapshot_at(conn: duckdb.DuckDBPyConnection, league_id: str) -> str | None:
@@ -899,9 +1563,44 @@ def get_dashboard_summary(
     return summaries
 
 
+@router.get("/league/{league_id}/rosters", response_model=list[LeagueRosterOption])
+def get_league_rosters(
+    league_id: str,
+    conn: duckdb.DuckDBPyConnection = Depends(get_read_db_conn),
+) -> list[LeagueRosterOption]:
+    rows = conn.execute(
+        """
+        SELECT r.roster_id, r.owner_id, r.owner_display_name,
+               COALESCE(s.wins, 0), COALESCE(s.losses, 0), COALESCE(s.ties, 0),
+               COALESCE(s.fpts, 0.0)
+        FROM rosters r
+        LEFT JOIN standings s
+          ON s.league_id = r.league_id
+         AND s.roster_id = r.roster_id
+        WHERE r.league_id = ?
+        ORDER BY r.roster_id
+        """,
+        [league_id],
+    ).fetchall()
+
+    return [
+        LeagueRosterOption(
+            roster_id=int(row[0]),
+            owner_id=str(row[1]) if row[1] is not None else None,
+            owner_display_name=str(row[2]) if row[2] is not None else None,
+            wins=int(row[3] or 0),
+            losses=int(row[4] or 0),
+            ties=int(row[5] or 0),
+            points_for=float(row[6] or 0.0),
+        )
+        for row in rows
+    ]
+
+
 @router.get("/league/{league_id}", response_model=LeagueDetailResponse)
 def get_league_detail(
     league_id: str,
+    roster_id: int | None = None,
     conn: duckdb.DuckDBPyConnection = Depends(get_read_db_conn),
 ) -> LeagueDetailResponse:
     league_row = conn.execute(
@@ -912,9 +1611,10 @@ def get_league_detail(
         raise HTTPException(status_code=404, detail="League not found")
 
     portfolio_owner, allow_fallback = _portfolio_owner_selection(conn)
-    roster_id, _ = _user_roster_for_league(
+    roster_id, owner_id, owner_display_name = _requested_roster_for_league(
         conn,
         league_id,
+        roster_id,
         portfolio_owner,
         allow_fallback=allow_fallback,
     )
@@ -923,13 +1623,15 @@ def get_league_detail(
     direction_read: DirectionReadBand = "--"
     direction_alternates: list[str] = []
     direction_note: str | None = None
+    direction_reasoning: str | None = None
     primary_weakness = "Run Phase 2 intelligence to surface the primary roster weakness."
     user_roster_player_ids: list[str] = []
+    scorecard_row: tuple[Any, ...] | None = None
 
     if roster_id is not None:
         direction_row = conn.execute(
             """
-            SELECT primary_label, confidence, alternates_json
+            SELECT primary_label, confidence, reasoning, alternates_json
             FROM team_directions
             WHERE league_id = ? AND roster_id = ?
             """,
@@ -938,7 +1640,10 @@ def get_league_detail(
         if direction_row is not None:
             direction_label = str(direction_row[0])
             confidence = float(direction_row[1])
-            alternates = _loads(direction_row[2], [])
+            direction_reasoning = (
+                str(direction_row[2]) if direction_row[2] is not None else None
+            )
+            alternates = _loads(direction_row[3], [])
             confidence_band = _band(confidence)
             direction_read = _direction_read(confidence, alternates)
             direction_alternates = _alternate_labels(alternates)
@@ -984,12 +1689,17 @@ def get_league_detail(
         league_id=league_id,
         league_name=str(league_row[0]),
         user_roster_id=roster_id,
+        user_roster_name=owner_display_name
+        or (f"Roster {roster_id}" if roster_id is not None else None),
+        user_owner_id=owner_id,
         user_roster_player_ids=user_roster_player_ids,
         direction_label=direction_label,
         confidence_band=confidence_band,
         direction_read=direction_read,
         direction_alternates=direction_alternates,
         direction_note=direction_note,
+        direction_reasoning=direction_reasoning,
+        direction_fit_flags=_direction_fit_flags(direction_label, scorecard_row),
         primary_weakness=primary_weakness,
         risers=risers,
         fallers=fallers,
@@ -997,4 +1707,5 @@ def get_league_detail(
         last_snapshot_at=_latest_snapshot_at(conn, league_id),
         last_ingest_at=_latest_ingest_at(conn, league_id),
         recommendation_context=_build_recommendation_context(conn, league_id),
+        competitive_landscape=_build_competitive_landscape(conn, league_id, roster_id),
     )

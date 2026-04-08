@@ -13,12 +13,13 @@ router = APIRouter(prefix="/portfolio", tags=["portfolio"])
 
 @router.get("/exposure", response_model=PortfolioExposureResponse)
 def get_exposure(
+    owner_id: str | None = None,
     conn: duckdb.DuckDBPyConnection = Depends(get_read_db_conn),
 ) -> PortfolioExposureResponse:
     engine = PortfolioEngine(conn)
     return PortfolioExposureResponse(
-        exposure=engine.compute_exposure(),
-        correlated_risk=engine.compute_correlated_risk(),
+        exposure=engine.compute_exposure(owner_id),
+        correlated_risk=engine.compute_correlated_risk(owner_id),
     )
 
 

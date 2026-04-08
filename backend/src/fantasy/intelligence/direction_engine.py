@@ -24,10 +24,13 @@ class DirectionEngine:
         "true_contender": "True contender teams have high win-now production with depth to protect the ceiling.",
         "fragile_contender": "Fragile contender teams can win now, but their path is narrow and exposed to volatility.",
         "fringe_playoff": "Fringe playoff teams are competitive enough to matter, but not insulated enough to force an all-in push.",
+        "transition_contender": "Transition contender teams still have a real weekly ceiling, but they need to preserve future flexibility instead of forcing a premature shove.",
         "productive_struggle": "Productive struggle teams can score now while still redirecting value toward the future.",
         "one_year_punt": "One-year punt teams intentionally defer points to maximize future leverage.",
         "retool": "Retool teams keep a workable core while actively stripping out age and fragility.",
+        "value_retool": "Value retool teams keep enough of a scoring spine to stay alive while leaning harder into optionality, liquidity, and patient value collection.",
         "elite_value_accumulation": "Elite value accumulation teams prioritize liquid value and optionality over immediate lineup points.",
+        "soft_rebuild": "Soft rebuild teams are future-first, but they still carry enough usable production that a total tear-down is not the cleanest description.",
         "hard_rebuild": "Hard rebuild teams sacrifice current points to maximize youth and pick capital.",
     }
 

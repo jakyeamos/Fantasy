@@ -25,6 +25,54 @@ def _loads(raw: str | None, fallback: Any) -> Any:
         return fallback
 
 
+_REQUIRED_LINEUP_SLOT_KEYS = {
+    "contender_benchmark",
+    "playoff_target",
+    "title_target",
+    "elite_target",
+    "upgrade_leverage_score",
+    "gap_to_playoff_target",
+    "gap_to_title_target",
+    "gap_to_elite_target",
+    "weak_by_median",
+    "below_playoff_target",
+    "below_title_target",
+    "below_elite_target",
+    "weak_relative_to_contender",
+    "benchmark_used",
+    "benchmark_source",
+    "benchmark_sample_size",
+    "elite_insulation_guard",
+    "format_urgency_weight",
+    "player_context_flags",
+}
+
+_REQUIRED_HYGIENE_SUGGESTION_KEYS = {
+    "timing_rationale",
+    "player_context_flags",
+}
+
+
+def _lineup_cache_complete(slots_raw: Any) -> bool:
+    if not isinstance(slots_raw, list):
+        return False
+    return all(
+        isinstance(slot, dict) and _REQUIRED_LINEUP_SLOT_KEYS.issubset(slot)
+        for slot in slots_raw
+    )
+
+
+def _hygiene_cache_complete(suggestions_raw: Any) -> bool:
+    if not isinstance(suggestions_raw, list):
+        return False
+    return all(
+        isinstance(suggestion, dict)
+        and _REQUIRED_HYGIENE_SUGGESTION_KEYS.issubset(suggestion)
+        and bool(str(suggestion.get("timing_rationale", "")).strip())
+        for suggestion in suggestions_raw
+    )
+
+
 class LineupRepo:
     def __init__(self, conn: duckdb.DuckDBPyConnection):
         self._conn = conn
@@ -117,9 +165,12 @@ class LineupRepo:
             INSERT INTO lineup_scores (
                 id, league_id, roster_id, total_lineup_score, title_window_label,
                 title_window_composite, ceiling_score, stability_score, depth_score,
-                slot_scores_json, recommendation_cards_json
+                overall_playoff_target, overall_title_target, overall_elite_target,
+                overall_gap_to_playoff_target, overall_gap_to_title_target,
+                overall_gap_to_elite_target, overall_benchmark_source,
+                overall_benchmark_sample_size, slot_scores_json, recommendation_cards_json
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (league_id, roster_id) DO UPDATE SET
                 total_lineup_score = EXCLUDED.total_lineup_score,
                 title_window_label = EXCLUDED.title_window_label,
@@ -127,6 +178,14 @@ class LineupRepo:
                 ceiling_score = EXCLUDED.ceiling_score,
                 stability_score = EXCLUDED.stability_score,
                 depth_score = EXCLUDED.depth_score,
+                overall_playoff_target = EXCLUDED.overall_playoff_target,
+                overall_title_target = EXCLUDED.overall_title_target,
+                overall_elite_target = EXCLUDED.overall_elite_target,
+                overall_gap_to_playoff_target = EXCLUDED.overall_gap_to_playoff_target,
+                overall_gap_to_title_target = EXCLUDED.overall_gap_to_title_target,
+                overall_gap_to_elite_target = EXCLUDED.overall_gap_to_elite_target,
+                overall_benchmark_source = EXCLUDED.overall_benchmark_source,
+                overall_benchmark_sample_size = EXCLUDED.overall_benchmark_sample_size,
                 slot_scores_json = EXCLUDED.slot_scores_json,
                 recommendation_cards_json = EXCLUDED.recommendation_cards_json,
                 computed_at = now()
@@ -141,6 +200,14 @@ class LineupRepo:
                 result.ceiling_score,
                 result.stability_score,
                 result.depth_score,
+                result.overall_playoff_target,
+                result.overall_title_target,
+                result.overall_elite_target,
+                result.overall_gap_to_playoff_target,
+                result.overall_gap_to_title_target,
+                result.overall_gap_to_elite_target,
+                result.overall_benchmark_source,
+                result.overall_benchmark_sample_size,
                 slot_json,
                 json.dumps(
                     [card.model_dump() for card in result.recommendation_cards or []],
@@ -154,7 +221,11 @@ class LineupRepo:
             """
             SELECT league_id, roster_id, CAST(computed_at AS VARCHAR),
                    total_lineup_score, title_window_label, title_window_composite,
-                   ceiling_score, stability_score, depth_score, slot_scores_json,
+                   ceiling_score, stability_score, depth_score, overall_playoff_target,
+                   overall_title_target, overall_elite_target,
+                   overall_gap_to_playoff_target, overall_gap_to_title_target,
+                   overall_gap_to_elite_target, overall_benchmark_source,
+                   overall_benchmark_sample_size, slot_scores_json,
                    recommendation_cards_json
             FROM lineup_scores
             WHERE league_id = ? AND roster_id = ?
@@ -164,9 +235,13 @@ class LineupRepo:
         ).fetchone()
         if row is None:
             return None
-        slots_raw = _loads(row[9], [])
+        if any(row[index] is None for index in range(9, 17)):
+            return None
+        slots_raw = _loads(row[17], [])
+        if not _lineup_cache_complete(slots_raw):
+            return None
         slot_scores = [LineupSlotScore(**s) for s in slots_raw]
-        cards_raw = _loads(row[10], [])
+        cards_raw = _loads(row[18], [])
         best_slot = max(
             slot_scores,
             key=lambda slot: (
@@ -187,15 +262,21 @@ class LineupRepo:
             computed_at=row[2],
             slot_scores=slot_scores,
             total_lineup_score=float(row[3]),
+            overall_playoff_target=float(row[9]),
+            overall_title_target=float(row[10]),
+            overall_elite_target=float(row[11]),
+            overall_gap_to_playoff_target=float(row[12]),
+            overall_gap_to_title_target=float(row[13]),
+            overall_gap_to_elite_target=float(row[14]),
+            overall_benchmark_source=str(row[15]),
+            overall_benchmark_sample_size=int(row[16]),
             title_window_label=str(row[4]),
             title_window_composite=float(row[5]),
             ceiling_score=float(row[6]),
             stability_score=float(row[7]),
             depth_score=float(row[8]),
             recommendation_cards=[RecommendationCard(**card) for card in cards_raw],
-            contender_benchmark_used=any(
-                slot.contender_benchmark > 0.0 for slot in slot_scores
-            ),
+            contender_benchmark_used=any(slot.benchmark_used for slot in slot_scores),
             upgrade_leverage_point=(
                 f"{best_slot.player_name} ({best_slot.position})"
                 if best_slot
@@ -256,6 +337,8 @@ class LineupRepo:
         if row is None:
             return None
         raw = _loads(row[3], [])
+        if not _hygiene_cache_complete(raw):
+            return None
         suggestions = [HygieneSuggestion(**s) for s in raw]
         cards = [RecommendationCard(**card) for card in _loads(row[4], [])]
         return HygieneResult(

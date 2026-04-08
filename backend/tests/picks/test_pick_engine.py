@@ -14,6 +14,7 @@ from fantasy.picks.pick_engine import (
     compute_timing_rec,
     expected_draft_slot,
     expected_draft_slot_max_pf,
+    project_future_draft_slot,
     projected_pick_label,
     slot_to_base_value,
 )
@@ -519,6 +520,30 @@ def test_compute_future_year_pick_applies_discount(db):
     future_value = engine.compute(future_pick, "league_x")
     assert future_value.base_value < current_value.base_value
     assert future_value.years_out == 1
+
+
+def test_project_future_draft_slot_regresses_current_owner_strength():
+    repo = _FakeRepo()
+
+    slot = project_future_draft_slot(
+        repo.draft_order_rule,
+        repo.standings,
+        repo.league_context.league_size,
+        1,
+        roster_id=repo.standings.roster_id,
+    )
+
+    assert slot is not None
+    assert slot == pytest.approx(5.25)
+
+
+def test_compute_future_year_pick_uses_regressed_projection_instead_of_midpoint(db):
+    engine = _build_engine(db, repo=_FakeRepo(season=2026), month=4)
+    future_pick = TradeAsset(asset_type="pick", pick_owner_roster_id=1, pick_year=2027, pick_round=1)
+
+    result = engine.compute(future_pick, "league_x")
+
+    assert result.expected_draft_slot == pytest.approx(5.25)
 
 
 def test_compute_second_round_pick_is_less_valuable_than_first_round_pick(db):

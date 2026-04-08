@@ -324,14 +324,68 @@ def test_lineup_strength_2_contender_benchmark_and_upgrade_leverage():
     low_slot = results[6].slot_scores[0]
 
     assert results[3].contender_benchmark_used is True
-    assert contender_slot.contender_benchmark >= contender_slot.replacement_level
-    assert contender_slot.upgrade_leverage_score > 0.0
+    assert contender_slot.benchmark_used is True
+    assert contender_slot.benchmark_source == "benchmark_pool"
+    assert contender_slot.playoff_target >= contender_slot.replacement_level
+    assert contender_slot.title_target >= contender_slot.playoff_target
+    assert contender_slot.elite_target >= contender_slot.title_target
+    assert contender_slot.contender_benchmark == contender_slot.title_target
+    assert results[3].overall_playoff_target >= results[3].total_lineup_score
+    assert results[3].overall_title_target >= results[3].overall_playoff_target
+    assert results[3].overall_elite_target >= results[3].overall_title_target
+    assert results[3].overall_gap_to_title_target > 0.0
+    assert contender_slot.gap_to_playoff_target > 0.0
+    assert contender_slot.gap_to_title_target == contender_slot.upgrade_leverage_score
+    assert contender_slot.gap_to_elite_target >= contender_slot.gap_to_title_target
     assert contender_slot.weak_by_median is False
+    assert contender_slot.below_playoff_target is True
+    assert contender_slot.below_title_target is True
+    assert contender_slot.below_elite_target is True
     assert contender_slot.weak_relative_to_contender is True
     assert results[3].upgrade_leverage_point == "q3 (QB)"
     assert 0.0 < results[3].upgrade_title_equity_delta <= 1.0
     assert low_slot.weak_by_median is True
+    assert low_slot.below_playoff_target is True
     assert low_slot.weak_relative_to_contender is True
+
+
+def test_lineup_strength_uses_tier_targets_in_small_leagues():
+    conn = duckdb.connect(":memory:")
+    eng = LineupEngine(conn)
+    all_in = {
+        roster_id: _base_inputs(
+            roster_id,
+            roster_positions=["QB", "BN"],
+            starters=[f"q{roster_id}"],
+            bench=[],
+            weekly={f"q{roster_id}": weekly},
+            player_positions={f"q{roster_id}": "QB"},
+        )
+        for roster_id, weekly in {
+            1: 30.0,
+            2: 20.0,
+            3: 14.0,
+        }.items()
+    }
+    scorecards = {
+        roster_id: _scorecard(
+            "league_t",
+            roster_id,
+            fragility=0.2,
+            positional_insulation=0.2,
+        )
+        for roster_id in all_in
+    }
+
+    results = eng.compute_all("league_t", all_in, scorecards)
+
+    weak_slot = results[3].slot_scores[0]
+
+    assert results[3].contender_benchmark_used is True
+    assert weak_slot.benchmark_source in {"benchmark_pool", "top_tier_fallback"}
+    assert weak_slot.playoff_target > weak_slot.replacement_level
+    assert weak_slot.title_target >= weak_slot.playoff_target
+    assert weak_slot.weak_relative_to_contender is True
 
 
 def test_elite_insulation_guard_te_weight_and_context_flags():
@@ -380,7 +434,60 @@ def test_elite_insulation_guard_te_weight_and_context_flags():
     assert premium_slot.format_urgency_weight == 1.0
     assert guarded_slot.format_urgency_weight == TE_NON_PREMIUM_URGENCY_WEIGHT
     assert guarded_slot.elite_insulation_guard is True
-    assert guarded_slot.upgrade_leverage_score == 0.0
-    assert guarded_slot.weak_relative_to_contender is False
+    assert guarded_slot.upgrade_leverage_score == guarded_slot.gap_to_title_target
+    assert guarded_slot.gap_to_title_target >= guarded_slot.gap_to_playoff_target
+    assert guarded_slot.gap_to_elite_target >= guarded_slot.gap_to_title_target
     assert "age_cliff_proximity" in guarded_slot.player_context_flags
     assert "injury_recovery" in guarded_slot.player_context_flags
+
+
+def test_lineup_strength_uses_current_strength_snapshot_not_raw_ppg_only():
+    conn = duckdb.connect(":memory:")
+    conn.execute(
+        """
+        CREATE TABLE player_stats_weekly (
+            player_id VARCHAR,
+            fantasy_points DOUBLE
+        )
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO player_stats_weekly (player_id, fantasy_points)
+        VALUES
+            ('elite_wr', 28.0),
+            ('elite_wr', 25.0),
+            ('steady_wr', 18.0),
+            ('steady_wr', 15.0)
+        """
+    )
+
+    eng = LineupEngine(conn)
+    all_in = {
+        1: _base_inputs(
+            1,
+            roster_positions=["WR", "BN"],
+            starters=["elite_wr"],
+            bench=[],
+            weekly={"elite_wr": 12.0},
+            player_positions={"elite_wr": "WR"},
+            player_games_played={"elite_wr": 12},
+        ),
+        2: _base_inputs(
+            2,
+            roster_positions=["WR", "BN"],
+            starters=["steady_wr"],
+            bench=[],
+            weekly={"steady_wr": 13.0},
+            player_positions={"steady_wr": "WR"},
+            player_games_played={"steady_wr": 17},
+        ),
+    }
+
+    results = eng.compute_all("league_t", all_in, scorecards=None)
+
+    elite_slot = results[1].slot_scores[0]
+    steady_slot = results[2].slot_scores[0]
+
+    assert elite_slot.starter_value > 12.0
+    assert elite_slot.starter_value > steady_slot.starter_value

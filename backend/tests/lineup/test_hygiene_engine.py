@@ -385,6 +385,7 @@ def test_consolidation_skips_low_exploitability_manager(db):
         assert s.counterparty_roster_id is None, (
             f"Should not target roster 2 (exploitability=25.0), got counterparty={s.counterparty_roster_id}"
         )
+        assert "trade market" not in s.reasoning.lower()
 
 
 def test_consolidation_skips_low_confidence_manager(db):

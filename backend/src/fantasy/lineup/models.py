@@ -25,9 +25,21 @@ class LineupSlotScore(BaseModel):
     replacement_level: float
     score: float
     contender_benchmark: float = 0.0
+    playoff_target: float = 0.0
+    title_target: float = 0.0
+    elite_target: float = 0.0
     upgrade_leverage_score: float = 0.0
+    gap_to_playoff_target: float = 0.0
+    gap_to_title_target: float = 0.0
+    gap_to_elite_target: float = 0.0
     weak_by_median: bool = False
+    below_playoff_target: bool = False
+    below_title_target: bool = False
+    below_elite_target: bool = False
     weak_relative_to_contender: bool = False
+    benchmark_used: bool = False
+    benchmark_source: str = "replacement_level"
+    benchmark_sample_size: int = 0
     elite_insulation_guard: bool = False
     format_urgency_weight: float = 1.0
     player_context_flags: list[str] = Field(default_factory=list)
@@ -40,6 +52,14 @@ class LineupResult(BaseModel):
     computed_at: str | None = None
     slot_scores: list[LineupSlotScore]
     total_lineup_score: float
+    overall_playoff_target: float = 0.0
+    overall_title_target: float = 0.0
+    overall_elite_target: float = 0.0
+    overall_gap_to_playoff_target: float = 0.0
+    overall_gap_to_title_target: float = 0.0
+    overall_gap_to_elite_target: float = 0.0
+    overall_benchmark_source: str = "league_median_fallback"
+    overall_benchmark_sample_size: int = 0
     title_window_label: TITLE_WINDOW_LABELS
     title_window_composite: float
     ceiling_score: float

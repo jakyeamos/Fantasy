@@ -83,6 +83,32 @@ def expected_draft_slot(
     return None
 
 
+def project_future_draft_slot(
+    rule: LeagueDraftOrderRule | None,
+    standings: TeamStandingsRow,
+    league_size: int,
+    years_out: int,
+    *,
+    max_pf_slots: dict[int, int] | None = None,
+    roster_id: int = 0,
+) -> float | None:
+    current_slot = expected_draft_slot(
+        rule=rule,
+        win_pct=standings.win_pct,
+        remaining_games=standings.remaining_games,
+        league_size=league_size,
+        max_pf_slots=max_pf_slots,
+        roster_id=roster_id or standings.roster_id,
+    )
+    if current_slot is None:
+        return None
+
+    midpoint = (league_size + 1) / 2
+    persistence = 1.0 / max(years_out + 1, 1)
+    regressed_slot = midpoint + ((current_slot - midpoint) * persistence)
+    return float(max(1.0, min(float(league_size), regressed_slot)))
+
+
 def slot_to_base_value(slot: float, league_size: int) -> float:
     del league_size
     normalized_slot = max(slot, 1.0)
@@ -289,17 +315,16 @@ class PickEngine:
             return self._blocked_pick_value(pick, years_out)
 
         if years_out > 0:
-            slot = (league_ctx.league_size + 1) / 2
-            standings = TeamStandingsRow(
-                roster_id=int(pick.pick_owner_roster_id or 0),
-                wins=0,
-                losses=0,
-                win_pct=0.5,
-                remaining_games=TOTAL_SEASON_GAMES,
-                recent_wins=0,
-                total_games=0,
-                draft_in_progress=False,
+            slot = project_future_draft_slot(
+                context.draft_order_rule,
+                standings,
+                league_ctx.league_size,
+                years_out,
+                max_pf_slots=max_pf_slots,
+                roster_id=int(pick.pick_owner_roster_id or standings.roster_id),
             )
+            if slot is None:
+                return self._blocked_pick_value(pick, years_out)
         elif confirmed_slot is not None:
             slot = float(confirmed_slot)
         else:

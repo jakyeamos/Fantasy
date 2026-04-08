@@ -170,6 +170,14 @@ _SCHEMA_COMPAT_TABLES: dict[str, str] = {
             ceiling_score           FLOAT NOT NULL,
             stability_score         FLOAT NOT NULL,
             depth_score             FLOAT NOT NULL,
+            overall_playoff_target  FLOAT,
+            overall_title_target    FLOAT,
+            overall_elite_target    FLOAT,
+            overall_gap_to_playoff_target FLOAT,
+            overall_gap_to_title_target   FLOAT,
+            overall_gap_to_elite_target   FLOAT,
+            overall_benchmark_source      VARCHAR,
+            overall_benchmark_sample_size INTEGER,
             slot_scores_json        VARCHAR NOT NULL,
             UNIQUE (league_id, roster_id)
         )
@@ -395,6 +403,14 @@ _SCHEMA_COMPAT_COLUMNS: dict[str, dict[str, str]] = {
     },
     "lineup_scores": {
         "recommendation_cards_json": "VARCHAR DEFAULT '[]'",
+        "overall_playoff_target": "FLOAT",
+        "overall_title_target": "FLOAT",
+        "overall_elite_target": "FLOAT",
+        "overall_gap_to_playoff_target": "FLOAT",
+        "overall_gap_to_title_target": "FLOAT",
+        "overall_gap_to_elite_target": "FLOAT",
+        "overall_benchmark_source": "VARCHAR",
+        "overall_benchmark_sample_size": "INTEGER",
     },
     "hygiene_suggestions": {
         "recommendation_cards_json": "VARCHAR DEFAULT '[]'",

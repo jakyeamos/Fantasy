@@ -747,7 +747,8 @@ class HygieneEngine:
         )
 
         reasoning = (
-            f"Package {first_name} + {second_name} -> target upgrade on the trade market."
+            f"Package {first_name} + {second_name} into a 2-for-1 deal for "
+            f"{self._consolidation_goal(_direction_label)}."
         )
         target_player_name: str | None = None
         if target_player_id is not None and target_roster_id is not None:
@@ -795,6 +796,14 @@ class HygieneEngine:
                 ),
             )
         ]
+
+    def _consolidation_goal(self, direction_label: str) -> str:
+        normalized = direction_label.strip().lower()
+        if "contender" in normalized or "playoff" in normalized:
+            return "a cleaner weekly starter"
+        if "rebuild" in normalized or "punt" in normalized or "value" in normalized:
+            return "one liquid upside asset"
+        return "one cleaner starter-level asset"
 
     def _apply_coverage_guarantee(
         self,

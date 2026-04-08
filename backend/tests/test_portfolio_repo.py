@@ -66,6 +66,16 @@ def test_load_correlated_risk_rows_detects_multi_league_team_cluster(db):
     assert {player.full_name for player in row.players} >= {"Alpha Wideout", "Gamma Wideout"}
 
 
+def test_load_exposure_rows_can_scope_to_explicit_owner(db):
+    _seed_portfolio_data(db)
+
+    rows = PortfolioRepo(db).load_exposure_rows(owner_id="other_user_b")
+
+    assert len(rows) == 1
+    assert rows[0].player_id == "other_b"
+    assert rows[0].owned_in_leagues == ["league_b"]
+
+
 def test_save_retrospective_run_updates_health_timestamp(db):
     repo = PortfolioRepo(db)
 

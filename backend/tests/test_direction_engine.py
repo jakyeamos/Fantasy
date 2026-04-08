@@ -41,6 +41,57 @@ def test_rebuild_signal():
     assert result.primary_label in {"hard_rebuild", "elite_value_accumulation", "one_year_punt"}
 
 
+def test_transition_contender_label_is_reachable():
+    result = DirectionEngine().classify(
+        make_scorecard(
+            win_now=0.72,
+            future_value=0.56,
+            depth=0.62,
+            pick_capital=0.45,
+            flexibility=0.68,
+            fragility=0.32,
+            age_risk=0.38,
+            liquidity=0.58,
+            positional_insulation=0.62,
+        )
+    )
+    assert result.primary_label == "transition_contender"
+
+
+def test_value_retool_label_is_reachable():
+    result = DirectionEngine().classify(
+        make_scorecard(
+            win_now=0.58,
+            future_value=0.72,
+            depth=0.48,
+            pick_capital=0.62,
+            flexibility=0.78,
+            fragility=0.28,
+            age_risk=0.62,
+            liquidity=0.82,
+            positional_insulation=0.46,
+        )
+    )
+    assert result.primary_label == "value_retool"
+
+
+def test_soft_rebuild_label_is_reachable():
+    result = DirectionEngine().classify(
+        make_scorecard(
+            win_now=0.28,
+            future_value=0.78,
+            depth=0.42,
+            pick_capital=0.74,
+            flexibility=0.64,
+            fragility=0.40,
+            age_risk=0.62,
+            liquidity=0.70,
+            positional_insulation=0.34,
+        )
+    )
+    assert result.primary_label == "soft_rebuild"
+
+
 def test_confidence_range():
     engine = DirectionEngine()
     scorecards = [

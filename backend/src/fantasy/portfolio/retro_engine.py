@@ -6,7 +6,14 @@ from fantasy.portfolio.portfolio_repo import PortfolioRepo
 
 CONTENDER_LABELS = {"true_contender", "fragile_contender"}
 BOTTOM_LABELS = {"hard_rebuild", "one_year_punt"}
-MIDDLE_LABELS = {"productive_struggle", "retool", "fringe_playoff"}
+MIDDLE_LABELS = {
+    "productive_struggle",
+    "retool",
+    "fringe_playoff",
+    "transition_contender",
+    "value_retool",
+    "soft_rebuild",
+}
 
 
 def _safe_accuracy(correct: int, total: int) -> float | None:

@@ -22,8 +22,8 @@ class PortfolioEngine:
     def __init__(self, conn: duckdb.DuckDBPyConnection):
         self._repo = PortfolioRepo(conn)
 
-    def compute_exposure(self) -> list[ExposureRow]:
-        rows = self._repo.load_exposure_rows()
+    def compute_exposure(self, owner_id: str | None = None) -> list[ExposureRow]:
+        rows = self._repo.load_exposure_rows(owner_id)
         for row in rows:
             if row.league_count >= CONCENTRATION_HEDGE_THRESHOLD:
                 row.hedge_rec = (
@@ -32,8 +32,10 @@ class PortfolioEngine:
                 )
         return rows
 
-    def compute_correlated_risk(self) -> list[CorrelatedRiskRow]:
-        rows = self._repo.load_correlated_risk_rows()
+    def compute_correlated_risk(
+        self, owner_id: str | None = None
+    ) -> list[CorrelatedRiskRow]:
+        rows = self._repo.load_correlated_risk_rows(owner_id)
         for row in rows:
             unique_names = _first_unique_names(row)
             if len(unique_names) > 3:

@@ -35,6 +35,30 @@ def test_pick_capital_dual_source(phase2_seed_data):
     assert scorecards[1].pick_capital > scorecards[2].pick_capital
 
 
+def test_pick_capital_is_slot_sensitive_for_current_firsts(phase2_seed_data):
+    phase2_seed_data.execute("DELETE FROM traded_picks WHERE league_id = 'league_x'")
+    phase2_seed_data.execute(
+        """
+        INSERT INTO standings (id, league_id, roster_id, wins, losses, ties, fpts, fpts_against)
+        VALUES
+            (1, 'league_x', 1, 0, 14, 0, 100.0, 180.0),
+            (2, 'league_x', 2, 14, 0, 0, 180.0, 100.0)
+        """
+    )
+    phase2_seed_data.execute(
+        """
+        INSERT INTO league_draft_order_rules (
+            id, league_id, non_playoff_basis, playoff_ordering, tiebreaker
+        )
+        VALUES (1, 'league_x', 'inverse_standings', 'by_finish', 'points_against')
+        """
+    )
+
+    scorecards = ScorecardEngine(phase2_seed_data).compute_all("league_x")
+
+    assert scorecards[1].pick_capital > scorecards[2].pick_capital
+
+
 def test_missing_stats_defaults(phase2_seed_data):
     phase2_seed_data.execute(
         """
@@ -65,6 +89,71 @@ def test_corrections_applied_before_scoring(phase2_seed_data):
         )
     updated = engine.compute_all("league_x")[1].age_risk
     assert updated > baseline
+
+
+def test_future_value_downweights_unproven_young_players(phase2_seed_data):
+    phase2_seed_data.execute(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES
+            ('uqb1','Unknown QB','QB','U',21,'{}'),
+            ('urb1','Unknown RB','RB','U',21,'{}'),
+            ('uwr1','Unknown WR 1','WR','U',21,'{}'),
+            ('ute1','Unknown TE','TE','U',21,'{}'),
+            ('uwr2','Unknown WR 2','WR','U',21,'{}'),
+            ('urb2','Unknown RB 2','RB','U',21,'{}')
+        """
+    )
+    phase2_seed_data.execute(
+        """
+        INSERT INTO rosters (id, league_id, roster_id, owner_id, starters, players, reserve, taxi)
+        VALUES (
+            3,
+            'league_x',
+            3,
+            'user_c',
+            '["uqb1","urb1","uwr1","ute1"]',
+            '["uqb1","urb1","uwr1","ute1","uwr2","urb2"]',
+            '[]',
+            '[]'
+        )
+        """
+    )
+
+    scorecards = ScorecardEngine(phase2_seed_data).compute_all("league_x")
+
+    assert scorecards[3].future_value < scorecards[1].future_value
+
+
+def test_future_value_includes_pick_capital(phase2_seed_data):
+    phase2_seed_data.execute(
+        """
+        INSERT INTO rosters (id, league_id, roster_id, owner_id, starters, players, reserve, taxi)
+        VALUES (
+            3,
+            'league_x',
+            3,
+            'user_c',
+            '["qb2","rb2","wr2","te2"]',
+            '["qb2","rb2","wr2","te2","rbb2","wrb2"]',
+            '[]',
+            '[]'
+        )
+        """
+    )
+    phase2_seed_data.execute(
+        """
+        INSERT INTO traded_picks (id, league_id, season, round, roster_id, owner_id, previous_owner_id)
+        VALUES
+            (3, 'league_x', '2025', 1, 1, '3', '1'),
+            (4, 'league_x', '2025', 2, 1, '3', '1'),
+            (5, 'league_x', '2026', 1, 2, '3', '2')
+        """
+    )
+
+    scorecards = ScorecardEngine(phase2_seed_data).compute_all("league_x")
+
+    assert scorecards[3].future_value > scorecards[2].future_value
 
 
 def test_league_relative_normalization(phase2_seed_data):

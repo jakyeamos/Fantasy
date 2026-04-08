@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from fantasy.intelligence.intelligence_service import IntelligenceService
 from fantasy.intelligence.models import DirectionResult, PlayerValue, TeamScorecard
 from fantasy.lineup.models import HygieneResult, LineupResult
-from fantasy.routers.deps import get_read_db_conn, get_write_db_conn
+from fantasy.routers.deps import get_write_db_conn
 
 router = APIRouter(prefix="/intelligence", tags=["intelligence"])
 
@@ -37,7 +37,7 @@ def compute_intelligence(
 def get_scorecard(
     league_id: str,
     roster_id: int,
-    conn: duckdb.DuckDBPyConnection = Depends(get_read_db_conn),
+    conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
 ) -> TeamScorecard:
     service = IntelligenceService(conn)
     return service.get_scorecard(league_id, roster_id)
@@ -47,7 +47,7 @@ def get_scorecard(
 def get_direction(
     league_id: str,
     roster_id: int,
-    conn: duckdb.DuckDBPyConnection = Depends(get_read_db_conn),
+    conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
 ) -> DirectionResult:
     service = IntelligenceService(conn)
     return service.get_direction(league_id, roster_id)
@@ -58,7 +58,7 @@ def get_player_value(
     league_id: str,
     roster_id: int,
     player_id: str,
-    conn: duckdb.DuckDBPyConnection = Depends(get_read_db_conn),
+    conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
 ) -> PlayerValue:
     service = IntelligenceService(conn)
     return service.get_player_value(league_id, roster_id, player_id)
@@ -68,7 +68,7 @@ def get_player_value(
 def get_lineup(
     league_id: str,
     roster_id: int,
-    conn: duckdb.DuckDBPyConnection = Depends(get_read_db_conn),
+    conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
 ) -> LineupResult:
     service = IntelligenceService(conn)
     return service.get_lineup_result(league_id, roster_id)
@@ -78,7 +78,7 @@ def get_lineup(
 def get_hygiene(
     league_id: str,
     roster_id: int,
-    conn: duckdb.DuckDBPyConnection = Depends(get_read_db_conn),
+    conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
 ) -> HygieneResult:
     service = IntelligenceService(conn)
     return service.get_hygiene_result(league_id, roster_id)

@@ -144,7 +144,7 @@ def test_dashboard_league_returns_risers_fallers_and_windows(phase3_seed_data):
 
     assert client.post("/snapshots/trigger").status_code == 200
 
-    response = client.get("/dashboard/league/league_x")
+    response = client.get("/dashboard/league/league_x?roster_id=1")
     assert response.status_code == 200
     payload = response.json()
     assert payload["league_id"] == "league_x"
@@ -155,6 +155,65 @@ def test_dashboard_league_returns_risers_fallers_and_windows(phase3_seed_data):
     assert payload["exploit_windows"]
     assert isinstance(payload["risers"], list)
     assert isinstance(payload["fallers"], list)
+
+
+def test_dashboard_league_returns_competitive_landscape(phase3_seed_data):
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(phase3_seed_data)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(phase3_seed_data)
+    client = TestClient(app)
+
+    assert client.post("/intelligence/compute/league_x").status_code == 200
+
+    response = client.get("/dashboard/league/league_x?roster_id=1")
+    assert response.status_code == 200
+    landscape = response.json()["competitive_landscape"]
+
+    assert landscape is not None
+    assert {item["key"] for item in landscape["metric_summaries"]} == {
+        "win_now",
+        "future_value",
+        "title_window",
+    }
+    assert landscape["win_now_rankings"]
+    assert landscape["future_value_rankings"]
+    assert landscape["title_window_rankings"]
+    assert landscape["matchup_predictions"]
+    assert landscape["matchup_predictions"][0]["verdict"] in {
+        "favored",
+        "toss_up",
+        "underdog",
+    }
+
+
+def test_dashboard_league_accepts_roster_override(phase3_seed_data):
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(phase3_seed_data)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(phase3_seed_data)
+    client = TestClient(app)
+
+    assert client.post("/intelligence/compute/league_x").status_code == 200
+
+    response = client.get("/dashboard/league/league_x?roster_id=2")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["user_roster_id"] == 2
+    assert payload["user_roster_name"] == "Roster 2"
+    assert payload["user_owner_id"] == "user_b"
+
+
+def test_dashboard_league_rosters_returns_selector_options(phase3_seed_data):
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(phase3_seed_data)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(phase3_seed_data)
+    client = TestClient(app)
+
+    response = client.get("/dashboard/league/league_x/rosters")
+    assert response.status_code == 200
+    payload = response.json()
+    assert [row["roster_id"] for row in payload] == [1, 2]
+    assert payload[0]["owner_id"] == "user_a"
+    assert payload[1]["owner_id"] == "user_b"
 
 
 def test_direction_read_marks_close_boundary_as_hybrid():

@@ -209,7 +209,7 @@ class PickRepo:
             """
             SELECT
                 COUNT(*) FILTER (
-                    WHERE primary_label IN ('hard_rebuild', 'elite_value_accumulation', 'one_year_punt')
+                    WHERE primary_label IN ('hard_rebuild', 'soft_rebuild', 'elite_value_accumulation', 'one_year_punt')
                 ) AS rebuilder_count,
                 COUNT(*) AS total_teams
             FROM team_directions

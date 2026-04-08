@@ -346,7 +346,7 @@ class WaiverEngine:
                 score -= 8.0
         if immediate_start:
             score += 6.0
-        if direction_label in {"hard_rebuild", "elite_value_accumulation", "one_year_punt"}:
+        if direction_label in {"hard_rebuild", "soft_rebuild", "elite_value_accumulation", "one_year_punt"}:
             if age is not None and age <= 25:
                 score += 4.0
             elif age is not None and age >= 29:

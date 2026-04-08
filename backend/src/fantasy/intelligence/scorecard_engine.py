@@ -5,8 +5,30 @@ from typing import Any
 
 import duckdb
 
-from fantasy.intelligence.constants import POSITIONAL_CLIFF_AGE, POSITIONAL_PEAK_AGE, ROUND_WEIGHTS
+from fantasy.intelligence.constants import (
+    FUTURE_VALUE_DEPTH_ADP_WEIGHT,
+    FUTURE_VALUE_ELITE_ADP_THRESHOLD,
+    FUTURE_VALUE_ELITE_ADP_WEIGHT,
+    FUTURE_VALUE_FULL_EVIDENCE_GAMES,
+    FUTURE_VALUE_FULL_EVIDENCE_WEIGHT,
+    FUTURE_VALUE_PARTIAL_EVIDENCE_GAMES,
+    FUTURE_VALUE_PARTIAL_EVIDENCE_WEIGHT,
+    FUTURE_VALUE_PICK_CAPITAL_WEIGHT,
+    FUTURE_VALUE_STRONG_ADP_THRESHOLD,
+    FUTURE_VALUE_STRONG_ADP_WEIGHT,
+    FUTURE_VALUE_UNKNOWN_ASSET_WEIGHT,
+    POSITIONAL_CLIFF_AGE,
+    POSITIONAL_PEAK_AGE,
+)
 from fantasy.intelligence.models import ScorecardInputs, TeamScorecard
+from fantasy.picks.constants import FUTURE_YEAR_DISCOUNT_RATE, NonPlayoffOrderBasis
+from fantasy.picks.pick_engine import (
+    absolute_pick_slot,
+    expected_draft_slot,
+    project_future_draft_slot,
+    slot_to_base_value,
+)
+from fantasy.picks.pick_repo import PickRepo
 
 
 def normalize_within_league(values: dict[int, float]) -> dict[int, float]:
@@ -277,11 +299,18 @@ class ScorecardEngine:
         self, inputs: ScorecardInputs, all_inputs: dict[int, ScorecardInputs]
     ) -> float:
         roster = inputs.starters + inputs.bench + inputs.ir + inputs.taxi
-        values = [
-            self._age_future_score(inputs.player_positions.get(player_id, "UNKNOWN"), inputs.player_ages.get(player_id, 24))
-            for player_id in roster
-        ]
-        return sum(values) / max(len(values), 1)
+        player_future_equity = 0.0
+        for player_id in roster:
+            age_score = self._age_future_score(
+                inputs.player_positions.get(player_id, "UNKNOWN"),
+                inputs.player_ages.get(player_id, 24),
+            )
+            projected_value = self._value_proxy(inputs, player_id)
+            evidence_weight = self._future_value_evidence_weight(inputs, player_id)
+            player_future_equity += age_score * projected_value * evidence_weight
+
+        pick_future_equity = self._score_pick_capital(inputs, all_inputs)
+        return player_future_equity + (FUTURE_VALUE_PICK_CAPITAL_WEIGHT * pick_future_equity)
 
     def _score_depth(
         self, inputs: ScorecardInputs, all_inputs: dict[int, ScorecardInputs]
@@ -299,6 +328,7 @@ class ScorecardEngine:
         self, inputs: ScorecardInputs, all_inputs: dict[int, ScorecardInputs]
     ) -> float:
         current_season = inputs.season
+        league_size = max(len(all_inputs), 2)
         owned_traded_keys = {
             (season, round_no, original_roster_id)
             for season, round_no, original_roster_id, owner_id in inputs.pick_rows
@@ -317,10 +347,92 @@ class ScorecardEngine:
             if (season, rnd, inputs.roster_id) not in routed_original_keys
         }
         all_owned_picks = owned_traded_keys | untouched_original_keys
-        return sum(
-            ROUND_WEIGHTS.get(int(round_no), 0.5)
-            for _season, round_no, _original_roster_id in all_owned_picks
+        if not all_owned_picks:
+            return 0.0
+
+        pick_repo = PickRepo(self._conn)
+        draft_order_rule = pick_repo.get_draft_order_rule(inputs.league_id)
+        max_pf_slots = (
+            pick_repo.get_max_pf_slots(inputs.league_id)
+            if draft_order_rule is not None
+            and draft_order_rule.non_playoff_basis == NonPlayoffOrderBasis.MAX_POINTS_FOR
+            else None
         )
+        standings_cache: dict[int, Any] = {}
+        total_pick_value = 0.0
+
+        for season, round_no, original_roster_id in all_owned_picks:
+            pick_year = int(season)
+            pick_round = int(round_no)
+            years_out = max(0, pick_year - current_season)
+            projected_slot: float | None = None
+
+            if draft_order_rule is not None:
+                standings = standings_cache.get(int(original_roster_id))
+                if standings is None:
+                    standings = pick_repo.get_standings(int(original_roster_id), inputs.league_id)
+                    standings_cache[int(original_roster_id)] = standings
+
+                confirmed_slot = pick_repo.get_confirmed_slot(
+                    inputs.league_id,
+                    int(original_roster_id),
+                    pick_year,
+                )
+                if years_out > 0:
+                    projected_slot = project_future_draft_slot(
+                        draft_order_rule,
+                        standings,
+                        league_size,
+                        years_out,
+                        max_pf_slots=max_pf_slots,
+                        roster_id=int(original_roster_id),
+                    )
+                elif confirmed_slot is not None:
+                    projected_slot = float(confirmed_slot)
+                else:
+                    projected_slot = expected_draft_slot(
+                        rule=draft_order_rule,
+                        win_pct=standings.win_pct,
+                        remaining_games=standings.remaining_games,
+                        league_size=league_size,
+                        max_pf_slots=max_pf_slots,
+                        roster_id=int(original_roster_id),
+                    )
+
+            if projected_slot is None:
+                projected_slot = (league_size + 1) / 2
+
+            absolute_slot = absolute_pick_slot(
+                pick_round,
+                projected_slot,
+                league_size,
+            )
+            pick_value = slot_to_base_value(absolute_slot, league_size)
+            if years_out > 0:
+                pick_value *= FUTURE_YEAR_DISCOUNT_RATE ** years_out
+            total_pick_value += pick_value
+
+        return total_pick_value
+
+    def _future_value_evidence_weight(
+        self,
+        inputs: ScorecardInputs,
+        player_id: str,
+    ) -> float:
+        games_played = int(inputs.player_games_played.get(player_id, 0) or 0)
+        if games_played >= FUTURE_VALUE_FULL_EVIDENCE_GAMES:
+            return FUTURE_VALUE_FULL_EVIDENCE_WEIGHT
+        if games_played >= FUTURE_VALUE_PARTIAL_EVIDENCE_GAMES:
+            return FUTURE_VALUE_PARTIAL_EVIDENCE_WEIGHT
+
+        adp = inputs.adp_ranks.get(player_id)
+        if adp is not None and adp <= FUTURE_VALUE_ELITE_ADP_THRESHOLD:
+            return FUTURE_VALUE_ELITE_ADP_WEIGHT
+        if adp is not None and adp <= FUTURE_VALUE_STRONG_ADP_THRESHOLD:
+            return FUTURE_VALUE_STRONG_ADP_WEIGHT
+        if adp is not None:
+            return FUTURE_VALUE_DEPTH_ADP_WEIGHT
+        return FUTURE_VALUE_UNKNOWN_ASSET_WEIGHT
 
     def _score_flexibility(
         self, inputs: ScorecardInputs, all_inputs: dict[int, ScorecardInputs]

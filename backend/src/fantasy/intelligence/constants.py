@@ -35,6 +35,17 @@ DIRECTION_WEIGHTS: dict[str, dict[str, float]] = {
         "liquidity": 0.08,
         "positional_insulation": 0.10,
     },
+    "transition_contender": {
+        "win_now": 0.28,
+        "future_value": 0.08,
+        "depth": 0.18,
+        "pick_capital": 0.04,
+        "flexibility": 0.12,
+        "fragility": -0.04,
+        "age_risk": -0.04,
+        "liquidity": 0.08,
+        "positional_insulation": 0.14,
+    },
     "productive_struggle": {
         "win_now": 0.14,
         "future_value": 0.20,
@@ -68,6 +79,17 @@ DIRECTION_WEIGHTS: dict[str, dict[str, float]] = {
         "liquidity": 0.12,
         "positional_insulation": 0.08,
     },
+    "value_retool": {
+        "win_now": 0.04,
+        "future_value": 0.22,
+        "depth": 0.04,
+        "pick_capital": 0.14,
+        "flexibility": 0.18,
+        "fragility": -0.04,
+        "age_risk": 0.08,
+        "liquidity": 0.20,
+        "positional_insulation": 0.04,
+    },
     "elite_value_accumulation": {
         "win_now": -0.06,
         "future_value": 0.28,
@@ -77,6 +99,17 @@ DIRECTION_WEIGHTS: dict[str, dict[str, float]] = {
         "fragility": 0.00,
         "age_risk": 0.06,
         "liquidity": 0.18,
+        "positional_insulation": 0.02,
+    },
+    "soft_rebuild": {
+        "win_now": -0.04,
+        "future_value": 0.26,
+        "depth": 0.04,
+        "pick_capital": 0.20,
+        "flexibility": 0.12,
+        "fragility": 0.00,
+        "age_risk": 0.10,
+        "liquidity": 0.16,
         "positional_insulation": 0.02,
     },
     "hard_rebuild": {
@@ -106,6 +139,10 @@ DIRECTION_MOVE_MATRIX: dict[str, dict[str, list[str]]] = {
         "approved": ["tier_down_for_depth", "buy_selective_help", "preserve_liquidity", "probe_market"],
         "discouraged": ["all_in_future_selloff", "hard_rebuild_dump", "lock_into_old_core"],
     },
+    "transition_contender": {
+        "approved": ["buy_selective_help", "preserve_liquidity", "buy_underpriced_youth", "probe_market"],
+        "discouraged": ["all_in_future_selloff", "hard_rebuild_dump", "double_down_on_fragility"],
+    },
     "productive_struggle": {
         "approved": ["sell_spike_weeks", "buy_young_starters", "accumulate_liquidity", "collect_future_seconds"],
         "discouraged": ["pay_peak_prices", "ignore_market_windows", "buy_fragile_veterans"],
@@ -118,9 +155,17 @@ DIRECTION_MOVE_MATRIX: dict[str, dict[str, list[str]]] = {
         "approved": ["move_off_age_risk", "buy_underpriced_youth", "maintain_core_production", "rebalance_positions"],
         "discouraged": ["full_tank", "all_in_title_push", "bleed_liquidity"],
     },
+    "value_retool": {
+        "approved": ["buy_underpriced_youth", "tier_down_for_extras", "store_liquidity", "maintain_core_production"],
+        "discouraged": ["all_in_title_push", "full_tank", "bleed_liquidity"],
+    },
     "elite_value_accumulation": {
         "approved": ["buy_mispriced_assets", "tier_down_for_extras", "hoard_picks", "store_liquidity"],
         "discouraged": ["force_lineup_points", "lock_into_old_vets", "sell_discounted_youth"],
+    },
+    "soft_rebuild": {
+        "approved": ["sell_spike_weeks", "buy_rookie_picks", "bank_future_value", "store_liquidity"],
+        "discouraged": ["buy_expiring_value", "short_term_patchwork", "force_lineup_points"],
     },
     "hard_rebuild": {
         "approved": ["sell_aging_producers", "buy_rookie_picks", "sell_win_now_pieces", "hoard_youth"],
@@ -132,10 +177,12 @@ CONTENDER_DIRECTION_LABELS = (
     "true_contender",
     "fragile_contender",
     "fringe_playoff",
+    "transition_contender",
 )
 
 REBUILD_DIRECTION_LABELS = (
     "productive_struggle",
+    "soft_rebuild",
     "one_year_punt",
     "elite_value_accumulation",
     "hard_rebuild",
@@ -149,6 +196,20 @@ POSITIONAL_CLIFF_AGE = {"RB": 29, "WR": 31, "TE": 33, "QB": 35}
 
 # Source: Phase 2 RESEARCH.md Code Examples.
 ROUND_WEIGHTS = {1: 3.0, 2: 2.0, 3: 1.0, 4: 0.5}
+
+# Future-value scoring should reward young assets only when there is production or market evidence
+# that the player matters, and it should include slot-sensitive pick equity.
+FUTURE_VALUE_FULL_EVIDENCE_GAMES: int = 6
+FUTURE_VALUE_PARTIAL_EVIDENCE_GAMES: int = 2
+FUTURE_VALUE_ELITE_ADP_THRESHOLD: float = 60.0
+FUTURE_VALUE_STRONG_ADP_THRESHOLD: float = 120.0
+FUTURE_VALUE_FULL_EVIDENCE_WEIGHT: float = 1.0
+FUTURE_VALUE_PARTIAL_EVIDENCE_WEIGHT: float = 0.85
+FUTURE_VALUE_ELITE_ADP_WEIGHT: float = 0.9
+FUTURE_VALUE_STRONG_ADP_WEIGHT: float = 0.7
+FUTURE_VALUE_DEPTH_ADP_WEIGHT: float = 0.5
+FUTURE_VALUE_UNKNOWN_ASSET_WEIGHT: float = 0.25
+FUTURE_VALUE_PICK_CAPITAL_WEIGHT: float = 0.5
 
 # Source: Phase 2 RESEARCH.md Pattern 4.
 FORMAT_MULTIPLIERS = {
@@ -223,6 +284,20 @@ DIRECTION_VALUE_WEIGHTS: dict[str, dict[str, float]] = {
         rerollability=0.04,
         contract=0.06,
     ),
+    "transition_contender": _weights(
+        current_production=0.16,
+        short_term=0.12,
+        role_stability=0.10,
+        age_curve=0.06,
+        insulation=0.10,
+        market_liquidity=0.11,
+        positional_scarcity=0.07,
+        fragility=-0.03,
+        ceiling=0.10,
+        floor=0.10,
+        rerollability=0.06,
+        contract=0.05,
+    ),
     "productive_struggle": _weights(
         current_production=0.10,
         short_term=0.08,
@@ -265,6 +340,20 @@ DIRECTION_VALUE_WEIGHTS: dict[str, dict[str, float]] = {
         rerollability=0.08,
         contract=0.08,
     ),
+    "value_retool": _weights(
+        current_production=0.08,
+        short_term=0.06,
+        role_stability=0.10,
+        age_curve=0.16,
+        insulation=0.10,
+        market_liquidity=0.16,
+        positional_scarcity=0.06,
+        fragility=-0.02,
+        ceiling=0.10,
+        floor=0.04,
+        rerollability=0.11,
+        contract=0.07,
+    ),
     "elite_value_accumulation": _weights(
         current_production=0.04,
         short_term=0.02,
@@ -278,6 +367,20 @@ DIRECTION_VALUE_WEIGHTS: dict[str, dict[str, float]] = {
         floor=0.00,
         rerollability=0.13,
         contract=0.08,
+    ),
+    "soft_rebuild": _weights(
+        current_production=0.03,
+        short_term=0.01,
+        role_stability=0.06,
+        age_curve=0.24,
+        insulation=0.09,
+        market_liquidity=0.15,
+        positional_scarcity=0.05,
+        fragility=0.00,
+        ceiling=0.16,
+        floor=-0.02,
+        rerollability=0.12,
+        contract=0.05,
     ),
     "hard_rebuild": _weights(
         current_production=0.05,
