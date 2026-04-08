@@ -17,12 +17,17 @@ function badgeForCount(count: number) {
 
 export function ConcentrationAlertBanner({
   leagueId,
+  ownerId,
   userRosterPlayerIds,
 }: {
   leagueId: string
+  ownerId: string | null
   userRosterPlayerIds: string[]
 }) {
-  const query = useQuery(portfolioExposureOptions())
+  const query = useQuery({
+    ...portfolioExposureOptions(ownerId),
+    enabled: Boolean(ownerId),
+  })
 
   const rows = useMemo(() => {
     const playerIds = new Set(userRosterPlayerIds)
@@ -32,7 +37,7 @@ export function ConcentrationAlertBanner({
       .sort((a, b) => b.league_count - a.league_count || a.full_name.localeCompare(b.full_name))
   }, [leagueId, query.data?.exposure, userRosterPlayerIds])
 
-  if (query.isLoading || query.isError || !rows.length) {
+  if (!ownerId || query.isLoading || query.isError || !rows.length) {
     return null
   }
 

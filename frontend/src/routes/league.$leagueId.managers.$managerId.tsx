@@ -7,6 +7,7 @@ import { managerProfileOptions } from "@/api/queries"
 import { DossierDraftPicksTab } from "@/components/DossierDraftPicksTab"
 import { DossierOverviewTab } from "@/components/DossierOverviewTab"
 import { DossierPitchAnglesTab } from "@/components/DossierPitchAnglesTab"
+import { DossierProfileTab } from "@/components/DossierProfileTab"
 import { DossierTradeHistoryTab } from "@/components/DossierTradeHistoryTab"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonClasses } from "@/components/ui/button"
@@ -18,11 +19,16 @@ export const Route = createFileRoute("/league/$leagueId/managers/$managerId")({
   component: ManagerDossierPlaceholderPage,
 })
 
+type DossierTab =
+  | "overview"
+  | "profile"
+  | "trade-history"
+  | "pitch-angles"
+  | "draft-picks"
+
 function ManagerDossierPlaceholderPage() {
   const { leagueId, managerId } = Route.useParams()
-  const [tab, setTab] = useState<
-    "overview" | "trade-history" | "pitch-angles" | "draft-picks"
-  >("overview")
+  const [tab, setTab] = useState<DossierTab>("overview")
   const profileQuery = useQuery(managerProfileOptions(leagueId, managerId))
 
   if (profileQuery.isLoading) {
@@ -99,27 +105,27 @@ function ManagerDossierPlaceholderPage() {
         </CardHeader>
       </Card>
 
+      {profile.low_confidence ? (
+        <div className="rounded-xl border border-destructive/25 bg-destructive/10 p-4 text-destructive">
+          <p className="terminal-label">Low confidence</p>
+          <p className="mt-2 text-sm">
+            Based on {profile.evidence_count} trades (minimum 10 for reliable profiling). Treat all conclusions with skepticism.
+          </p>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap gap-2 rounded-xl border border-border/40 bg-card/45 p-2">
         {[
           { key: "overview", label: "Overview" },
+          { key: "profile", label: "Profile" },
           { key: "trade-history", label: "Trade History" },
           { key: "pitch-angles", label: "Pitch Angles" },
-          ...(profile.show_draft_picks_tab
-            ? [{ key: "draft-picks", label: "Draft & Picks" }]
-            : []),
-        ].map((item) => (
+          { key: "draft-picks", label: "Draft & Picks" },
+        ].map((item: { key: DossierTab; label: string }) => (
           <Button
             key={item.key}
             variant={tab === item.key ? "default" : "ghost"}
-            onClick={() =>
-              setTab(
-                item.key as
-                  | "overview"
-                  | "trade-history"
-                  | "pitch-angles"
-                  | "draft-picks",
-              )
-            }
+            onClick={() => setTab(item.key)}
           >
             {item.label}
           </Button>
@@ -127,16 +133,19 @@ function ManagerDossierPlaceholderPage() {
       </div>
 
       {tab === "overview" ? <DossierOverviewTab profile={profile} /> : null}
+      {tab === "profile" ? <DossierProfileTab profile={profile} /> : null}
       {tab === "trade-history" ? (
         <DossierTradeHistoryTab trades={profile.trade_history} />
       ) : null}
       {tab === "pitch-angles" ? (
         <DossierPitchAnglesTab pitchAngles={profile.pitch_angles} />
       ) : null}
-      {tab === "draft-picks" && profile.show_draft_picks_tab ? (
+      {tab === "draft-picks" ? (
         <DossierDraftPicksTab
           pickPremiumScore={profile.pick_premium_score ?? null}
           pickTradeEvidence={profile.pick_trade_evidence ?? 0}
+          positionalTendency={profile.positional_tendency ?? {}}
+          dominantArchetype={profile.dominant_archetype ?? null}
           draftSelectionHistory={profile.draft_selection_history ?? []}
           archetypePattern={profile.archetype_pattern ?? {}}
         />

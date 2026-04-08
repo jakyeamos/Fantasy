@@ -4,7 +4,6 @@ import { createFileRoute } from "@tanstack/react-router"
 import {
   actionPlanOptions,
   hygieneOptions,
-  leagueDetailOptions,
   lineupScoreOptions,
   pickListOptions,
   runOrphanIntake,
@@ -18,15 +17,15 @@ import { PickCapitalPanel } from "@/components/orphan/PickCapitalPanel"
 import { ThirtyDayActionPlanCard } from "@/components/orphan/ThirtyDayActionPlanCard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useLeagueRosterSelection } from "@/lib/league-roster-selection"
 
 export const Route = createFileRoute("/league/$leagueId/orphan-intake")({
   component: OrphanIntakePage,
 })
 
 function OrphanIntakePage() {
-  const { leagueId } = Route.useParams()
-  const leagueQuery = useQuery(leagueDetailOptions(leagueId))
-  const rosterId = leagueQuery.data?.user_roster_id ?? 0
+  const { leagueId, league } = useLeagueRosterSelection()
+  const rosterId = league.user_roster_id ?? 0
   const intakeQuery = useQuery({
     queryKey: ["orphan-intake", leagueId, rosterId],
     queryFn: () => runOrphanIntake(leagueId, rosterId),
@@ -38,21 +37,13 @@ function OrphanIntakePage() {
   const lineupQuery = useQuery(lineupScoreOptions(leagueId, rosterId))
   const pickQuery = useQuery(pickListOptions(leagueId, rosterId))
 
-  if (leagueQuery.isLoading || intakeQuery.isLoading) {
+  if (intakeQuery.isLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-28 w-full" />
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-24 w-full" />
       </div>
-    )
-  }
-
-  if (leagueQuery.isError || !leagueQuery.data) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        League data unavailable. Try refreshing or check the backend connection.
-      </p>
     )
   }
 

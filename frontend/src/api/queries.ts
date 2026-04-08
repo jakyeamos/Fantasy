@@ -15,6 +15,7 @@ import type {
   LeagueDetailResponse,
   LeagueDraftOrderRule,
   LeagueFormatScan,
+  LeagueRosterOption,
   LeagueTaxiConfig,
   LineupResult,
   ManagerProfile,
@@ -71,11 +72,26 @@ export const dashboardSummaryOptions = queryOptions({
   staleTime: 5 * 60 * 1000,
 })
 
-export const leagueDetailOptions = (leagueId: string) =>
+export const leagueDetailOptions = (leagueId: string, rosterId?: number | null) =>
   queryOptions({
-    queryKey: ["dashboard", "league", leagueId],
-    queryFn: () => getJson<LeagueDetailResponse>(`/dashboard/league/${leagueId}`),
+    queryKey: ["dashboard", "league", leagueId, rosterId ?? "default"],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (rosterId && rosterId > 0) {
+        params.set("roster_id", String(rosterId))
+      }
+      const suffix = params.size ? `?${params.toString()}` : ""
+      return getJson<LeagueDetailResponse>(`/dashboard/league/${leagueId}${suffix}`)
+    },
     staleTime: 5 * 60 * 1000,
+  })
+
+export const leagueRosterOptions = (leagueId: string) =>
+  queryOptions({
+    queryKey: ["dashboard", "league", leagueId, "rosters"],
+    queryFn: () => getJson<LeagueRosterOption[]>(`/dashboard/league/${leagueId}/rosters`),
+    staleTime: 5 * 60 * 1000,
+    enabled: leagueId.trim().length > 0,
   })
 
 export const snapshotStatusOptions = queryOptions({
@@ -212,10 +228,17 @@ export const prospectModelOutputsOptions = (leagueId: string) =>
     enabled: leagueId.trim().length > 0,
   })
 
-export const portfolioExposureOptions = () =>
+export const portfolioExposureOptions = (ownerId?: string | null) =>
   queryOptions({
-    queryKey: ["portfolio", "exposure"],
-    queryFn: () => getJson<PortfolioExposureResponse>("/portfolio/exposure"),
+    queryKey: ["portfolio", "exposure", ownerId ?? "default"],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (ownerId) {
+        params.set("owner_id", ownerId)
+      }
+      const suffix = params.size ? `?${params.toString()}` : ""
+      return getJson<PortfolioExposureResponse>(`/portfolio/exposure${suffix}`)
+    },
     staleTime: 5 * 60 * 1000,
   })
 

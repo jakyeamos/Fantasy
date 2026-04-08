@@ -137,6 +137,27 @@ function RootLayout() {
       }
     }
 
+    if (pathname.includes("/roster-moves")) {
+      return {
+        title: "Roster Moves",
+        subtitle: "Actionable roster hygiene",
+      }
+    }
+
+    if (pathname.includes("/comparison")) {
+      return {
+        title: "Comparison",
+        subtitle: "League standing context",
+      }
+    }
+
+    if (pathname.includes("/league-ops")) {
+      return {
+        title: "League Ops",
+        subtitle: "Picks, rules, and taxi setup",
+      }
+    }
+
     if (pathname.endsWith("/managers")) {
       return {
         title: "Managers",

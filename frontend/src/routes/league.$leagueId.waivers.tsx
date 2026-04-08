@@ -1,38 +1,21 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
-import { leagueDetailOptions, waiverRecommendationsOptions } from "@/api/queries"
+import { waiverRecommendationsOptions } from "@/api/queries"
 import { WaiverIntelHeader } from "@/components/waivers/WaiverIntelHeader"
 import { WaiverPlayerList } from "@/components/waivers/WaiverPlayerList"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useLeagueRosterSelection } from "@/lib/league-roster-selection"
 
 export const Route = createFileRoute("/league/$leagueId/waivers")({
   component: WaiversPage,
 })
 
 function WaiversPage() {
-  const { leagueId } = Route.useParams()
-  const leagueQuery = useQuery(leagueDetailOptions(leagueId))
-  const rosterId = leagueQuery.data?.user_roster_id ?? 0
+  const { leagueId, league } = useLeagueRosterSelection()
+  const rosterId = league.user_roster_id ?? 0
   const waiverQuery = useQuery(waiverRecommendationsOptions(leagueId, rosterId))
-
-  if (leagueQuery.isLoading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-56 w-full" />
-      </div>
-    )
-  }
-
-  if (leagueQuery.isError || !leagueQuery.data) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        League data unavailable. Try refreshing or check the backend connection.
-      </p>
-    )
-  }
 
   if (!rosterId) {
     return (
@@ -79,7 +62,7 @@ function WaiversPage() {
   return (
     <div className="space-y-8">
       <WaiverIntelHeader
-        directionLabel={leagueQuery.data.direction_label}
+        directionLabel={league.direction_label}
         waiver={waiverQuery.data}
       />
       <WaiverPlayerList

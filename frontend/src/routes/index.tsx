@@ -69,7 +69,7 @@ function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_repeat(4,minmax(0,1fr))]">
+      <section className="space-y-4">
         <Card className="overflow-hidden">
           <CardHeader className="space-y-4">
             <div className="flex items-center gap-2">
@@ -102,53 +102,55 @@ function DashboardPage() {
           </CardContent>
         </Card>
 
-        {[
-          {
-            label: "Tracked Leagues",
-            value: String(query.data.length),
-            helper: "Active environments",
-            icon: Radar,
-            tone: "text-primary",
-          },
-          {
-            label: "Clear Reads",
-            value: String(clearReadLeagues),
-            helper: "Strong separation",
-            icon: Sparkles,
-            tone: "text-accent",
-          },
-          {
-            label: "Exploit Windows",
-            value: String(actionableLeagues),
-            helper: "Actionable markets",
-            icon: ShieldAlert,
-            tone: "text-destructive",
-          },
-          {
-            label: "Opportunities",
-            value: opportunitiesCount,
-            helper: "Buy, sell, and hold signals",
-            icon: TrendingUp,
-            tone: "text-primary",
-          },
-        ].map((item) => (
-          <Card key={item.label}>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between gap-3">
-                <div className={`rounded-lg border border-border/40 bg-card/50 p-2 ${item.tone}`}>
-                  <item.icon className="size-4" />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {[
+            {
+              label: "Tracked Leagues",
+              value: String(query.data.length),
+              helper: "Active environments",
+              icon: Radar,
+              tone: "text-primary",
+            },
+            {
+              label: "Clear Reads",
+              value: String(clearReadLeagues),
+              helper: "Strong separation",
+              icon: Sparkles,
+              tone: "text-accent",
+            },
+            {
+              label: "Exploit Windows",
+              value: String(actionableLeagues),
+              helper: "Actionable markets",
+              icon: ShieldAlert,
+              tone: "text-destructive",
+            },
+            {
+              label: "Opportunities",
+              value: opportunitiesCount,
+              helper: "Buy, sell, and hold signals",
+              icon: TrendingUp,
+              tone: "text-primary",
+            },
+          ].map((item) => (
+            <Card key={item.label}>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className={`rounded-lg border border-border/40 bg-card/50 p-2 ${item.tone}`}>
+                    <item.icon className="size-4" />
+                  </div>
+                  <span className="terminal-label text-muted-foreground">{item.label}</span>
                 </div>
-                <span className="terminal-label text-muted-foreground">{item.label}</span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="font-headline text-3xl font-extrabold tracking-tight">
-                {item.value}
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">{item.helper}</p>
-            </CardContent>
-          </Card>
-        ))}
+              </CardHeader>
+              <CardContent>
+                <p className="font-headline text-3xl font-extrabold tracking-tight">
+                  {item.value}
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">{item.helper}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </section>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">

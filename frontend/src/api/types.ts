@@ -46,16 +46,64 @@ export interface ExploitWindowManager {
   triggers: ExploitTrigger[]
 }
 
+export interface DirectionFitFlag {
+  dimension: string
+  label: string
+  strength: "Strong Fit" | "Supporting" | "Secondary"
+  detail: string
+}
+
+export interface ComparativeMetricSummary {
+  key: "win_now" | "future_value" | "title_window"
+  label: string
+  rank: number
+  league_size: number
+  score: number
+  gap_to_leader: number
+  edge_vs_median: number
+}
+
+export interface PowerRankingEntry {
+  roster_id: number
+  manager_name: string
+  rank: number
+  score: number
+  is_user: boolean
+  direction_label: string | null
+  title_window_label: string | null
+  record: string | null
+}
+
+export interface MatchupPrediction {
+  roster_id: number
+  manager_name: string
+  win_probability: number
+  verdict: "favored" | "toss_up" | "underdog"
+  reason: string
+}
+
+export interface LeagueCompetitiveLandscape {
+  metric_summaries: ComparativeMetricSummary[]
+  win_now_rankings: PowerRankingEntry[]
+  future_value_rankings: PowerRankingEntry[]
+  title_window_rankings: PowerRankingEntry[]
+  matchup_predictions: MatchupPrediction[]
+}
+
 export interface LeagueDetailResponse {
   league_id: string
   league_name: string
   user_roster_id: number | null
+  user_roster_name: string | null
+  user_owner_id: string | null
   user_roster_player_ids: string[]
   direction_label: string
   confidence_band: "High" | "Medium" | "Low" | "--"
   direction_read: DirectionReadBand
   direction_alternates: string[]
   direction_note: string | null
+  direction_reasoning: string | null
+  direction_fit_flags: DirectionFitFlag[]
   primary_weakness: string
   risers: RiserFallerEntry[]
   fallers: RiserFallerEntry[]
@@ -63,6 +111,17 @@ export interface LeagueDetailResponse {
   last_snapshot_at: string | null
   last_ingest_at: string | null
   recommendation_context?: RecommendationContext | null
+  competitive_landscape?: LeagueCompetitiveLandscape | null
+}
+
+export interface LeagueRosterOption {
+  roster_id: number
+  owner_id: string | null
+  owner_display_name: string | null
+  wins: number
+  losses: number
+  ties: number
+  points_for: number
 }
 
 export interface PitchAngle {
@@ -548,9 +607,21 @@ export interface LineupSlotScore {
   replacement_level: number
   score: number
   contender_benchmark: number
+  playoff_target: number
+  title_target: number
+  elite_target: number
   upgrade_leverage_score: number
+  gap_to_playoff_target: number
+  gap_to_title_target: number
+  gap_to_elite_target: number
   weak_by_median: boolean
+  below_playoff_target: boolean
+  below_title_target: boolean
+  below_elite_target: boolean
   weak_relative_to_contender: boolean
+  benchmark_used: boolean
+  benchmark_source: string
+  benchmark_sample_size: number
   elite_insulation_guard: boolean
   format_urgency_weight: number
   player_context_flags: string[]
@@ -562,6 +633,14 @@ export interface LineupResult {
   computed_at: string | null
   slot_scores: LineupSlotScore[]
   total_lineup_score: number
+  overall_playoff_target: number
+  overall_title_target: number
+  overall_elite_target: number
+  overall_gap_to_playoff_target: number
+  overall_gap_to_title_target: number
+  overall_gap_to_elite_target: number
+  overall_benchmark_source: string
+  overall_benchmark_sample_size: number
   title_window_label: "Peak Window" | "Fading Window" | "Outside Window"
   title_window_composite: number
   ceiling_score: number

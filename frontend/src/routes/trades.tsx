@@ -261,6 +261,12 @@ function RosterField({
 export const Route = createFileRoute("/trades")({
   validateSearch: (search: Record<string, unknown>) => ({
     leagueId: typeof search.leagueId === "string" ? search.leagueId : undefined,
+    userRosterId:
+      typeof search.userRosterId === "number"
+        ? search.userRosterId
+        : typeof search.userRosterId === "string"
+          ? Number(search.userRosterId) || undefined
+          : undefined,
   }),
   component: TradeEvaluatorPage,
 })
@@ -285,7 +291,7 @@ function TradeEvaluatorPage() {
     () => leagueOptions.find((option) => option.league_id === leagueId) ?? null,
     [leagueId, leagueOptions],
   )
-  const userRosterId = selectedLeague?.user_roster_id ?? 0
+  const userRosterId = search.userRosterId ?? selectedLeague?.user_roster_id ?? 0
   const rostersQuery = useQuery({
     queryKey: ["trade", "rosters", leagueId],
     queryFn: () => {
