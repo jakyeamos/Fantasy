@@ -54,6 +54,26 @@ class SnapshotDiffEngine:
     def __init__(self, conn: duckdb.DuckDBPyConnection):
         self._conn = conn
 
+    def _load_player_meta(self, player_ids: set[str]) -> dict[str, dict[str, str]]:
+        if not player_ids:
+            return {}
+        placeholders = ", ".join(["?"] * len(player_ids))
+        rows = self._conn.execute(
+            f"""
+            SELECT player_id, COALESCE(full_name, player_id), COALESCE(position, 'UNKNOWN')
+            FROM players
+            WHERE player_id IN ({placeholders})
+            """,
+            sorted(player_ids),
+        ).fetchall()
+        return {
+            str(row[0]): {
+                "player_name": str(row[1]),
+                "position": str(row[2]),
+            }
+            for row in rows
+        }
+
     def load_anchors(self, league_id: str) -> list[SnapshotAnchor]:
         snapshot_rows = self._conn.execute(
             """
@@ -266,7 +286,7 @@ class SnapshotDiffEngine:
             """,
             [league_id, roster_id],
         ).fetchall()
-        current_players = {
+        current_player_values = {
             str(row[0]): {
                 "player_name": str(row[1]),
                 "position": str(row[2]),
@@ -274,15 +294,74 @@ class SnapshotDiffEngine:
             }
             for row in current_player_rows
         }
-        historical_players = {
+        historical_player_values = {
             str(player.get("player_id")): player
             for player in historical_roster.get("player_values", [])
             if player.get("player_id") is not None
         }
+        current_roster_row = self._conn.execute(
+            """
+            SELECT players
+            FROM rosters
+            WHERE league_id = ? AND roster_id = ?
+            LIMIT 1
+            """,
+            [league_id, roster_id],
+        ).fetchone()
+        current_roster_player_ids = {
+            str(player_id)
+            for player_id in _loads(current_roster_row[0], [])
+        } if current_roster_row and current_roster_row[0] is not None else set(current_player_values)
+        historical_roster_players = historical_roster.get("players")
+        historical_roster_player_ids = {
+            str(player_id)
+            for player_id in (
+                historical_roster_players
+                if isinstance(historical_roster_players, list)
+                else _loads(historical_roster_players, [])
+            )
+        } or set(historical_player_values)
+        player_meta = self._load_player_meta(
+            current_roster_player_ids
+            | historical_roster_player_ids
+            | set(current_player_values)
+            | set(historical_player_values)
+        )
+        current_players = {
+            player_id: {
+                "player_name": player_meta.get(player_id, {}).get(
+                    "player_name",
+                    current_player_values.get(player_id, {}).get("player_name", player_id),
+                ),
+                "position": player_meta.get(player_id, {}).get(
+                    "position",
+                    current_player_values.get(player_id, {}).get("position", "UNKNOWN"),
+                ),
+                "lens_market": current_player_values.get(player_id, {}).get("lens_market"),
+            }
+            for player_id in current_roster_player_ids
+        }
+        historical_players = {
+            player_id: {
+                "player_name": str(
+                    historical_player_values.get(player_id, {}).get(
+                        "player_name",
+                        player_meta.get(player_id, {}).get("player_name", player_id),
+                    )
+                ),
+                "position": str(
+                    historical_player_values.get(player_id, {}).get(
+                        "position",
+                        player_meta.get(player_id, {}).get("position", "UNKNOWN"),
+                    )
+                ),
+                "lens_market": historical_player_values.get(player_id, {}).get("lens_market"),
+            }
+            for player_id in historical_roster_player_ids
+        }
 
         for player_id, historical_player in historical_players.items():
             current_player = current_players.get(player_id)
-            historical_value = historical_player.get("lens_market")
             if current_player is None:
                 departure_type = self._departure_type(league_id, roster_id, player_id, snapshot_at)
                 diffs.append(
@@ -293,7 +372,10 @@ class SnapshotDiffEngine:
                     )
                 )
                 continue
-            if historical_value is None or current_player["lens_market"] is None:
+        for player_id, historical_player in historical_player_values.items():
+            current_player = current_players.get(player_id)
+            historical_value = historical_player.get("lens_market")
+            if current_player is None or historical_value is None or current_player["lens_market"] is None:
                 continue
             delta = (float(current_player["lens_market"]) - float(historical_value)) * 100.0
             if abs(delta) < 1.0:

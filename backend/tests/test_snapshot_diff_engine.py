@@ -201,6 +201,13 @@ def test_compute_diff_player_departed(db):
     )
     db.execute(
         """
+        UPDATE rosters
+        SET players = '[]'
+        WHERE league_id = 'league_x' AND roster_id = 1
+        """
+    )
+    db.execute(
+        """
         INSERT INTO team_scorecards (
             id, league_id, roster_id, win_now, future_value, depth, pick_capital, flexibility,
             fragility, age_risk, liquidity, positional_insulation, composite, computation_json
@@ -213,6 +220,68 @@ def test_compute_diff_player_departed(db):
 
     departed = next(row for row in rows if row.field_type == "departed")
     assert departed.display_string == "Traded (was WR)"
+
+
+def test_compute_diff_uses_roster_membership_for_adds_and_departures(db):
+    _seed_league(db)
+    db.execute(
+        """
+        INSERT INTO players (player_id, full_name, position, team, metadata_blob)
+        VALUES
+            ('player_a', 'Player A', 'WR', 'SF', '{}'),
+            ('player_b', 'Player B', 'RB', 'DET', '{}')
+        """
+    )
+    snapshot_payload = {
+        "state": {
+            "season": "2025",
+            "rosters": [
+                {
+                    "roster_id": 1,
+                    "players": ["player_a"],
+                    "direction": {"label": "retool"},
+                    "scorecard": {"win_now": 0.50},
+                    "player_values": [
+                        {
+                            "player_id": "player_a",
+                            "player_name": "Player A",
+                            "position": "WR",
+                            "lens_market": 0.45,
+                        }
+                    ],
+                    "capital_score": 50.0,
+                }
+            ],
+        }
+    }
+    db.execute(
+        """
+        INSERT INTO league_snapshots (id, league_id, snapshot_at, snapshot_type, triggered_by, payload_json)
+        VALUES (1, 'league_x', ?, 'full', 'manual', ?)
+        """,
+        [datetime(2025, 9, 3, 9, 0, 0), json.dumps(snapshot_payload)],
+    )
+    db.execute(
+        """
+        UPDATE rosters
+        SET players = '["player_b"]'
+        WHERE league_id = 'league_x' AND roster_id = 1
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO player_values (
+            id, league_id, roster_id, player_id, lens_market, lens_direction, lens_team_fit,
+            comp_short_term, comp_age_curve, computed_at
+        )
+        VALUES (1, 'league_x', 1, 'player_a', 0.45, 0.40, 0.40, 0.40, 0.40, CURRENT_TIMESTAMP)
+        """
+    )
+
+    rows = SnapshotDiffEngine(db).compute_diff("league_x", 1, 1)
+
+    assert any(row.field_type == "departed" and row.field == "Player A" for row in rows)
+    assert any(row.field_type == "added" and row.field == "Player B" for row in rows)
 
 
 def test_compute_diff_pick_capital(db, monkeypatch):

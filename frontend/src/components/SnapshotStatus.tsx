@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
-import type { SnapshotTriggerResponse } from "@/api/types"
 import { Button } from "@/components/ui/button"
 
 function formatSnapshot(snapshot: string | null) {
@@ -15,26 +14,24 @@ function formatSnapshot(snapshot: string | null) {
 }
 
 export function SnapshotStatus({
+  leagueId,
   lastSnapshotAt,
 }: {
+  leagueId: string
   lastSnapshotAt: string | null
 }) {
   const queryClient = useQueryClient()
   const mutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch("/api/snapshots/trigger", {
+    mutationFn: async (): Promise<void> => {
+      const response = await fetch(`/api/ingest/${leagueId}?run_type=incremental`, {
         method: "POST",
       })
       if (!response.ok) {
-        throw new Error("Snapshot failed")
+        throw new Error("Refresh failed")
       }
-      return (await response.json()) as SnapshotTriggerResponse
     },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["snapshots"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-      ])
+      await queryClient.invalidateQueries()
     },
   })
 
@@ -46,11 +43,11 @@ export function SnapshotStatus({
         onClick={() => mutation.mutate()}
         disabled={mutation.isPending}
       >
-        {mutation.isPending ? "Saving..." : "Snapshot now"}
+        {mutation.isPending ? "Refreshing..." : "Refresh from Sleeper"}
       </Button>
       {mutation.isError ? (
         <span className="text-red-600 dark:text-red-400">
-          Snapshot failed. Try again in a moment.
+          Refresh failed. Sleeper sync did not complete.
         </span>
       ) : null}
     </div>

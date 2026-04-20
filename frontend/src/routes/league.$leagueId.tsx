@@ -320,7 +320,7 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
           </div>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center justify-between gap-3 border-t border-border/40 pt-5">
-          <SnapshotStatus lastSnapshotAt={league.last_snapshot_at} />
+          <SnapshotStatus leagueId={leagueId} lastSnapshotAt={league.last_snapshot_at} />
           {league.user_roster_id ? (
             <Button
               type="button"
