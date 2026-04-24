@@ -216,6 +216,27 @@ def test_dashboard_league_rosters_returns_selector_options(phase3_seed_data):
     assert payload[1]["owner_id"] == "user_b"
 
 
+def test_dashboard_player_rankings_include_inline_ownership(phase2_seed_data):
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(phase2_seed_data)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(phase2_seed_data)
+    client = TestClient(app)
+
+    assert client.post("/intelligence/compute/league_x").status_code == 200
+
+    response = client.get("/dashboard/league/league_x/player-rankings?roster_id=1")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["league_id"] == "league_x"
+    assert payload["rankings"]
+    first = payload["rankings"][0]
+    assert first["rank"] == 1
+    assert first["owner_name"]
+    assert "roster_id" in first
+    assert "is_user_roster" in first
+    assert "position_rank" in first
+
+
 def test_direction_read_marks_close_boundary_as_hybrid():
     alternates = [
         {"label": "retool", "score": 0.605, "gap": 0.004},

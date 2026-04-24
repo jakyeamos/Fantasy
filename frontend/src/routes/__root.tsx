@@ -158,6 +158,13 @@ function RootLayout() {
       }
     }
 
+    if (pathname.includes("/player-rankings")) {
+      return {
+        title: "Player Rankings",
+        subtitle: "Market board and ownership",
+      }
+    }
+
     if (pathname.endsWith("/managers")) {
       return {
         title: "Managers",

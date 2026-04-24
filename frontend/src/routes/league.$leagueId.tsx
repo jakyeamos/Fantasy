@@ -119,6 +119,7 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
   const isComparisonRoute = location.pathname === `${leaguePath}/comparison`
   const isManagersRoute = location.pathname.startsWith(`${leaguePath}/managers`)
   const isLeagueOpsRoute = location.pathname === `${leaguePath}/league-ops`
+  const isPlayerRankingsRoute = location.pathname === `${leaguePath}/player-rankings`
   const isRookieBoardRoute = location.pathname === `${leaguePath}/rookie-board`
   const isRosterMovesRoute = location.pathname === `${leaguePath}/roster-moves`
   const isWaiversRoute = location.pathname === `${leaguePath}/waivers`
@@ -254,6 +255,15 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
                 })}
               >
                 Roster Moves
+              </Link>
+              <Link
+                to="/league/$leagueId/player-rankings"
+                params={{ leagueId }}
+                className={buttonClasses({
+                  variant: isPlayerRankingsRoute ? "default" : "outline",
+                })}
+              >
+                Rankings
               </Link>
               <Link
                 to="/league/$leagueId/league-ops"

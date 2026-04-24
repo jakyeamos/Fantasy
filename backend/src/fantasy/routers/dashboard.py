@@ -216,6 +216,37 @@ class RiserFallerEntry(BaseModel):
     reason: str
 
 
+class PlayerRankingEntry(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    player_id: str
+    player_name: str
+    position: str
+    team: str | None = None
+    age: int | None = None
+    roster_id: int
+    owner_name: str
+    is_user_roster: bool = False
+    rank: int
+    position_rank: int
+    tier: int
+    rank_score: float
+    lens_market: float | None = None
+    lens_production: float | None = None
+    lens_insulation: float | None = None
+    lens_direction: float | None = None
+    fantasycalc_rank: int | None = None
+    fantasycalc_value: float | None = None
+    trend_30day: float | None = None
+
+
+class PlayerRankingsResponse(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    league_id: str
+    rankings: list[PlayerRankingEntry]
+
+
 class ExploitTrigger(BaseModel):
     model_config = ConfigDict(frozen=False)
 
@@ -1595,6 +1626,121 @@ def get_league_rosters(
         )
         for row in rows
     ]
+
+
+def _player_rank_score(row: tuple[Any, ...]) -> float:
+    market = float(row[8]) if row[8] is not None else 0.0
+    production = float(row[9]) if row[9] is not None else 0.0
+    insulation = float(row[10]) if row[10] is not None else 0.0
+    direction = float(row[11]) if row[11] is not None else 0.0
+    fantasycalc_value = float(row[13]) if row[13] is not None else 0.0
+    normalized_market_value = min(fantasycalc_value / 10_000.0, 1.0)
+    return round(
+        (market * 0.40)
+        + (insulation * 0.25)
+        + (production * 0.20)
+        + (direction * 0.10)
+        + (normalized_market_value * 0.05),
+        4,
+    )
+
+
+@router.get("/league/{league_id}/player-rankings", response_model=PlayerRankingsResponse)
+def get_league_player_rankings(
+    league_id: str,
+    roster_id: int | None = None,
+    conn: duckdb.DuckDBPyConnection = Depends(get_read_db_conn),
+) -> PlayerRankingsResponse:
+    league_row = conn.execute(
+        "SELECT league_id FROM leagues WHERE league_id = ?",
+        [league_id],
+    ).fetchone()
+    if league_row is None:
+        raise HTTPException(status_code=404, detail="League not found")
+
+    portfolio_owner, allow_fallback = _portfolio_owner_selection(conn)
+    user_roster_id, _, _ = _requested_roster_for_league(
+        conn,
+        league_id,
+        roster_id,
+        portfolio_owner,
+        allow_fallback=allow_fallback,
+    )
+    rows = conn.execute(
+        """
+        SELECT
+            pv.player_id,
+            COALESCE(p.full_name, pv.player_id) AS player_name,
+            COALESCE(p.position, 'UNKNOWN') AS position,
+            p.team,
+            p.age,
+            pv.roster_id,
+            COALESCE(r.owner_display_name, r.owner_id, 'Roster ' || CAST(pv.roster_id AS VARCHAR)) AS owner_name,
+            pv.computed_at,
+            pv.lens_market,
+            pv.lens_production,
+            pv.lens_insulation,
+            pv.lens_direction,
+            mv.fantasycalc_rank,
+            mv.fantasycalc_value,
+            mv.fantasycalc_trend30
+        FROM player_values pv
+        LEFT JOIN players p
+          ON p.player_id = pv.player_id
+        LEFT JOIN rosters r
+          ON r.league_id = pv.league_id
+         AND r.roster_id = pv.roster_id
+        LEFT JOIN market_values mv
+          ON mv.player_id = pv.player_id
+        WHERE pv.league_id = ?
+        ORDER BY
+            COALESCE(mv.fantasycalc_rank, 9999) ASC,
+            COALESCE(pv.lens_market, 0) DESC,
+            COALESCE(pv.lens_insulation, 0) DESC,
+            COALESCE(pv.lens_production, 0) DESC,
+            player_name ASC
+        """,
+        [league_id],
+    ).fetchall()
+
+    scored_rows = [(row, _player_rank_score(row)) for row in rows]
+    scored_rows.sort(
+        key=lambda item: (
+            int(item[0][12]) if item[0][12] is not None else 9999,
+            -item[1],
+            str(item[0][1]),
+        )
+    )
+    position_counts: dict[str, int] = {}
+    rankings: list[PlayerRankingEntry] = []
+    for index, (row, score) in enumerate(scored_rows, start=1):
+        position = str(row[2] or "UNKNOWN")
+        position_counts[position] = position_counts.get(position, 0) + 1
+        rankings.append(
+            PlayerRankingEntry(
+                player_id=str(row[0]),
+                player_name=str(row[1]),
+                position=position,
+                team=str(row[3]) if row[3] is not None else None,
+                age=int(row[4]) if row[4] is not None else None,
+                roster_id=int(row[5]),
+                owner_name=str(row[6]),
+                is_user_roster=user_roster_id is not None and int(row[5]) == user_roster_id,
+                rank=index,
+                position_rank=position_counts[position],
+                tier=max(1, math.ceil(index / 12)),
+                rank_score=score,
+                lens_market=float(row[8]) if row[8] is not None else None,
+                lens_production=float(row[9]) if row[9] is not None else None,
+                lens_insulation=float(row[10]) if row[10] is not None else None,
+                lens_direction=float(row[11]) if row[11] is not None else None,
+                fantasycalc_rank=int(row[12]) if row[12] is not None else None,
+                fantasycalc_value=float(row[13]) if row[13] is not None else None,
+                trend_30day=float(row[14]) if row[14] is not None else None,
+            )
+        )
+
+    return PlayerRankingsResponse(league_id=league_id, rankings=rankings)
 
 
 @router.get("/league/{league_id}", response_model=LeagueDetailResponse)

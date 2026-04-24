@@ -124,6 +124,33 @@ export interface LeagueRosterOption {
   points_for: number
 }
 
+export interface PlayerRankingEntry {
+  player_id: string
+  player_name: string
+  position: string
+  team: string | null
+  age: number | null
+  roster_id: number
+  owner_name: string
+  is_user_roster: boolean
+  rank: number
+  position_rank: number
+  tier: number
+  rank_score: number
+  lens_market: number | null
+  lens_production: number | null
+  lens_insulation: number | null
+  lens_direction: number | null
+  fantasycalc_rank: number | null
+  fantasycalc_value: number | null
+  trend_30day: number | null
+}
+
+export interface PlayerRankingsResponse {
+  league_id: string
+  rankings: PlayerRankingEntry[]
+}
+
 export interface PitchAngle {
   rank: number
   deal_archetype: string

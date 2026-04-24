@@ -27,6 +27,7 @@ import type {
   PortfolioExposureResponse,
   ProspectModelOutput,
   PickListResponse,
+  PlayerRankingsResponse,
   RecalibrationHealth,
   RookieBoardResponse,
   RookieBoardWithContext,
@@ -90,6 +91,23 @@ export const leagueRosterOptions = (leagueId: string) =>
   queryOptions({
     queryKey: ["dashboard", "league", leagueId, "rosters"],
     queryFn: () => getJson<LeagueRosterOption[]>(`/dashboard/league/${leagueId}/rosters`),
+    staleTime: 5 * 60 * 1000,
+    enabled: leagueId.trim().length > 0,
+  })
+
+export const playerRankingsOptions = (leagueId: string, rosterId?: number | null) =>
+  queryOptions({
+    queryKey: ["dashboard", "league", leagueId, "player-rankings", rosterId ?? "default"],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (rosterId && rosterId > 0) {
+        params.set("roster_id", String(rosterId))
+      }
+      const suffix = params.size ? `?${params.toString()}` : ""
+      return getJson<PlayerRankingsResponse>(
+        `/dashboard/league/${leagueId}/player-rankings${suffix}`,
+      )
+    },
     staleTime: 5 * 60 * 1000,
     enabled: leagueId.trim().length > 0,
   })

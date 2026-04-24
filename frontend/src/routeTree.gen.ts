@@ -19,6 +19,7 @@ import { Route as LeagueLeagueIdWaiversRouteImport } from './routes/league.$leag
 import { Route as LeagueLeagueIdStartupRouteImport } from './routes/league.$leagueId.startup'
 import { Route as LeagueLeagueIdRosterMovesRouteImport } from './routes/league.$leagueId.roster-moves'
 import { Route as LeagueLeagueIdRookieBoardRouteImport } from './routes/league.$leagueId.rookie-board'
+import { Route as LeagueLeagueIdPlayerRankingsRouteImport } from './routes/league.$leagueId.player-rankings'
 import { Route as LeagueLeagueIdOrphanIntakeRouteImport } from './routes/league.$leagueId.orphan-intake'
 import { Route as LeagueLeagueIdManagersRouteImport } from './routes/league.$leagueId.managers'
 import { Route as LeagueLeagueIdLeagueOpsRouteImport } from './routes/league.$leagueId.league-ops'
@@ -77,6 +78,12 @@ const LeagueLeagueIdRookieBoardRoute =
     path: '/rookie-board',
     getParentRoute: () => LeagueLeagueIdRoute,
   } as any)
+const LeagueLeagueIdPlayerRankingsRoute =
+  LeagueLeagueIdPlayerRankingsRouteImport.update({
+    id: '/player-rankings',
+    path: '/player-rankings',
+    getParentRoute: () => LeagueLeagueIdRoute,
+  } as any)
 const LeagueLeagueIdOrphanIntakeRoute =
   LeagueLeagueIdOrphanIntakeRouteImport.update({
     id: '/orphan-intake',
@@ -117,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/league/$leagueId/league-ops': typeof LeagueLeagueIdLeagueOpsRoute
   '/league/$leagueId/managers': typeof LeagueLeagueIdManagersRouteWithChildren
   '/league/$leagueId/orphan-intake': typeof LeagueLeagueIdOrphanIntakeRoute
+  '/league/$leagueId/player-rankings': typeof LeagueLeagueIdPlayerRankingsRoute
   '/league/$leagueId/rookie-board': typeof LeagueLeagueIdRookieBoardRoute
   '/league/$leagueId/roster-moves': typeof LeagueLeagueIdRosterMovesRoute
   '/league/$leagueId/startup': typeof LeagueLeagueIdStartupRoute
@@ -134,6 +142,7 @@ export interface FileRoutesByTo {
   '/league/$leagueId/league-ops': typeof LeagueLeagueIdLeagueOpsRoute
   '/league/$leagueId/managers': typeof LeagueLeagueIdManagersRouteWithChildren
   '/league/$leagueId/orphan-intake': typeof LeagueLeagueIdOrphanIntakeRoute
+  '/league/$leagueId/player-rankings': typeof LeagueLeagueIdPlayerRankingsRoute
   '/league/$leagueId/rookie-board': typeof LeagueLeagueIdRookieBoardRoute
   '/league/$leagueId/roster-moves': typeof LeagueLeagueIdRosterMovesRoute
   '/league/$leagueId/startup': typeof LeagueLeagueIdStartupRoute
@@ -152,6 +161,7 @@ export interface FileRoutesById {
   '/league/$leagueId/league-ops': typeof LeagueLeagueIdLeagueOpsRoute
   '/league/$leagueId/managers': typeof LeagueLeagueIdManagersRouteWithChildren
   '/league/$leagueId/orphan-intake': typeof LeagueLeagueIdOrphanIntakeRoute
+  '/league/$leagueId/player-rankings': typeof LeagueLeagueIdPlayerRankingsRoute
   '/league/$leagueId/rookie-board': typeof LeagueLeagueIdRookieBoardRoute
   '/league/$leagueId/roster-moves': typeof LeagueLeagueIdRosterMovesRoute
   '/league/$leagueId/startup': typeof LeagueLeagueIdStartupRoute
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/league/$leagueId/league-ops'
     | '/league/$leagueId/managers'
     | '/league/$leagueId/orphan-intake'
+    | '/league/$leagueId/player-rankings'
     | '/league/$leagueId/rookie-board'
     | '/league/$leagueId/roster-moves'
     | '/league/$leagueId/startup'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/league/$leagueId/league-ops'
     | '/league/$leagueId/managers'
     | '/league/$leagueId/orphan-intake'
+    | '/league/$leagueId/player-rankings'
     | '/league/$leagueId/rookie-board'
     | '/league/$leagueId/roster-moves'
     | '/league/$leagueId/startup'
@@ -205,6 +217,7 @@ export interface FileRouteTypes {
     | '/league/$leagueId/league-ops'
     | '/league/$leagueId/managers'
     | '/league/$leagueId/orphan-intake'
+    | '/league/$leagueId/player-rankings'
     | '/league/$leagueId/rookie-board'
     | '/league/$leagueId/roster-moves'
     | '/league/$leagueId/startup'
@@ -293,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeagueLeagueIdRookieBoardRouteImport
       parentRoute: typeof LeagueLeagueIdRoute
     }
+    '/league/$leagueId/player-rankings': {
+      id: '/league/$leagueId/player-rankings'
+      path: '/player-rankings'
+      fullPath: '/league/$leagueId/player-rankings'
+      preLoaderRoute: typeof LeagueLeagueIdPlayerRankingsRouteImport
+      parentRoute: typeof LeagueLeagueIdRoute
+    }
     '/league/$leagueId/orphan-intake': {
       id: '/league/$leagueId/orphan-intake'
       path: '/orphan-intake'
@@ -350,6 +370,7 @@ interface LeagueLeagueIdRouteChildren {
   LeagueLeagueIdLeagueOpsRoute: typeof LeagueLeagueIdLeagueOpsRoute
   LeagueLeagueIdManagersRoute: typeof LeagueLeagueIdManagersRouteWithChildren
   LeagueLeagueIdOrphanIntakeRoute: typeof LeagueLeagueIdOrphanIntakeRoute
+  LeagueLeagueIdPlayerRankingsRoute: typeof LeagueLeagueIdPlayerRankingsRoute
   LeagueLeagueIdRookieBoardRoute: typeof LeagueLeagueIdRookieBoardRoute
   LeagueLeagueIdRosterMovesRoute: typeof LeagueLeagueIdRosterMovesRoute
   LeagueLeagueIdStartupRoute: typeof LeagueLeagueIdStartupRoute
@@ -361,6 +382,7 @@ const LeagueLeagueIdRouteChildren: LeagueLeagueIdRouteChildren = {
   LeagueLeagueIdLeagueOpsRoute: LeagueLeagueIdLeagueOpsRoute,
   LeagueLeagueIdManagersRoute: LeagueLeagueIdManagersRouteWithChildren,
   LeagueLeagueIdOrphanIntakeRoute: LeagueLeagueIdOrphanIntakeRoute,
+  LeagueLeagueIdPlayerRankingsRoute: LeagueLeagueIdPlayerRankingsRoute,
   LeagueLeagueIdRookieBoardRoute: LeagueLeagueIdRookieBoardRoute,
   LeagueLeagueIdRosterMovesRoute: LeagueLeagueIdRosterMovesRoute,
   LeagueLeagueIdStartupRoute: LeagueLeagueIdStartupRoute,
