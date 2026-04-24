@@ -14,6 +14,7 @@ The system must tell you — for each of your teams — what you are, what your 
 
 - League-page refresh now runs an incremental Sleeper ingest instead of freezing the current cached state, so manual refreshes rebuild analytics and write a fresh snapshot before the UI reloads.
 - Snapshot comparison membership is derived from `rosters.players`, so adds and departures still surface when player valuation rows lag behind roster ingestion.
+- League drill-in now has a Player Rankings tab backed by `/dashboard/league/{league_id}/player-rankings`, showing model/market-ranked players with each player owner inline.
 
 ### Active
 
@@ -90,4 +91,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-04-20 after snapshot refresh + diff membership fix*
+*Last updated: 2026-04-24 after adding league player rankings with inline ownership*
