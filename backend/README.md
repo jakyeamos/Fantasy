@@ -42,3 +42,21 @@ FANTASY_PORTFOLIO_OWNER_DISPLAY_NAME=jakye \
 
 The backend also reads a repo-root `.env`, so local personalization can live
 there instead of being repeated in every shell session.
+
+## ADP Baseline Refresh (API)
+
+To refresh `player_adp_baseline` without a CSV export, call:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/ingest/adp-baseline/refresh?league_id=<league_id>"
+```
+
+Notes:
+
+- This pulls dynasty values from FantasyCalc and maps them to local Sleeper
+  player IDs.
+- League profile defaults are inferred from `leagues`/`rosters` (1QB vs SF,
+  team count, and PPR). You can override with query params:
+  `num_qbs`, `num_teams`, `ppr`.
+- The refresh is safety-guarded: if zero players match local IDs, the existing
+  ADP baseline is left unchanged.

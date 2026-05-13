@@ -75,3 +75,29 @@ def test_prospects_router_returns_outputs_and_comps(db):
     assert outputs_response.json()[0]["sub_flags"][0]["signal_name"] == "Draft Capital"
     assert comps_response.status_code == 200
     assert comps_response.json()[0]["role"] == "ceiling"
+
+
+def test_prospects_router_refreshes_draft_capital(monkeypatch, db):
+    def _fake_refresh(conn, *, draft_year: int):
+        assert draft_year == 2026
+        return {
+            "draft_year": draft_year,
+            "source_rows": 32,
+            "matched_rows": 8,
+            "updated_rows": 2,
+            "unmatched_rows": 24,
+            "rebuilt_boards": 1,
+        }
+
+    monkeypatch.setattr(
+        "fantasy.routers.prospects.refresh_actual_draft_capital",
+        _fake_refresh,
+    )
+    app = create_app()
+    app.dependency_overrides[get_write_db_conn] = _override_conn(db)
+    client = TestClient(app)
+
+    response = client.post("/prospects/draft-capital/refresh?draft_year=2026")
+
+    assert response.status_code == 200
+    assert response.json()["updated_rows"] == 2

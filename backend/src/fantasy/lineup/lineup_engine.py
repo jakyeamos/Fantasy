@@ -32,6 +32,28 @@ from fantasy.lineup.models import LineupResult, LineupSlotScore
 from fantasy.recommendation.card_engine import RecommendationCardEngine
 
 _SLOT_SKIP = {"BN", "IR", "TAXI", "BENCH"}
+_FLEX_SLOTS = {
+    "FLEX",
+    "RB_WR",
+    "RBWR",
+    "RB_WR_TE",
+    "RBWRTE",
+    "REC_FLEX",
+    "WRRB_FLEX",
+    "WR_RB_FLEX",
+    "W_R_T",
+    "WRT",
+}
+_SUPER_FLEX_SLOTS = {
+    "SUPER_FLEX",
+    "SUPERFLEX",
+    "S_FLEX",
+    "S-FLEX",
+    "OP",
+    "Q_W_R_T",
+    "Q/W/R/T",
+    "WRTQ",
+}
 _VALID_CONTEXT_FLAGS = (
     "qb_upgrade",
     "qb_downgrade",
@@ -44,12 +66,30 @@ _VALID_CONTEXT_FLAGS = (
 )
 
 
+def _normalize_slot(slot: str) -> str:
+    return slot.strip().upper().replace("-", "_").replace("/", "_").replace(" ", "_")
+
+
 def _slot_skip(slot: str) -> bool:
-    return slot.strip().upper() in _SLOT_SKIP
+    return _normalize_slot(slot) in _SLOT_SKIP
 
 
 def _flex_like(slot: str) -> bool:
-    return slot.strip().upper() in {"FLEX", "SUPER_FLEX", "SUPERFLEX", "S-FLEX"}
+    normalized = _normalize_slot(slot)
+    return (
+        normalized in _FLEX_SLOTS
+        or normalized in _SUPER_FLEX_SLOTS
+        or normalized.endswith("_FLEX")
+    )
+
+
+def _slot_allowed_positions(slot: str) -> set[str]:
+    normalized = _normalize_slot(slot)
+    if normalized in _SUPER_FLEX_SLOTS:
+        return {"QB", "RB", "WR", "TE"}
+    if normalized in _FLEX_SLOTS or normalized.endswith("_FLEX"):
+        return {"RB", "WR", "TE"}
+    return {normalized}
 
 
 def _median(values: list[float]) -> float:
@@ -225,18 +265,69 @@ class LineupEngine:
         )
         return max(0.0, base_value + adjustment)
 
-    def _iter_active_slots(self, inputs: ScorecardInputs) -> list[tuple[str, str, int]]:
-        out: list[tuple[str, str, int]] = []
-        for i, slot in enumerate(inputs.roster_positions):
-            if _slot_skip(slot):
+    def _iter_active_slots(
+        self,
+        inputs: ScorecardInputs,
+        *,
+        strength_snapshots: dict[str, CurrentStrengthSnapshot] | None = None,
+    ) -> list[tuple[str, str, int]]:
+        active_slots = [
+            (slot_index, slot)
+            for slot_index, slot in enumerate(inputs.roster_positions)
+            if not _slot_skip(slot)
+        ]
+        if not active_slots:
+            return []
+
+        candidates: list[str] = []
+        seen: set[str] = set()
+        for player_id in inputs.starters + inputs.bench:
+            if not player_id:
                 continue
-            if i >= len(inputs.starters):
-                break
-            pid = inputs.starters[i]
-            if not pid:
+            normalized_player_id = str(player_id)
+            if normalized_player_id in seen:
                 continue
-            out.append((slot, str(pid), i))
-        return out
+            seen.add(normalized_player_id)
+            candidates.append(normalized_player_id)
+        if not candidates:
+            return []
+
+        candidate_values = {
+            player_id: self._value_proxy(inputs, player_id, strength_snapshots)
+            for player_id in candidates
+        }
+        assigned: dict[int, tuple[str, str, int]] = {}
+        used: set[str] = set()
+
+        non_flex_slots = [entry for entry in active_slots if not _flex_like(entry[1])]
+        flex_slots = [entry for entry in active_slots if _flex_like(entry[1])]
+        for slot_index, slot in non_flex_slots + flex_slots:
+            allowed_positions = _slot_allowed_positions(slot)
+            best_player_id: str | None = None
+            best_value = -1.0
+            for player_id in candidates:
+                if player_id in used:
+                    continue
+                player_position = (
+                    inputs.player_positions.get(player_id, "UNKNOWN").strip().upper()
+                )
+                if player_position not in allowed_positions:
+                    continue
+                candidate_value = candidate_values.get(player_id, 0.0)
+                if candidate_value > best_value:
+                    best_value = candidate_value
+                    best_player_id = player_id
+
+            if best_player_id is None:
+                continue
+            used.add(best_player_id)
+            assigned[slot_index] = (slot, best_player_id, slot_index)
+
+        return [
+            assigned[slot_index]
+            for slot_index, _slot in active_slots
+            if slot_index in assigned
+        ]
 
     def _compute_replacement_level(
         self,
@@ -255,13 +346,21 @@ class LineupEngine:
         values: list[float] = []
         if flex_pool:
             for inputs in all_inputs.values():
-                for slot, pid, _ in self._iter_active_slots(inputs):
+                for slot, pid, _ in self._iter_active_slots(
+                    inputs,
+                    strength_snapshots=strength_snapshots,
+                ):
                     if _flex_like(slot):
-                        values.append(self._value_proxy(inputs, pid, strength_snapshots))
+                        values.append(
+                            self._value_proxy(inputs, pid, strength_snapshots)
+                        )
         else:
             target = slot_label.strip().upper()
             for inputs in all_inputs.values():
-                for slot, pid, _ in self._iter_active_slots(inputs):
+                for slot, pid, _ in self._iter_active_slots(
+                    inputs,
+                    strength_snapshots=strength_snapshots,
+                ):
                     if _flex_like(slot):
                         continue
                     if slot.strip().upper() == target:
@@ -333,7 +432,10 @@ class LineupEngine:
         contender_values: list[float] = []
         all_values: list[float] = []
         for roster_id, inputs in all_inputs.items():
-            for slot, pid, _ in self._iter_active_slots(inputs):
+            for slot, pid, _ in self._iter_active_slots(
+                inputs,
+                strength_snapshots=strength_snapshots,
+            ):
                 if flex_pool:
                     if not _flex_like(slot):
                         continue
@@ -435,7 +537,11 @@ class LineupEngine:
         )
 
     def _detect_context_flags(
-        self, league_id: str, player_id: str, inputs: ScorecardInputs
+        self,
+        league_id: str,
+        player_id: str,
+        inputs: ScorecardInputs,
+        starter_ids: set[str] | None = None,
     ) -> list[str]:
         flags: list[str] = []
         position = inputs.player_positions.get(player_id, "UNKNOWN").upper()
@@ -446,7 +552,8 @@ class LineupEngine:
                 flags.append("age_cliff_proximity")
 
         games_played = inputs.player_games_played.get(player_id)
-        if player_id in inputs.starters and games_played is not None and games_played < 8:
+        active_starters = starter_ids if starter_ids is not None else set(inputs.starters)
+        if player_id in active_starters and games_played is not None and games_played < 8:
             flags.append("injury_recovery")
 
         try:
@@ -481,12 +588,23 @@ class LineupEngine:
 
         roster_ids = list(all_inputs.keys())
         strength_snapshots = self._load_current_strength_snapshots(all_inputs)
+        active_slots_by_roster = {
+            roster_id: self._iter_active_slots(
+                inputs,
+                strength_snapshots=strength_snapshots,
+            )
+            for roster_id, inputs in all_inputs.items()
+        }
 
         ceiling_raw: dict[int, float] = {}
         stability_raw: dict[int, float] = {}
         depth_raw: dict[int, float] = {}
         for roster_id, inputs in all_inputs.items():
-            starters_set = set(inputs.starters)
+            starters_set = {
+                player_id
+                for _slot, player_id, _slot_index in active_slots_by_roster.get(roster_id, [])
+                if player_id
+            }
             ceiling_raw[roster_id] = float(
                 self._ceiling_score_raw(
                     league_id,
@@ -502,9 +620,21 @@ class LineupEngine:
             else:
                 stability_raw[roster_id] = 0.5
 
+            effective_bench: list[str] = []
+            seen_effective_bench: set[str] = set()
+            for player_id in inputs.starters + inputs.bench:
+                if not player_id:
+                    continue
+                normalized_player_id = str(player_id)
+                if normalized_player_id in starters_set:
+                    continue
+                if normalized_player_id in seen_effective_bench:
+                    continue
+                seen_effective_bench.add(normalized_player_id)
+                effective_bench.append(normalized_player_id)
             bench_vals = [
                 self._value_proxy(inputs, pid, strength_snapshots)
-                for pid in inputs.bench
+                for pid in effective_bench
             ]
             med_avg = float(
                 sum(inputs.position_medians.values())
@@ -524,8 +654,8 @@ class LineupEngine:
         benchmark_pool_ids = self._benchmark_pool_ids(title_window_composites)
 
         position_keys: set[str] = set()
-        for inputs in all_inputs.values():
-            for slot, _pid, _ in self._iter_active_slots(inputs):
+        for active_slots in active_slots_by_roster.values():
+            for slot, _pid, _ in active_slots:
                 if not _flex_like(slot):
                     position_keys.add(slot.strip().upper())
 
@@ -564,7 +694,7 @@ class LineupEngine:
         )
 
         max_slots = max(
-            (len(self._iter_active_slots(inputs)) for inputs in all_inputs.values()),
+            (len(active_slots) for active_slots in active_slots_by_roster.values()),
             default=0,
         )
         raw_by_slot: list[dict[int, float]] = [{} for _ in range(max_slots)]
@@ -577,7 +707,9 @@ class LineupEngine:
                 sum(inputs.position_medians.values())
                 / max(len(inputs.position_medians), 1)
             )
-            for slot_index, (slot, pid, _orig_idx) in enumerate(self._iter_active_slots(inputs)):
+            for slot_index, (slot, pid, _orig_idx) in enumerate(
+                active_slots_by_roster.get(roster_id, [])
+            ):
                 starter_value = self._value_proxy(inputs, pid, strength_snapshots)
                 player_position = inputs.player_positions.get(pid, slot).upper()
                 if _flex_like(slot):
@@ -597,8 +729,14 @@ class LineupEngine:
                 )
 
         norm_by_slot = [normalize_within_league(raw) if raw else {} for raw in raw_by_slot]
+        team_raw_totals = {
+            roster_id: float(sum(raw.get(roster_id, 0.0) for raw in raw_by_slot))
+            for roster_id in roster_ids
+        }
+        team_norm_totals = normalize_within_league(team_raw_totals)
+        lineup_score_scale = float(max(max_slots, 1))
         total_lineup_scores = {
-            roster_id: float(sum(raw.get(roster_id, 0.0) for raw in norm_by_slot))
+            roster_id: float(team_norm_totals.get(roster_id, 0.0) * lineup_score_scale)
             for roster_id in roster_ids
         }
         overall_targets = self._compute_overall_benchmark_targets(
@@ -612,6 +750,10 @@ class LineupEngine:
         for roster_id, inputs in all_inputs.items():
             slot_scores: list[LineupSlotScore] = []
             total_lineup_score = float(total_lineup_scores.get(roster_id, 0.0))
+            active_starter_ids = {
+                player_id
+                for _slot, player_id, _slot_index in active_slots_by_roster.get(roster_id, [])
+            }
             guard_active = bool(
                 scorecards
                 and roster_id in scorecards
@@ -681,7 +823,12 @@ class LineupEngine:
                         benchmark_sample_size=benchmark_targets.benchmark_sample_size,
                         elite_insulation_guard=guard_active,
                         format_urgency_weight=float(format_urgency_weight),
-                        player_context_flags=self._detect_context_flags(league_id, pid, inputs),
+                        player_context_flags=self._detect_context_flags(
+                            league_id,
+                            pid,
+                            inputs,
+                            starter_ids=active_starter_ids,
+                        ),
                     )
                 )
 

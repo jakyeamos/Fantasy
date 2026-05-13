@@ -45,11 +45,13 @@ _REQUIRED_LINEUP_SLOT_KEYS = {
     "elite_insulation_guard",
     "format_urgency_weight",
     "player_context_flags",
+    "lineup_slot_version",
 }
 
 _REQUIRED_HYGIENE_SUGGESTION_KEYS = {
     "timing_rationale",
     "player_context_flags",
+    "hygiene_suggestion_version",
 }
 
 

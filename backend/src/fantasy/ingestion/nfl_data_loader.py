@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
+from typing import TYPE_CHECKING
 from typing import Any
 
 import duckdb
 import polars as pl
+
+from fantasy.market.fantasycalc_client import FantasyCalcClient
+
+if TYPE_CHECKING:
+    from fantasy.market.models import ExternalPlayerValue
 
 SLEEPER_TO_NFLDATA_MAP: dict[str, str] = {
     "rec": "receptions",
@@ -43,6 +50,179 @@ PLAYER_STATS_COLUMNS = [
     "rushing_2pt_conversions",
     "fantasy_points",
 ]
+
+_SUFFIX_TOKENS = {"jr", "sr", "ii", "iii", "iv", "v"}
+
+
+def _normalize_player_name(name: str) -> str:
+    cleaned = re.sub(r"[^a-z0-9 ]+", " ", str(name).lower())
+    tokens = [token for token in cleaned.split() if token]
+    while tokens and tokens[-1] in _SUFFIX_TOKENS:
+        tokens.pop()
+    return " ".join(tokens)
+
+
+def _players_has_mfl_column(conn: duckdb.DuckDBPyConnection) -> bool:
+    columns = conn.execute("PRAGMA table_info('players')").fetchall()
+    return any(str(column[1]) == "mfl_id" for column in columns)
+
+
+def _build_player_lookup(
+    conn: duckdb.DuckDBPyConnection,
+) -> tuple[dict[str, str], dict[str, list[tuple[str, str | None, str]]]]:
+    if _players_has_mfl_column(conn):
+        rows = conn.execute(
+            """
+            SELECT player_id, full_name, position, mfl_id
+            FROM players
+            """
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            """
+            SELECT player_id, full_name, position, NULL AS mfl_id
+            FROM players
+            """
+        ).fetchall()
+
+    by_mfl: dict[str, str] = {}
+    by_name: dict[str, list[tuple[str, str | None, str]]] = {}
+    for row in rows:
+        player_id = str(row[0])
+        full_name = str(row[1] or "")
+        position = str(row[2]) if row[2] is not None else None
+        mfl_id = str(row[3]) if row[3] is not None else None
+
+        if mfl_id:
+            by_mfl[mfl_id] = player_id
+        if full_name:
+            normalized = _normalize_player_name(full_name)
+            if normalized:
+                by_name.setdefault(normalized, []).append((player_id, position, full_name))
+    return by_mfl, by_name
+
+
+def _resolve_player_id(
+    value: "ExternalPlayerValue",
+    by_mfl: dict[str, str],
+    by_name: dict[str, list[tuple[str, str | None, str]]],
+) -> tuple[str | None, str | None]:
+    if value.mfl_id is not None:
+        resolved = by_mfl.get(str(value.mfl_id))
+        if resolved is not None:
+            return resolved, None
+
+    normalized_name = _normalize_player_name(value.player_name)
+    candidates = by_name.get(normalized_name, [])
+    if not candidates:
+        return None, None
+    if len(candidates) == 1:
+        player_id, _position, canonical_name = candidates[0]
+        return player_id, canonical_name
+
+    if value.position:
+        matching_position = [
+            candidate
+            for candidate in candidates
+            if candidate[1] is not None and candidate[1] == value.position
+        ]
+        if len(matching_position) == 1:
+            player_id, _position, canonical_name = matching_position[0]
+            return player_id, canonical_name
+
+    return None, None
+
+
+async def refresh_adp_baseline_from_fantasycalc(
+    conn: duckdb.DuckDBPyConnection,
+    *,
+    num_qbs: int = 1,
+    num_teams: int = 12,
+    ppr: float = 1.0,
+) -> dict[str, int]:
+    if num_qbs <= 0:
+        raise ValueError("num_qbs must be positive.")
+    if num_teams <= 0:
+        raise ValueError("num_teams must be positive.")
+
+    by_mfl, by_name = _build_player_lookup(conn)
+    async with FantasyCalcClient() as client:
+        values = await client.fetch_dynasty_values(
+            num_qbs=num_qbs,
+            num_teams=num_teams,
+            ppr=ppr,
+        )
+
+    matched_unique: dict[str, tuple[str, str | None, float, str | None]] = {}
+    matched_rows = 0
+    for value in values:
+        player_id, canonical_name = _resolve_player_id(value, by_mfl=by_mfl, by_name=by_name)
+        if player_id is None:
+            continue
+
+        matched_rows += 1
+        adp_rank = float(value.overall_rank)
+        existing = matched_unique.get(player_id)
+        if existing is None or adp_rank < existing[2]:
+            matched_unique[player_id] = (
+                value.player_name,
+                value.position,
+                adp_rank,
+                canonical_name,
+            )
+
+    matched_unique_rows = len(matched_unique)
+    if matched_unique_rows == 0:
+        raise ValueError(
+            "FantasyCalc ADP refresh matched zero players in local Sleeper IDs; baseline unchanged."
+        )
+
+    rows: list[tuple[str, str | None, str | None, float, str]] = []
+    for player_id, (player_name, position, adp_rank, canonical_name) in matched_unique.items():
+        rows.append(
+            (
+                player_id,
+                canonical_name or player_name,
+                position,
+                adp_rank,
+                "fantasycalc_api",
+            )
+        )
+
+    conn.execute("DELETE FROM player_adp_baseline")
+    conn.executemany(
+        """
+        INSERT INTO player_adp_baseline (player_id, player_name, position, adp, adp_source)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        rows,
+    )
+
+    if _players_has_mfl_column(conn):
+        mfl_updates: list[tuple[str, str]] = []
+        for value in values:
+            if value.mfl_id is None:
+                continue
+            player_id, _canonical_name = _resolve_player_id(value, by_mfl=by_mfl, by_name=by_name)
+            if player_id is None:
+                continue
+            mfl_updates.append((str(value.mfl_id), player_id))
+        if mfl_updates:
+            conn.executemany(
+                """
+                UPDATE players
+                SET mfl_id = ?
+                WHERE player_id = ?
+                """,
+                mfl_updates,
+            )
+
+    return {
+        "source_rows": len(values),
+        "matched_rows": matched_rows,
+        "matched_unique_rows": matched_unique_rows,
+        "unmatched_rows": len(values) - matched_rows,
+    }
 
 
 def compute_fantasy_points(

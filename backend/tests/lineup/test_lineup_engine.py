@@ -170,6 +170,48 @@ def test_compute_all_three_team_league_has_slot_scores():
         assert out[rid].slot_scores[0].position == "QB"
 
 
+def test_compute_all_builds_full_lineup_from_starters_plus_bench():
+    conn = duckdb.connect(":memory:")
+    eng = LineupEngine(conn)
+    all_in = {
+        1: _base_inputs(
+            1,
+            roster_positions=["QB", "RB", "WR", "FLEX", "BN", "BN", "BN"],
+            starters=["q1", "r1"],
+            bench=["w1", "w2", "r2"],
+            weekly={"q1": 24.0, "r1": 18.0, "w1": 17.0, "w2": 14.0, "r2": 12.0},
+            player_positions={
+                "q1": "QB",
+                "r1": "RB",
+                "w1": "WR",
+                "w2": "WR",
+                "r2": "RB",
+            },
+        ),
+        2: _base_inputs(
+            2,
+            roster_positions=["QB", "RB", "WR", "FLEX", "BN", "BN", "BN"],
+            starters=["q2", "r3", "w3", "r4"],
+            bench=["w4"],
+            weekly={"q2": 16.0, "r3": 12.0, "w3": 11.0, "r4": 9.0, "w4": 7.0},
+            player_positions={
+                "q2": "QB",
+                "r3": "RB",
+                "w3": "WR",
+                "r4": "RB",
+                "w4": "WR",
+            },
+        ),
+    }
+
+    out = eng.compute_all("league_t", all_in, scorecards=None)
+    roster_one_slots = out[1].slot_scores
+
+    assert len(roster_one_slots) == 4
+    assert {slot.player_id for slot in roster_one_slots} == {"q1", "r1", "w1", "w2"}
+    assert out[1].total_lineup_score > out[2].total_lineup_score
+
+
 def test_title_window_peak_fading_outside():
     conn = duckdb.connect(":memory:")
     eng = LineupEngine(conn)

@@ -321,7 +321,32 @@ class HygieneEngine:
                         other_roster_id,
                         name_by_roster.get(other_roster_id, "Manager"),
                     )
+        fallback_target_id = self._find_fallback_target_player(
+            league_id,
+            roster_id,
+            all_inputs,
+        )
+        if fallback_target_id is not None:
+            return fallback_target_id, None, None
         return None, None, None
+
+    def _find_fallback_target_player(
+        self,
+        league_id: str,
+        roster_id: int,
+        all_inputs: dict[int, ScorecardInputs],
+    ) -> str | None:
+        best_player_id: str | None = None
+        best_lens = float("-inf")
+        for other_roster_id, other_inputs in all_inputs.items():
+            if other_roster_id == roster_id:
+                continue
+            for player_id in other_inputs.starters + other_inputs.bench:
+                lens = self._row_lens(league_id, other_roster_id, player_id)
+                if lens > best_lens:
+                    best_lens = lens
+                    best_player_id = player_id
+        return best_player_id
 
     def _cut_suggestions(
         self, league_id: str, roster_id: int, inputs: ScorecardInputs
@@ -751,8 +776,9 @@ class HygieneEngine:
             f"{self._consolidation_goal(_direction_label)}."
         )
         target_player_name: str | None = None
-        if target_player_id is not None and target_roster_id is not None:
+        if target_player_id is not None:
             target_player_name = self._player_name(target_player_id)
+        if target_player_id is not None and target_roster_id is not None:
             request = TradeRequest(
                 league_id=league_id,
                 user_roster_id=roster_id,
@@ -776,6 +802,10 @@ class HygieneEngine:
             )
             if package is None:
                 reasoning += " Package builder context was unavailable, but the trade shape still fits."
+        elif target_player_name is not None:
+            reasoning = (
+                f"Package {first_name} + {second_name} -> target {target_player_name}."
+            )
 
         return [
             self._suggestion(
@@ -802,7 +832,7 @@ class HygieneEngine:
         if "contender" in normalized or "playoff" in normalized:
             return "a cleaner weekly starter"
         if "rebuild" in normalized or "punt" in normalized or "value" in normalized:
-            return "one liquid upside asset"
+            return "a named upside target"
         return "one cleaner starter-level asset"
 
     def _apply_coverage_guarantee(

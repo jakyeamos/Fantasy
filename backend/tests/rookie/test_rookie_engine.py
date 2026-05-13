@@ -58,22 +58,22 @@ def test_compute_board_returns_tiers_and_class_strength(db):
     assert -1.0 <= board.class_strength_signal <= 1.0
 
 
-def test_assign_tiers_creates_dynamic_breaks(db):
+def test_assign_tiers_uses_score_bands(db):
     engine = _engine(db)
     players = [
         RookiePlayer(player_id=str(index), full_name=str(index), position="WR", archetype_label="X", risk_band="Low", composite_score=score, tier_number=1, available_probability_by_slot={})
-        for index, score in enumerate([90, 88, 87, 75, 73, 60], start=1)
+        for index, score in enumerate([90, 88, 75, 73, 60, 47], start=1)
     ]
     tiers = engine._assign_tiers(players)
-    assert len(tiers) == 3
+    assert [tier.tier_number for tier in tiers] == [1, 2, 3, 5]
     assert GAP_THRESHOLD == 8.0
 
 
-def test_assign_tiers_without_gaps_stays_single_tier(db):
+def test_assign_tiers_keeps_same_band_together(db):
     engine = _engine(db)
     players = [
         RookiePlayer(player_id=str(index), full_name=str(index), position="WR", archetype_label="X", risk_band="Low", composite_score=score, tier_number=1, available_probability_by_slot={})
-        for index, score in enumerate([90, 86, 83, 80], start=1)
+        for index, score in enumerate([84, 80, 76, 72], start=1)
     ]
     assert len(engine._assign_tiers(players)) == 1
 
@@ -99,6 +99,33 @@ def test_score_rookie_full_ppr_boosts_pass_catchers(db):
     wr = _players()[0]
     standard = _engine(db, ppr=0.0)
     assert engine._score_rookie(wr, {"superflex": False, "ppr": 1.0, "tep": False}) > standard._score_rookie(wr, {"superflex": False, "ppr": 0.0, "tep": False})
+
+
+def test_score_rookie_applies_draft_capital_floor_for_strong_day_two_profiles(db):
+    engine = _engine(db)
+    player = {
+        "position": "RB",
+        "adp": 48.0,
+        "age": None,
+        "avg_fantasy_points": 0.0,
+        "metadata": {
+            "draft_ovr": 48,
+            "predicted_tier": 1,
+            "predicted_bucket": "mediocre",
+            "risk_band": "Low",
+            "college_rush_ypg": 40.0,
+            "college_rec_ypg": 2.0,
+            "college_ypc": 4.0,
+            "college_mkt_share_proxy": 0.70,
+            "college_td_rate": 0.04,
+            "forty": 4.60,
+            "weight": 195,
+            "height": 70,
+            "age_at_draft": 22.0,
+        },
+    }
+
+    assert engine._score_rookie(player, {"superflex": False, "ppr": 0.5, "tep": False}) >= 72.0
 
 
 def test_score_rookie_tep_boosts_te(db):

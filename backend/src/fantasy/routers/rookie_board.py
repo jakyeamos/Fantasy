@@ -27,10 +27,13 @@ def _build_recommendation_context(
 ) -> RecommendationContext:
     repo = ContextRepo(conn)
     calendar_context = CalendarService(repo=repo).get_context(league_id)
-    freshness_tags = FreshnessService(repo=repo).get_tags(
-        league_id,
-        ["injuries", "draft_capital", "landing_spots"],
-    )
+    try:
+        freshness_tags = FreshnessService(repo=repo).get_tags(
+            league_id,
+            ["injuries", "draft_capital", "landing_spots"],
+        )
+    except duckdb.Error:
+        freshness_tags = []
     note = CALENDAR_GUIDANCE.get((calendar_context.active_state, "general"))
     return RecommendationContext(
         calendar_state=calendar_context.active_state,

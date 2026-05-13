@@ -43,6 +43,7 @@ class LineupSlotScore(BaseModel):
     elite_insulation_guard: bool = False
     format_urgency_weight: float = 1.0
     player_context_flags: list[str] = Field(default_factory=list)
+    lineup_slot_version: int = 2
 
 
 class LineupResult(BaseModel):
@@ -87,6 +88,7 @@ class HygieneSuggestion(BaseModel):
     timing_rationale: str = ""
     packaging_rationale: str | None = None
     player_context_flags: list[str] = Field(default_factory=list)
+    hygiene_suggestion_version: int = 2
 
 
 class HygieneResult(BaseModel):

@@ -80,6 +80,113 @@ def test_get_available_rookies_returns_current_class(db):
     assert all(player["metadata"]["draft_year"] == 2026 for player in rookies)
 
 
+def test_get_available_rookies_handles_missing_adp_baseline(db):
+    _seed_rookie_data(db)
+    db.execute("DELETE FROM player_adp_baseline")
+    db.execute(
+        """
+        UPDATE players
+        SET metadata_blob = ?
+        WHERE player_id = 'qb_rookie'
+        """,
+        [json.dumps({"draft_year": 2026, "mobile": True, "draft_pick": 8, "adp": 5.5})],
+    )
+    repo = RookieRepo(db)
+    rookies = repo.get_available_rookies("league_rookie")
+    assert len(rookies) == 6
+    assert rookies[0]["player_id"] == "qb_rookie"
+    assert rookies[0]["adp"] == 5.5
+
+
+def test_get_available_rookies_prefers_latest_prospect_model_outputs(db):
+    _seed_rookie_data(db)
+    db.executemany(
+        """
+        INSERT INTO prospect_model_outputs (
+            league_id,
+            draft_season,
+            player_id,
+            player_name,
+            position,
+            archetype_label,
+            hit_rate_bucket,
+            tier,
+            predicted_tier,
+            predicted_bucket,
+            risk_band,
+            overvalue_flag_direction,
+            overvalue_magnitude,
+            low_confidence,
+            comps_json
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            (
+                "league_rookie",
+                2026,
+                "pre_2026_jeremiyahlove",
+                "Jeremiyah Love",
+                "RB",
+                "Passing-Down RB",
+                "Low hit rate",
+                1,
+                1,
+                "hit",
+                "Low",
+                None,
+                None,
+                False,
+                "[]",
+            ),
+            (
+                "league_rookie",
+                2026,
+                "pre_2026_jordyntyson",
+                "Jordyn Tyson",
+                "WR",
+                "Field Stretcher",
+                "Moderate hit rate",
+                2,
+                2,
+                "hit",
+                "Moderate",
+                None,
+                None,
+                False,
+                "[]",
+            ),
+            (
+                "league_rookie",
+                2026,
+                "pre_2026_carnelltate",
+                "Carnell Tate",
+                "WR",
+                "Field Stretcher",
+                "Moderate hit rate",
+                1,
+                1,
+                "hit",
+                "Moderate",
+                None,
+                None,
+                False,
+                "[]",
+            ),
+        ],
+    )
+
+    rookies = RookieRepo(db).get_available_rookies("league_rookie")
+
+    assert {player["full_name"] for player in rookies} == {
+        "Jeremiyah Love",
+        "Jordyn Tyson",
+        "Carnell Tate",
+    }
+    assert all(player["metadata"]["draft_year"] == 2026 for player in rookies)
+    assert rookies[0]["metadata"]["archetype_label"] == "Field Stretcher"
+
+
 def test_save_board_cache_and_tendencies_round_trip(db):
     _seed_rookie_data(db)
     repo = RookieRepo(db)

@@ -37,6 +37,33 @@ from fantasy.rookie.models import (
 from fantasy.rookie.rookie_repo import RookieRepo
 
 
+def _clamp(value: float, low: float = 0.0, high: float = 100.0) -> float:
+    return max(low, min(high, value))
+
+
+def _as_float(value: object) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _scale_higher(value: object, low: float, high: float) -> float:
+    numeric = _as_float(value)
+    if numeric is None:
+        return 50.0
+    return _clamp(((numeric - low) / max(high - low, 0.01)) * 100.0)
+
+
+def _scale_lower(value: object, low: float, high: float) -> float:
+    numeric = _as_float(value)
+    if numeric is None:
+        return 50.0
+    return _clamp(((high - numeric) / max(high - low, 0.01)) * 100.0)
+
+
 def slot_availability_probability(rank: int, slot: int) -> float:
     if slot < rank:
         return 0.05
@@ -177,46 +204,117 @@ class RookieEngine:
     def _score_rookie(self, player: dict, league_settings: dict) -> float:
         adp = float(player.get("adp", 999.0))
         metadata = player.get("metadata", {})
-        avg_points = float(player.get("avg_fantasy_points", 0.0) or 0.0)
-        score = max(0.0, 100.0 - (adp * 2.0))
-
-        draft_pick = metadata.get("draft_pick")
-        if draft_pick is not None:
-            try:
-                draft_pick_int = int(draft_pick)
-                score += max(0.0, 45 - min(draft_pick_int, 45)) * 0.4
-            except (TypeError, ValueError):
-                pass
-
-        score += min(avg_points, 20.0) * 0.3
-
         position = str(player.get("position", ""))
+
+        model_score = {
+            "hit": 92.0,
+            "mediocre": 62.0,
+            "bust": 34.0,
+        }.get(str(metadata.get("predicted_bucket") or "").lower(), 55.0)
+        predicted_tier = int(metadata.get("predicted_tier") or 5)
+        model_score = (model_score * 0.75) + (_clamp(110.0 - predicted_tier * 18.0) * 0.25)
+
+        draft_score = _scale_lower(metadata.get("draft_ovr") or metadata.get("draft_pick"), 1.0, 160.0)
+        market_score = _scale_lower(adp, 1.0, 120.0)
+        production_score = self._production_score(position, metadata)
+        athletic_score = self._athletic_score(position, metadata)
+        age_score = _scale_lower(metadata.get("age_at_draft") or player.get("age"), 20.5, 24.5)
+
+        score = (
+            model_score * 0.26
+            + draft_score * 0.24
+            + production_score * 0.24
+            + market_score * 0.12
+            + athletic_score * 0.08
+            + age_score * 0.06
+        )
+        score = max(score, self._draft_capital_floor(metadata))
+
         if league_settings.get("superflex") and position == "QB":
-            score *= 1.3
+            score *= 1.12
         if league_settings.get("ppr") == 1.0 and position in {"WR", "TE"}:
-            score *= 1.15
+            score *= 1.04
         elif league_settings.get("ppr") == 0.5 and position in {"WR", "TE"}:
-            score *= 1.07
+            score *= 1.02
         elif league_settings.get("ppr") == 0.0 and position == "RB":
-            score *= 1.10
+            score *= 1.04
         if league_settings.get("tep") and position == "TE":
-            score *= 1.20
-        return score
+            score *= 1.08
+        if metadata.get("low_confidence"):
+            score *= 0.94
+        return _clamp(score)
+
+    def _draft_capital_floor(self, metadata: dict) -> float:
+        draft_ovr = _as_float(metadata.get("draft_ovr") or metadata.get("draft_pick"))
+        if draft_ovr is None:
+            return 0.0
+        risk_band = str(metadata.get("risk_band") or "")
+        predicted_tier = int(metadata.get("predicted_tier") or 5)
+        predicted_bucket = str(metadata.get("predicted_bucket") or "").lower()
+
+        if draft_ovr <= 32 and risk_band != RISK_BAND_HIGH:
+            return 78.0 if predicted_bucket == "hit" else 74.0
+        if draft_ovr <= 64 and predicted_tier <= 2 and risk_band == RISK_BAND_LOW:
+            return 72.0
+        return 0.0
+
+    def _production_score(self, position: str, metadata: dict) -> float:
+        if position == "WR":
+            return (
+                _scale_higher(metadata.get("college_yprr"), 1.2, 3.5) * 0.34
+                + _scale_higher(metadata.get("college_ypt"), 6.5, 12.5) * 0.20
+                + _scale_higher(metadata.get("college_mkt_share_proxy"), 0.70, 0.90) * 0.26
+                + _scale_higher(metadata.get("college_td_rate"), 0.04, 0.18) * 0.20
+            )
+        if position == "RB":
+            return (
+                _scale_higher(metadata.get("college_ypc"), 4.2, 7.0) * 0.28
+                + _scale_higher(metadata.get("college_rush_ypg"), 45.0, 115.0) * 0.28
+                + _scale_higher(metadata.get("college_rec_ypg"), 5.0, 32.0) * 0.20
+                + _scale_higher(metadata.get("college_mkt_share_proxy"), 0.70, 0.90) * 0.14
+                + _scale_higher(metadata.get("college_td_rate"), 0.04, 0.16) * 0.10
+            )
+        if position == "QB":
+            return (
+                _scale_higher(metadata.get("college_ypa"), 6.2, 9.4) * 0.30
+                + _scale_higher(metadata.get("college_pass_td_rate"), 0.035, 0.10) * 0.24
+                + _scale_higher(metadata.get("college_completion_pct_proxy"), 0.58, 0.72) * 0.20
+                + _scale_higher(metadata.get("college_qb_rush_ypg"), -5.0, 45.0) * 0.18
+                + _scale_higher(metadata.get("college_scramble_rate"), 0.02, 0.14) * 0.08
+            )
+        if position == "TE":
+            return (
+                _scale_higher(metadata.get("college_yprr"), 1.0, 2.6) * 0.34
+                + _scale_higher(metadata.get("college_ypt"), 6.0, 10.5) * 0.20
+                + _scale_higher(metadata.get("college_rec_ypg"), 20.0, 70.0) * 0.20
+                + _scale_higher(metadata.get("college_mkt_share_proxy"), 0.65, 0.88) * 0.16
+                + _scale_higher(metadata.get("college_td_rate"), 0.03, 0.15) * 0.10
+            )
+        return 50.0
+
+    def _athletic_score(self, position: str, metadata: dict) -> float:
+        forty = metadata.get("forty")
+        weight = metadata.get("weight")
+        height = metadata.get("height")
+        speed_score = _scale_lower(forty, 4.30, 4.75)
+        if position == "QB":
+            return speed_score * 0.35 + _scale_higher(weight, 205.0, 235.0) * 0.35 + _scale_higher(height, 72.0, 77.0) * 0.30
+        if position == "RB":
+            return speed_score * 0.50 + _scale_higher(weight, 195.0, 225.0) * 0.35 + _scale_higher(height, 68.0, 73.0) * 0.15
+        if position == "WR":
+            return speed_score * 0.50 + _scale_higher(weight, 175.0, 215.0) * 0.25 + _scale_higher(height, 69.0, 76.0) * 0.25
+        if position == "TE":
+            return speed_score * 0.40 + _scale_higher(weight, 230.0, 255.0) * 0.35 + _scale_higher(height, 74.0, 78.0) * 0.25
+        return 50.0
 
     def _assign_tiers(self, players: list[RookiePlayer]) -> list[RookieTier]:
         if not players:
             return []
 
-        tiers: list[list[RookiePlayer]] = [[]]
-        current_tier_number = 1
-        previous_score = players[0].composite_score
-
-        for index, player in enumerate(players):
-            if index > 0 and previous_score - player.composite_score >= GAP_THRESHOLD and current_tier_number < MAX_TIER_COUNT:
-                tiers.append([])
-                current_tier_number += 1
-            tiers[-1].append(player.model_copy(update={"tier_number": current_tier_number}))
-            previous_score = player.composite_score
+        tier_buckets: dict[int, list[RookiePlayer]] = {tier: [] for tier in range(1, MAX_TIER_COUNT + 1)}
+        for player in players:
+            tier_number = self._tier_from_score(player.composite_score)
+            tier_buckets[tier_number].append(player.model_copy(update={"tier_number": tier_number}))
 
         return [
             RookieTier(
@@ -224,13 +322,27 @@ class RookieEngine:
                 label=TIER_LABELS.get(tier_number, f"Tier {tier_number}"),
                 players=tier_players,
             )
-            for tier_number, tier_players in enumerate(tiers, start=1)
+            for tier_number, tier_players in tier_buckets.items()
+            if tier_players
         ]
+
+    def _tier_from_score(self, score: float) -> int:
+        if score >= 85.0:
+            return 1
+        if score >= 72.0:
+            return 2
+        if score >= 60.0:
+            return 3
+        if score >= 48.0:
+            return 4
+        return 5
 
     def _assign_archetype(self, player: dict) -> str:
         position = str(player.get("position", ""))
         labels = ARCHETYPE_LABELS.get(position)
         metadata = player.get("metadata", {})
+        if metadata.get("archetype_label"):
+            return str(metadata["archetype_label"])
         if not labels:
             return ARCHETYPE_FALLBACK_TEMPLATE.format(position=position)
         if not metadata and not player.get("avg_fantasy_points"):
@@ -274,6 +386,8 @@ class RookieEngine:
 
     def _assign_risk_band(self, player: dict) -> str:
         metadata = player.get("metadata", {})
+        if metadata.get("risk_band") in {RISK_BAND_LOW, RISK_BAND_MODERATE, RISK_BAND_HIGH}:
+            return str(metadata["risk_band"])
         position = str(player.get("position", ""))
         age = player.get("age")
         draft_pick = metadata.get("draft_pick")

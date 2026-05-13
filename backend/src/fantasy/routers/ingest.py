@@ -8,6 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from fantasy.ingestion.ingest_service import IngestService
+from fantasy.ingestion.nfl_data_loader import refresh_adp_baseline_from_fantasycalc
+from fantasy.market.models import FantasyCalcUnavailableError
 from fantasy.ingestion.sleeper_client import SleeperClient
 from fantasy.routers.deps import get_read_db_conn, get_write_db_conn
 
@@ -26,6 +28,77 @@ class IngestStatusResponse(BaseModel):
     last_run_at: str | None
     gap_count: int
     gaps: list[dict[str, Any]]
+
+
+class AdpBaselineRefreshResponse(BaseModel):
+    source: str
+    source_rows: int
+    matched_rows: int
+    matched_unique_rows: int
+    unmatched_rows: int
+    num_qbs: int
+    num_teams: int
+    ppr: float
+
+
+def _resolve_adp_refresh_profile(
+    conn: duckdb.DuckDBPyConnection,
+    *,
+    league_id: str | None,
+    num_qbs: int | None,
+    num_teams: int | None,
+    ppr: float | None,
+) -> tuple[int, int, float]:
+    resolved_num_qbs = num_qbs
+    resolved_num_teams = num_teams
+    resolved_ppr = ppr
+
+    target_league_id = league_id
+    if target_league_id is None:
+        first_league = conn.execute(
+            """
+            SELECT league_id
+            FROM leagues
+            ORDER BY league_id
+            LIMIT 1
+            """
+        ).fetchone()
+        target_league_id = str(first_league[0]) if first_league else None
+
+    if target_league_id is not None:
+        league_row = conn.execute(
+            """
+            SELECT superflex, ppr
+            FROM leagues
+            WHERE league_id = ?
+            LIMIT 1
+            """,
+            [target_league_id],
+        ).fetchone()
+        if league_row is None and league_id is not None:
+            raise HTTPException(status_code=404, detail=f"League {league_id} not found.")
+        if league_row is not None:
+            if resolved_num_qbs is None:
+                resolved_num_qbs = 2 if bool(league_row[0]) else 1
+            if resolved_ppr is None and league_row[1] is not None:
+                resolved_ppr = float(league_row[1])
+            if resolved_num_teams is None:
+                roster_row = conn.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM rosters
+                    WHERE league_id = ?
+                    """,
+                    [target_league_id],
+                ).fetchone()
+                if roster_row and roster_row[0]:
+                    resolved_num_teams = int(roster_row[0])
+
+    resolved_num_qbs = resolved_num_qbs if resolved_num_qbs is not None else 1
+    resolved_num_teams = resolved_num_teams if resolved_num_teams is not None else 12
+    resolved_ppr = resolved_ppr if resolved_ppr is not None else 1.0
+
+    return resolved_num_qbs, resolved_num_teams, resolved_ppr
 
 
 @router.post("/{league_id}", response_model=IngestRunResponse)
@@ -47,6 +120,46 @@ async def trigger_ingest(
     row = conn.execute("SELECT status FROM ingest_runs WHERE id = ?", [run_id]).fetchone()
     status = row[0] if row else "complete"
     return IngestRunResponse(run_id=run_id, league_id=league_id, status=status)
+
+
+@router.post("/adp-baseline/refresh", response_model=AdpBaselineRefreshResponse)
+async def refresh_adp_baseline(
+    league_id: str | None = Query(default=None),
+    num_qbs: int | None = Query(default=None, ge=1, le=3),
+    num_teams: int | None = Query(default=None, ge=1, le=32),
+    ppr: float | None = Query(default=None, ge=0.0, le=2.0),
+    conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
+) -> AdpBaselineRefreshResponse:
+    resolved_num_qbs, resolved_num_teams, resolved_ppr = _resolve_adp_refresh_profile(
+        conn,
+        league_id=league_id,
+        num_qbs=num_qbs,
+        num_teams=num_teams,
+        ppr=ppr,
+    )
+
+    try:
+        refresh_summary = await refresh_adp_baseline_from_fantasycalc(
+            conn,
+            num_qbs=resolved_num_qbs,
+            num_teams=resolved_num_teams,
+            ppr=resolved_ppr,
+        )
+    except FantasyCalcUnavailableError as exc:
+        raise HTTPException(status_code=503, detail="FantasyCalc ADP API unavailable.") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return AdpBaselineRefreshResponse(
+        source="fantasycalc_api",
+        source_rows=refresh_summary["source_rows"],
+        matched_rows=refresh_summary["matched_rows"],
+        matched_unique_rows=refresh_summary["matched_unique_rows"],
+        unmatched_rows=refresh_summary["unmatched_rows"],
+        num_qbs=resolved_num_qbs,
+        num_teams=resolved_num_teams,
+        ppr=resolved_ppr,
+    )
 
 
 @router.get("/status/{league_id}", response_model=IngestStatusResponse)
