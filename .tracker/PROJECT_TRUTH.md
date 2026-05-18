@@ -5,7 +5,7 @@ nextStep: "Plan the next trade-engine phase around multi-team trade scoring and 
 blockers:
   - "Schema changes still require Alembic, startup compat shims, and test bootstrap updates in parallel."
   - "New tables still depend on a manual `alembic upgrade head` step because there is no startup migration runner."
-lastUpdated: "2026-04-09"
+lastUpdated: "2026-05-18"
 tags:
   - fantasy-football
   - fastapi
@@ -24,3 +24,7 @@ The repo layout is backend/frontend/data, and `.planning/STATE.md` records 16 co
 ## Risks
 
 Schema management is split across Alembic migrations, startup compatibility shims, and test bootstrap code, which is fragile when new tables land. The state file also calls out silent exception swallowing in several backend paths, so invisible failures remain a code-quality risk.
+
+## Recent Documentation Updates
+
+- 2026-05-18: Added or expanded README coverage for project and subproject roots so workspace documentation inventory is complete.
