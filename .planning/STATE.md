@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: implementing
 stopped_at: Phase 21 implementation complete
-last_updated: "2026-04-01T02:46:20Z"
+last_updated: "2026-06-12T21:43:42Z"
 progress:
   total_phases: 21
   completed_phases: 16
@@ -84,6 +84,7 @@ Recent decisions affecting current work:
 - [Phase 21]: `player_trends` is persisted through valuation write-through and read via a dedicated trends package.
 - [Phase 21]: Opportunity ranking is gap magnitude first, confidence second; low-confidence opportunities still surface when the gap is large enough.
 - [Phase 21]: Veteran decline signals can still convert to buy suggestions when the user has contender contexts on the board.
+- [Frontend]: Player rankings ownership is actionable: owner names link to manager dossiers, and row-level trade evaluation links preserve league/active roster context while seeding the selected player into the correct trade bucket.
 
 ### Pending Todos
 
