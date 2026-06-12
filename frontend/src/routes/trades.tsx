@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
@@ -267,14 +267,37 @@ export const Route = createFileRoute("/trades")({
         : typeof search.userRosterId === "string"
           ? Number(search.userRosterId) || undefined
           : undefined,
+    counterpartyRosterId:
+      typeof search.counterpartyRosterId === "number"
+        ? search.counterpartyRosterId
+        : typeof search.counterpartyRosterId === "string"
+          ? Number(search.counterpartyRosterId) || undefined
+          : undefined,
+    targetPlayerId:
+      typeof search.targetPlayerId === "string" ? search.targetPlayerId : undefined,
+    targetPlayerName:
+      typeof search.targetPlayerName === "string" ? search.targetPlayerName : undefined,
+    targetPlayerPosition:
+      typeof search.targetPlayerPosition === "string"
+        ? search.targetPlayerPosition
+        : undefined,
+    targetPlayerRosterId:
+      typeof search.targetPlayerRosterId === "number"
+        ? search.targetPlayerRosterId
+        : typeof search.targetPlayerRosterId === "string"
+          ? Number(search.targetPlayerRosterId) || undefined
+          : undefined,
   }),
   component: TradeEvaluatorPage,
 })
 
 function TradeEvaluatorPage() {
   const search = Route.useSearch()
+  const prefillKeyRef = useRef<string | null>(null)
   const [leagueId, setLeagueId] = useState(search.leagueId ?? "")
-  const [counterpartyRosterId, setCounterpartyRosterId] = useState(0)
+  const [counterpartyRosterId, setCounterpartyRosterId] = useState(
+    search.counterpartyRosterId ?? 0,
+  )
   const [thirdPartyTrades, setThirdPartyTrades] = useState<ThirdPartyTradeDraft[]>([])
   const [queryText, setQueryText] = useState("")
   const [queryTarget, setQueryTarget] = useState<QueryTarget>({
@@ -309,8 +332,56 @@ function TradeEvaluatorPage() {
     () => rosterOptions.filter((option) => option.roster_id !== userRosterId),
     [rosterOptions, userRosterId],
   )
+  const prefilledPlayerAsset = useMemo<TradeAsset | null>(() => {
+    if (!search.targetPlayerId || !search.targetPlayerName) {
+      return null
+    }
+
+    return {
+      asset_type: "player",
+      player_id: search.targetPlayerId,
+      player_name: search.targetPlayerName,
+      player_position: search.targetPlayerPosition ?? null,
+    }
+  }, [search.targetPlayerId, search.targetPlayerName, search.targetPlayerPosition])
 
   useEffect(() => {
+    if (!prefilledPlayerAsset || !search.targetPlayerRosterId || userRosterId <= 0) {
+      return
+    }
+
+    const prefillKey = [
+      leagueId,
+      userRosterId,
+      search.targetPlayerRosterId,
+      prefilledPlayerAsset.player_id,
+    ].join(":")
+    if (prefillKeyRef.current === prefillKey) {
+      return
+    }
+
+    prefillKeyRef.current = prefillKey
+    if (search.targetPlayerRosterId === userRosterId) {
+      setUserSends((current) => appendUniqueAsset(current, prefilledPlayerAsset))
+      setQueryTarget({ kind: "user", bucket: "send" })
+      return
+    }
+
+    setCounterpartyRosterId(search.targetPlayerRosterId)
+    setUserReceives((current) => appendUniqueAsset(current, prefilledPlayerAsset))
+    setQueryTarget({ kind: "user", bucket: "receive" })
+  }, [
+    leagueId,
+    prefilledPlayerAsset,
+    search.targetPlayerRosterId,
+    userRosterId,
+  ])
+
+  useEffect(() => {
+    if (rostersQuery.isLoading) {
+      return
+    }
+
     if (!counterpartyOptions.length) {
       if (counterpartyRosterId !== 0) {
         setCounterpartyRosterId(0)
@@ -321,7 +392,7 @@ function TradeEvaluatorPage() {
     if (!counterpartyOptions.some((option) => option.roster_id === counterpartyRosterId)) {
       setCounterpartyRosterId(counterpartyOptions[0]?.roster_id ?? 0)
     }
-  }, [counterpartyOptions, counterpartyRosterId])
+  }, [counterpartyOptions, counterpartyRosterId, rostersQuery.isLoading])
 
   const activeThirdParty =
     queryTarget.kind === "third-party"
@@ -473,6 +544,7 @@ function TradeEvaluatorPage() {
   })
 
   const handleLeagueChange = (nextLeagueId: string) => {
+    prefillKeyRef.current = null
     setLeagueId(nextLeagueId)
     setCounterpartyRosterId(0)
     setThirdPartyTrades([])

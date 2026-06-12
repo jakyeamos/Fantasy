@@ -1,12 +1,20 @@
 import { useMemo, useState } from "react"
 
 import { useQuery } from "@tanstack/react-query"
-import { createFileRoute } from "@tanstack/react-router"
-import { Search, SlidersHorizontal, TrendingDown, TrendingUp } from "lucide-react"
+import { Link, createFileRoute } from "@tanstack/react-router"
+import {
+  ArrowRightLeft,
+  Search,
+  SlidersHorizontal,
+  TrendingDown,
+  TrendingUp,
+  UserRound,
+} from "lucide-react"
 
 import { playerRankingsOptions } from "@/api/queries"
 import type { PlayerRankingEntry } from "@/api/types"
 import { Badge } from "@/components/ui/badge"
+import { buttonClasses } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useLeagueRosterSelection } from "@/lib/league-roster-selection"
@@ -38,6 +46,22 @@ function trendLabel(value: number | null): string {
   const rounded = Math.round(value)
   if (rounded > 0) return `+${rounded}`
   return String(rounded)
+}
+
+function playerTradeSearch(
+  player: PlayerRankingEntry,
+  leagueId: string,
+  userRosterId?: number | null,
+) {
+  return {
+    leagueId,
+    userRosterId: userRosterId ?? undefined,
+    counterpartyRosterId: player.is_user_roster ? undefined : player.roster_id,
+    targetPlayerId: player.player_id,
+    targetPlayerName: player.player_name,
+    targetPlayerPosition: player.position,
+    targetPlayerRosterId: player.roster_id,
+  }
 }
 
 function PlayerRankingsPage() {
@@ -82,6 +106,7 @@ function PlayerRankingsPage() {
 
   const topOwnedCount = rankings.filter((player) => player.is_user_roster && player.rank <= 48).length
   const topTierCount = rankings.filter((player) => player.tier === 1).length
+  const activeUserRosterId = requestedRosterId ?? league.user_roster_id
 
   return (
     <div className="space-y-6">
@@ -154,7 +179,7 @@ function PlayerRankingsPage() {
 
       <Card>
         <CardContent className="p-0">
-          <div className="hidden grid-cols-[72px_minmax(240px,1.4fr)_120px_180px_120px_120px] gap-4 border-b border-border/50 px-5 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground lg:grid">
+          <div className="hidden grid-cols-[72px_minmax(240px,1.4fr)_120px_minmax(220px,0.9fr)_120px_120px] gap-4 border-b border-border/50 px-5 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground lg:grid">
             <span>Rank</span>
             <span>Player</span>
             <span>Value</span>
@@ -167,7 +192,7 @@ function PlayerRankingsPage() {
               <div
                 key={player.player_id}
                 className={cn(
-                  "grid gap-3 px-5 py-4 lg:grid-cols-[72px_minmax(240px,1.4fr)_120px_180px_120px_120px] lg:items-center lg:gap-4",
+                  "grid gap-3 px-5 py-4 lg:grid-cols-[72px_minmax(240px,1.4fr)_120px_minmax(220px,0.9fr)_120px_120px] lg:items-center lg:gap-4",
                   player.is_user_roster ? "bg-primary/7" : "hover:bg-card/65",
                 )}
               >
@@ -199,11 +224,35 @@ function PlayerRankingsPage() {
                 </div>
                 <div>
                   <p className="terminal-label text-muted-foreground lg:hidden">Owner</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-label text-sm font-bold">{player.owner_name}</span>
+                  <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
+                    <Link
+                      to="/league/$leagueId/managers/$managerId"
+                      params={{
+                        leagueId,
+                        managerId: String(player.roster_id),
+                      }}
+                      className="inline-flex min-w-0 items-center gap-1.5 font-label text-sm font-bold text-primary hover:text-foreground"
+                    >
+                      <UserRound className="size-3.5 shrink-0" />
+                      <span className="truncate">{player.owner_name}</span>
+                    </Link>
                     {player.is_user_roster ? <Badge variant="secondary">You</Badge> : null}
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">Roster {player.roster_id}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <p className="text-xs text-muted-foreground">Roster {player.roster_id}</p>
+                    <Link
+                      to="/trades"
+                      search={playerTradeSearch(player, leagueId, activeUserRosterId)}
+                      className={buttonClasses({
+                        variant: "outline",
+                        size: "sm",
+                        className: "h-7 px-2 text-[9px]",
+                      })}
+                    >
+                      <ArrowRightLeft className="size-3" />
+                      Evaluate
+                    </Link>
+                  </div>
                 </div>
                 <div>
                   <p className="terminal-label text-muted-foreground lg:hidden">Fit</p>
