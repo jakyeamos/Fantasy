@@ -4,7 +4,11 @@ from collections.abc import Generator
 
 import duckdb
 
-from fantasy.db.connection import get_read_connection, get_write_connection
+from fantasy.db.connection import (
+    close_connection,
+    get_read_connection,
+    get_write_connection,
+)
 
 
 def get_write_db_conn() -> Generator[duckdb.DuckDBPyConnection, None, None]:
@@ -12,7 +16,7 @@ def get_write_db_conn() -> Generator[duckdb.DuckDBPyConnection, None, None]:
     try:
         yield conn
     finally:
-        conn.close()
+        close_connection(conn)
 
 
 def get_read_db_conn() -> Generator[duckdb.DuckDBPyConnection, None, None]:
@@ -20,4 +24,4 @@ def get_read_db_conn() -> Generator[duckdb.DuckDBPyConnection, None, None]:
     try:
         yield conn
     finally:
-        conn.close()
+        close_connection(conn)

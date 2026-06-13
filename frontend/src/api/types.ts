@@ -26,6 +26,44 @@ export interface SnapshotTriggerResponse {
   count: number
 }
 
+export interface AdpBaselineRefreshResponse {
+  source: "fantasycalc_api"
+  source_rows: number
+  matched_rows: number
+  matched_unique_rows: number
+  unmatched_rows: number
+  num_qbs: number
+  num_teams: number
+  ppr: number
+}
+
+export interface DraftCapitalRefreshSummary {
+  draft_year: number
+  source_rows: number
+  matched_rows: number
+  updated_rows: number
+  unmatched_rows: number
+  rebuilt_boards: number
+}
+
+export interface LeagueArtifactRefreshSummary {
+  league_id: string
+  roster_count: number
+  player_value_count: number
+  manager_profile_count: number
+  snapshot_count: number
+}
+
+export interface LeagueRefreshPipelineResponse {
+  league_id: string
+  run_id: number
+  run_type: "full" | "incremental"
+  sleeper_status: string
+  adp: AdpBaselineRefreshResponse
+  draft_capital: DraftCapitalRefreshSummary
+  artifacts: LeagueArtifactRefreshSummary
+}
+
 export interface RiserFallerEntry {
   player_name: string
   delta: number

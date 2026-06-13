@@ -10,7 +10,9 @@ from pydantic import BaseModel
 from fantasy.ingestion.ingest_service import IngestService
 from fantasy.ingestion.nfl_data_loader import refresh_adp_baseline_from_fantasycalc
 from fantasy.market.models import FantasyCalcUnavailableError
+from fantasy.prospects.draft_capital_refresh import refresh_actual_draft_capital
 from fantasy.ingestion.sleeper_client import SleeperClient
+from fantasy.startup_tasks import refresh_league_artifacts
 from fantasy.routers.deps import get_read_db_conn, get_write_db_conn
 
 router = APIRouter(prefix="/ingest", tags=["ingest"])
@@ -39,6 +41,33 @@ class AdpBaselineRefreshResponse(BaseModel):
     num_qbs: int
     num_teams: int
     ppr: float
+
+
+class DraftCapitalRefreshSummary(BaseModel):
+    draft_year: int
+    source_rows: int
+    matched_rows: int
+    updated_rows: int
+    unmatched_rows: int
+    rebuilt_boards: int
+
+
+class LeagueArtifactRefreshSummary(BaseModel):
+    league_id: str
+    roster_count: int
+    player_value_count: int
+    manager_profile_count: int
+    snapshot_count: int
+
+
+class LeagueRefreshPipelineResponse(BaseModel):
+    league_id: str
+    run_id: int
+    run_type: str
+    sleeper_status: str
+    adp: AdpBaselineRefreshResponse
+    draft_capital: DraftCapitalRefreshSummary
+    artifacts: LeagueArtifactRefreshSummary
 
 
 def _resolve_adp_refresh_profile(
@@ -120,6 +149,68 @@ async def trigger_ingest(
     row = conn.execute("SELECT status FROM ingest_runs WHERE id = ?", [run_id]).fetchone()
     status = row[0] if row else "complete"
     return IngestRunResponse(run_id=run_id, league_id=league_id, status=status)
+
+
+@router.post("/{league_id}/refresh-pipeline", response_model=LeagueRefreshPipelineResponse)
+async def refresh_league_pipeline(
+    league_id: str,
+    run_type: str = Query(default="incremental", pattern="^(full|incremental)$"),
+    draft_year: int = Query(default=2026, ge=2020, le=2035),
+    conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
+) -> LeagueRefreshPipelineResponse:
+    try:
+        async with SleeperClient() as client:
+            service = IngestService(conn, client)
+            run_id = await service.run(league_id, run_type)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"detail": "ingest_in_progress", "league_id": league_id},
+        ) from exc
+
+    row = conn.execute("SELECT status FROM ingest_runs WHERE id = ?", [run_id]).fetchone()
+    sleeper_status = row[0] if row else "complete"
+
+    resolved_num_qbs, resolved_num_teams, resolved_ppr = _resolve_adp_refresh_profile(
+        conn,
+        league_id=league_id,
+        num_qbs=None,
+        num_teams=None,
+        ppr=None,
+    )
+    try:
+        adp_summary = await refresh_adp_baseline_from_fantasycalc(
+            conn,
+            num_qbs=resolved_num_qbs,
+            num_teams=resolved_num_teams,
+            ppr=resolved_ppr,
+        )
+    except FantasyCalcUnavailableError as exc:
+        raise HTTPException(status_code=503, detail="FantasyCalc ADP API unavailable.") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    draft_capital_summary = refresh_actual_draft_capital(conn, draft_year=draft_year)
+    artifact_summary = refresh_league_artifacts(conn, league_id)
+
+    return LeagueRefreshPipelineResponse(
+        league_id=league_id,
+        run_id=run_id,
+        run_type=run_type,
+        sleeper_status=sleeper_status,
+        adp=AdpBaselineRefreshResponse(
+            source="fantasycalc_api",
+            source_rows=adp_summary["source_rows"],
+            matched_rows=adp_summary["matched_rows"],
+            matched_unique_rows=adp_summary["matched_unique_rows"],
+            unmatched_rows=adp_summary["unmatched_rows"],
+            num_qbs=resolved_num_qbs,
+            num_teams=resolved_num_teams,
+            ppr=resolved_ppr,
+        ),
+        draft_capital=DraftCapitalRefreshSummary(**draft_capital_summary),
+        artifacts=LeagueArtifactRefreshSummary(**artifact_summary),
+    )
 
 
 @router.post("/adp-baseline/refresh", response_model=AdpBaselineRefreshResponse)

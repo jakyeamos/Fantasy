@@ -79,6 +79,18 @@ def test_refresh_actual_draft_capital_updates_features_and_rebuilds_board(db):
         """
     ).fetchone()
     assert board_json is not None
+    refreshed_domains = {
+        row[0]
+        for row in db.execute(
+            """
+            SELECT domain
+            FROM freshness_domains
+            WHERE league_id = 'league_x'
+              AND last_updated IS NOT NULL
+            """
+        ).fetchall()
+    }
+    assert {"draft_capital", "landing_spots"} <= refreshed_domains
 
 
 def test_refresh_actual_draft_capital_fuzzy_matches_close_names(db):

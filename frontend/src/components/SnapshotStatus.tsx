@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
+import type { LeagueRefreshPipelineResponse } from "@/api/types"
 import { Button } from "@/components/ui/button"
 
 function formatSnapshot(snapshot: string | null) {
@@ -22,16 +23,31 @@ export function SnapshotStatus({
 }) {
   const queryClient = useQueryClient()
   const mutation = useMutation({
-    mutationFn: async (): Promise<void> => {
-      const response = await fetch(`/api/ingest/${leagueId}?run_type=incremental`, {
+    mutationFn: async (): Promise<LeagueRefreshPipelineResponse> => {
+      const response = await fetch(`/api/ingest/${leagueId}/refresh-pipeline?run_type=incremental&draft_year=2026`, {
         method: "POST",
       })
       if (!response.ok) {
         throw new Error("Refresh failed")
       }
+      return (await response.json()) as LeagueRefreshPipelineResponse
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries()
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["snapshots"] }),
+        queryClient.invalidateQueries({ queryKey: ["snapshot-anchors", leagueId] }),
+        queryClient.invalidateQueries({ queryKey: ["snapshot-diff", leagueId] }),
+        queryClient.invalidateQueries({ queryKey: ["picks"] }),
+        queryClient.invalidateQueries({ queryKey: ["rookie-board", leagueId] }),
+        queryClient.invalidateQueries({ queryKey: ["draft-room", leagueId] }),
+        queryClient.invalidateQueries({ queryKey: ["prospects", "model-outputs", leagueId] }),
+        queryClient.invalidateQueries({ queryKey: ["context", "freshness", leagueId] }),
+        queryClient.invalidateQueries({ queryKey: ["opportunities"] }),
+        queryClient.invalidateQueries({ queryKey: ["portfolio"] }),
+        queryClient.invalidateQueries({ queryKey: ["intelligence"] }),
+        queryClient.invalidateQueries({ queryKey: ["startup-context", leagueId] }),
+      ])
     },
   })
 
@@ -43,11 +59,11 @@ export function SnapshotStatus({
         onClick={() => mutation.mutate()}
         disabled={mutation.isPending}
       >
-        {mutation.isPending ? "Refreshing..." : "Refresh from Sleeper"}
+        {mutation.isPending ? "Refreshing..." : "Refresh league data"}
       </Button>
       {mutation.isError ? (
         <span className="text-red-600 dark:text-red-400">
-          Refresh failed. Sleeper sync did not complete.
+          Refresh failed. Full league refresh did not complete.
         </span>
       ) : null}
     </div>

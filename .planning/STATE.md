@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: implementing
 stopped_at: Phase 21 implementation complete
-last_updated: "2026-06-12T21:43:42Z"
+last_updated: "2026-06-13T13:49:00Z"
 progress:
   total_phases: 21
   completed_phases: 16
@@ -85,6 +85,9 @@ Recent decisions affecting current work:
 - [Phase 21]: Opportunity ranking is gap magnitude first, confidence second; low-confidence opportunities still surface when the gap is large enough.
 - [Phase 21]: Veteran decline signals can still convert to buy suggestions when the user has contender contexts on the board.
 - [Frontend]: Player rankings ownership is actionable: owner names link to manager dossiers, and row-level trade evaluation links preserve league/active roster context while seeding the selected player into the correct trade bucket.
+- [Refresh]: Manual league refresh now runs one full offseason pipeline: Sleeper ingest, FantasyCalc ADP refresh, 2026 actual draft-capital refresh, rookie-board rebuild, and artifact/snapshot recompute.
+- [Refresh]: Actual draft-capital refresh marks both draft_capital and landing_spots freshness domains so rookie-board UI no longer serves stale offseason warnings after a successful manual refresh.
+- [DuckDB]: Local FastAPI requests reuse one process-level DuckDB file connection to avoid same-process file-handle conflicts during post-refresh query invalidation.
 
 ### Pending Todos
 

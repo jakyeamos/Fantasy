@@ -215,11 +215,13 @@ def refresh_actual_draft_capital(
         for league_id in league_ids:
             engine.compute_board(league_id)
             try:
-                FreshnessService(repo=ContextRepo(conn)).mark_refreshed(
-                    league_id,
-                    "draft_capital",
-                    notes=f"Updated actual NFL Draft capital for {draft_year}.",
-                )
+                freshness = FreshnessService(repo=ContextRepo(conn))
+                for domain in ("draft_capital", "landing_spots"):
+                    freshness.mark_refreshed(
+                        league_id,
+                        domain,
+                        notes=f"Updated actual NFL Draft capital for {draft_year}.",
+                    )
             except duckdb.Error:
                 pass
             rebuilt_boards += 1
