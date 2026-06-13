@@ -20,12 +20,11 @@ import { PackageBuilderPanel } from "@/components/trade/PackageBuilderPanel"
 import { RerouteSheet } from "@/components/trade/RerouteSheet"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-
-type AssetBucket = "send" | "receive"
-
-type QueryTarget =
-  | { kind: "user"; bucket: AssetBucket }
-  | { kind: "third-party"; tradeId: string; bucket: AssetBucket }
+import {
+  resolveTradeAssetRosterId,
+  type AssetBucket,
+  type QueryTarget,
+} from "@/lib/tradeAssetSearch"
 
 interface ThirdPartyTradeDraft {
   clientId: string
@@ -404,14 +403,12 @@ function TradeEvaluatorPage() {
       ? thirdPartyTrades.findIndex((trade) => trade.clientId === queryTarget.tradeId)
       : -1
 
-  const activeRosterId =
-    queryTarget.bucket === "send"
-      ? queryTarget.kind === "user"
-        ? userRosterId
-        : activeThirdParty?.rosterId
-      : queryTarget.kind === "user"
-        ? counterpartyRosterId || undefined
-        : undefined
+  const activeRosterId = resolveTradeAssetRosterId({
+    queryTarget,
+    userRosterId,
+    counterpartyRosterId,
+    activeThirdPartyRosterId: activeThirdParty?.rosterId,
+  })
 
   const searchNeedsRoster = queryTarget.bucket === "send"
   const hasScopedRoster = !searchNeedsRoster || Boolean(activeRosterId && activeRosterId > 0)

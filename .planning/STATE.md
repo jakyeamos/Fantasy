@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: implementing
-stopped_at: Phase 21 implementation complete
-last_updated: "2026-06-13T13:49:00Z"
+stopped_at: Counterparty trade evaluator player picker restored
+last_updated: "2026-06-13T18:20:00Z"
 progress:
   total_phases: 21
   completed_phases: 16
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Tell me what my team is, what my best path is, who to trade with, what kind of deal to make, and whether the prospect or pick decision I'm considering is actually sharp in this format and league.
-**Current focus:** Phase 21 — player value trends and market inefficiency trade suggestions
+**Current focus:** Post-Phase 21 trade evaluator gap closure — selected counterparty rostered players are usable again; multi-team third-party scoring remains deferred.
 
 ## Current Position
 
-Phase: 21 (player-value-trends-and-market-inefficiency-trade-suggestions) — COMPLETE
-Plan: 7 of 7
+Phase: Post-Phase 21 targeted trade evaluator fix
+Plan: Counterparty asset picker restored; Phase 21 remains complete
 
 ## Performance Metrics
 
@@ -88,10 +88,11 @@ Recent decisions affecting current work:
 - [Refresh]: Manual league refresh now runs one full offseason pipeline: Sleeper ingest, FantasyCalc ADP refresh, 2026 actual draft-capital refresh, rookie-board rebuild, and artifact/snapshot recompute.
 - [Refresh]: Actual draft-capital refresh marks both draft_capital and landing_spots freshness domains so rookie-board UI no longer serves stale offseason warnings after a successful manual refresh.
 - [DuckDB]: Local FastAPI requests reuse one process-level DuckDB file connection to avoid same-process file-handle conflicts during post-refresh query invalidation.
+- [Trade Evaluator]: The primary "You Receive" asset picker now scopes blank player search to the selected counterparty roster, so rostered players from that manager are browsable and evaluable again. Third-party receive buckets remain league-wide to preserve multi-team sidecar modeling.
 
 ### Pending Todos
 
-- [Phase 9 scope]: Multi-team third-party trade scoring — TradeEngine does not score three-way trades; deferred to Phase 9. Trade evaluator counterparty asset picker only shows picks, not rostered players — counterparty player selection is broken. Both gaps should be addressed in Phase 9 planning.
+- [Phase 9 scope]: Multi-team third-party trade scoring — TradeEngine does not score three-way trades; deferred to Phase 9. Counterparty player selection is no longer pending as of 2026-06-13.
 
 ### Blockers/Concerns
 
@@ -102,6 +103,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-31T16:05:01.243Z
-Stopped at: Phase 21 implementation complete
-Resume file: .planning/phases/21-player-value-trends-and-market-inefficiency-trade-suggestions/21-07-SUMMARY.md
+Last session: 2026-06-13T18:20:00Z
+Stopped at: Counterparty trade evaluator player picker restored and verified
+Resume file: .planning/STATE.md

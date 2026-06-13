@@ -79,6 +79,51 @@ def test_player_search_blank_query_returns_scoped_roster_inventory(trade_seed_da
     assert {item["full_name"] for item in payload} >= {"QB One", "RB One", "WR One"}
 
 
+def test_player_search_blank_query_returns_selected_counterparty_roster(trade_seed_data):
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(trade_seed_data)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(trade_seed_data)
+    client = TestClient(app)
+
+    response = client.get(
+        "/trade/players/search",
+        params={"league_id": "league_x", "roster_id": 2, "q": ""},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload) == 6
+    assert {item["roster_id"] for item in payload} == {2}
+    assert {item["full_name"] for item in payload} >= {"QB Two", "RB Two", "WR Two"}
+    assert "QB One" not in {item["full_name"] for item in payload}
+
+
+def test_selected_counterparty_roster_player_can_be_evaluated(trade_seed_data):
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(trade_seed_data)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(trade_seed_data)
+    client = TestClient(app)
+
+    search_response = client.get(
+        "/trade/players/search",
+        params={"league_id": "league_x", "roster_id": 2, "q": ""},
+    )
+    assert search_response.status_code == 200
+    counterparty_qb = next(
+        item for item in search_response.json() if item["player_id"] == "qb2"
+    )
+
+    request = _request()
+    request["user_receives"] = [
+        {"asset_type": "player", "player_id": counterparty_qb["player_id"]}
+    ]
+    response = client.post("/trade/evaluate", json=request)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["market_fairness"]["confidence"] in {"HIGH", "MEDIUM", "LOW"}
+    assert payload["strategic_distinction"]["headline"]
+
+
 def test_player_search_falls_back_to_roster_ids_when_player_catalog_is_missing(trade_seed_data):
     trade_seed_data.execute("DELETE FROM players")
     app = create_app()

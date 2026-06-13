@@ -1,11 +1,11 @@
 ---
 schemaVersion: 1
 healthScore: 78
-nextStep: "Plan the next trade-engine phase around multi-team trade scoring and counterparty player selection while keeping the Phase 21 opportunity feed stable."
+nextStep: "Plan the next trade-engine phase around multi-team trade scoring while keeping the Phase 21 opportunity feed and restored counterparty player picker stable."
 blockers:
   - "Schema changes still require Alembic, startup compat shims, and test bootstrap updates in parallel."
   - "New tables still depend on a manual `alembic upgrade head` step because there is no startup migration runner."
-lastUpdated: "2026-05-18"
+lastUpdated: "2026-06-13"
 tags:
   - fantasy-football
   - fastapi
@@ -19,7 +19,7 @@ Fantasy is a local-first dynasty fantasy football intelligence app with a FastAP
 
 ## Context
 
-The repo layout is backend/frontend/data, and `.planning/STATE.md` records 16 completed phases and 77 completed plans. Current focus is the opportunity-feed and trend-engine work that landed in Phase 21. Recent pending scope is now narrower: multi-team trade scoring and fixing counterparty player selection in trade evaluation.
+The repo layout is backend/frontend/data, and `.planning/STATE.md` records 16 completed phases and 77 completed plans. Current focus is the opportunity-feed and trend-engine work that landed in Phase 21 plus follow-on trade evaluator hardening. Counterparty player selection in trade evaluation is restored as of 2026-06-13; remaining trade scope is multi-team third-party scoring.
 
 ## Risks
 
@@ -28,3 +28,4 @@ Schema management is split across Alembic migrations, startup compatibility shim
 ## Recent Documentation Updates
 
 - 2026-05-18: Added or expanded README coverage for project and subproject roots so workspace documentation inventory is complete.
+- 2026-06-13: Restored the trade evaluator counterparty asset picker so blank player browsing on "You Receive" scopes to the selected manager roster, with backend integration coverage and frontend roster-target coverage.
