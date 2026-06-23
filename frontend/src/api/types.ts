@@ -873,6 +873,15 @@ export interface SimilarPlayer {
   context: string
 }
 
+export interface OpportunityCta {
+  label: string
+  destination: "trade_evaluator" | "manager_dossier" | "player_rankings"
+  league_id: string | null
+  user_roster_id: number | null
+  manager_roster_id: number | null
+  target_player_roster_id: number | null
+}
+
 export interface OpportunityFeedItem {
   player_id: string
   player_name: string
@@ -888,6 +897,7 @@ export interface OpportunityFeedItem {
   conflict_explanation: string | null
   calendar_escalated: boolean
   calendar_escalation_label: string | null
+  cta: OpportunityCta | null
 }
 
 export interface OpportunityFeedResponse {

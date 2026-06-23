@@ -1,4 +1,7 @@
 import type { OpportunityFeedItem } from "@/api/types"
+import { Link } from "@tanstack/react-router"
+import { ArrowRightLeft, ExternalLink, UserRound } from "lucide-react"
+
 import { CalendarEscalationLabel } from "@/components/opportunities/CalendarEscalationLabel"
 import { ConfidenceIndicator } from "@/components/opportunities/ConfidenceIndicator"
 import { ConflictExplanationPanel } from "@/components/opportunities/ConflictExplanationPanel"
@@ -8,6 +11,8 @@ import { SuggestedActionBadge } from "@/components/opportunities/SuggestedAction
 import { TrendBadge } from "@/components/opportunities/TrendBadge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { buttonClasses } from "@/components/ui/button"
+import { buildOpportunityCtaTarget } from "@/lib/opportunityCta"
 
 function formatGap(adpGap: number) {
   const rounded = Math.round(adpGap)
@@ -19,6 +24,8 @@ export function OpportunityCard({
 }: {
   item: OpportunityFeedItem
 }) {
+  const ctaTarget = buildOpportunityCtaTarget(item)
+
   return (
     <Card>
       <CardContent className="p-5">
@@ -59,6 +66,41 @@ export function OpportunityCard({
 
         <ConflictExplanationPanel explanation={item.conflict_explanation} />
         <SimilarPlayersSection players={item.similar_players} />
+
+        {ctaTarget ? (
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/45 pt-4">
+            {ctaTarget.kind === "trade_evaluator" ? (
+              <Link
+                to="/trades"
+                search={ctaTarget.search}
+                className={buttonClasses({ variant: "default", size: "sm" })}
+              >
+                <ArrowRightLeft className="size-3.5" />
+                {ctaTarget.label}
+              </Link>
+            ) : null}
+            {ctaTarget.kind === "manager_dossier" ? (
+              <Link
+                to="/league/$leagueId/managers/$managerId"
+                params={ctaTarget.params}
+                className={buttonClasses({ variant: "outline", size: "sm" })}
+              >
+                <UserRound className="size-3.5" />
+                {ctaTarget.label}
+              </Link>
+            ) : null}
+            {ctaTarget.kind === "player_rankings" ? (
+              <Link
+                to="/league/$leagueId/player-rankings"
+                params={ctaTarget.params}
+                className={buttonClasses({ variant: "outline", size: "sm" })}
+              >
+                <ExternalLink className="size-3.5" />
+                {ctaTarget.label}
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   )

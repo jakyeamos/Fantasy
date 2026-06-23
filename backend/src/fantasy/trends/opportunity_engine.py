@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Literal
+from typing import Any, Literal
 
 import duckdb
 
@@ -10,7 +10,7 @@ from fantasy.context.context_repo import ContextRepo
 from fantasy.intelligence.constants import CONTENDER_DIRECTION_LABELS
 from fantasy.portfolio.portfolio_repo import PortfolioRepo
 from fantasy.trends.constants import CALENDAR_ESCALATION_LABELS, OPPORTUNITY_GAP_THRESHOLD
-from fantasy.trends.models import OpportunityFeedItem
+from fantasy.trends.models import OpportunityCta, OpportunityFeedItem
 from fantasy.trends.models import confidence_multiplier
 from fantasy.trends.similarity import find_similar_players
 from fantasy.trends.trend_engine import TrendEngine
@@ -52,6 +52,7 @@ class OpportunityEngine:
         if not user_rosters:
             user_rosters = self._fallback_user_rosters()
         owned_map = self._owned_map(user_rosters)
+        roster_contexts = self._roster_contexts(user_rosters)
         contender_leagues = self._contender_league_ids(user_rosters)
         calendar_state = (
             self._calendar_service.active_state(user_rosters[0]["league_id"])
@@ -97,6 +98,12 @@ class OpportunityEngine:
                 impact_score *= 1.1
 
             owned_in_leagues = owned_map.get(player_id, [])
+            cta = self._cta_for_player(
+                player_id=player_id,
+                suggested_action=suggested_action,
+                user_rosters=user_rosters,
+                roster_contexts=roster_contexts,
+            )
             items.append(
                 OpportunityFeedItem(
                     player_id=player_id,
@@ -124,6 +131,7 @@ class OpportunityEngine:
                     conflict_explanation=conflict_explanation,
                     calendar_escalated=escalation_label is not None,
                     calendar_escalation_label=escalation_label,
+                    cta=cta,
                 )
             )
 
@@ -182,6 +190,128 @@ class OpportunityEngine:
             player_id: sorted(leagues)
             for player_id, leagues in owned.items()
         }
+
+    def _roster_contexts(
+        self,
+        user_rosters: list[dict[str, object]],
+    ) -> dict[str, list[dict[str, object]]]:
+        user_roster_by_league = {
+            str(roster["league_id"]): int(roster["roster_id"])
+            for roster in user_rosters
+        }
+        if not user_roster_by_league:
+            return {}
+
+        rows = self._conn.execute(
+            """
+            SELECT league_id, roster_id, players
+            FROM rosters
+            WHERE league_id IN (SELECT UNNEST(?))
+            ORDER BY league_id, roster_id
+            """,
+            [list(user_roster_by_league.keys())],
+        ).fetchall()
+        contexts: dict[str, list[dict[str, object]]] = {}
+        for league_id, roster_id, players_json in rows:
+            league_key = str(league_id)
+            roster_key = int(roster_id)
+            for player_id in self._loads(players_json):
+                contexts.setdefault(player_id, []).append(
+                    {
+                        "league_id": league_key,
+                        "roster_id": roster_key,
+                        "user_roster_id": user_roster_by_league[league_key],
+                        "is_user_roster": roster_key == user_roster_by_league[league_key],
+                    }
+                )
+        return contexts
+
+    def _cta_for_player(
+        self,
+        *,
+        player_id: str,
+        suggested_action: str,
+        user_rosters: list[dict[str, object]],
+        roster_contexts: dict[str, list[dict[str, object]]],
+    ) -> OpportunityCta | None:
+        contexts = roster_contexts.get(player_id, [])
+        user_contexts = [context for context in contexts if bool(context["is_user_roster"])]
+        opponent_contexts = [context for context in contexts if not bool(context["is_user_roster"])]
+
+        if suggested_action == "sell" and user_contexts:
+            context = user_contexts[0]
+            return self._trade_cta(
+                label="Shop in Trade Evaluator",
+                context=context,
+                target_player_roster_id=int(context["roster_id"]),
+            )
+
+        if suggested_action == "buy":
+            if opponent_contexts:
+                context = opponent_contexts[0]
+                return self._trade_cta(
+                    label="Build Buy Offer",
+                    context=context,
+                    target_player_roster_id=int(context["roster_id"]),
+                    manager_roster_id=int(context["roster_id"]),
+                )
+            if user_rosters:
+                roster = user_rosters[0]
+                return OpportunityCta(
+                    label="Find League Fit",
+                    destination="player_rankings",
+                    league_id=str(roster["league_id"]),
+                    user_roster_id=int(roster["roster_id"]),
+                )
+
+        if opponent_contexts:
+            context = opponent_contexts[0]
+            return OpportunityCta(
+                label="View Manager",
+                destination="manager_dossier",
+                league_id=str(context["league_id"]),
+                user_roster_id=int(context["user_roster_id"]),
+                manager_roster_id=int(context["roster_id"]),
+                target_player_roster_id=int(context["roster_id"]),
+            )
+
+        if user_contexts:
+            context = user_contexts[0]
+            return OpportunityCta(
+                label="View Ranking",
+                destination="player_rankings",
+                league_id=str(context["league_id"]),
+                user_roster_id=int(context["user_roster_id"]),
+                target_player_roster_id=int(context["roster_id"]),
+            )
+
+        if user_rosters:
+            roster = user_rosters[0]
+            return OpportunityCta(
+                label="View Rankings",
+                destination="player_rankings",
+                league_id=str(roster["league_id"]),
+                user_roster_id=int(roster["roster_id"]),
+            )
+
+        return None
+
+    def _trade_cta(
+        self,
+        *,
+        label: str,
+        context: dict[str, Any],
+        target_player_roster_id: int,
+        manager_roster_id: int | None = None,
+    ) -> OpportunityCta:
+        return OpportunityCta(
+            label=label,
+            destination="trade_evaluator",
+            league_id=str(context["league_id"]),
+            user_roster_id=int(context["user_roster_id"]),
+            manager_roster_id=manager_roster_id,
+            target_player_roster_id=target_player_roster_id,
+        )
 
     def _loads(self, raw: object) -> list[str]:
         if raw is None:

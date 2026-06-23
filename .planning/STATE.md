@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: implementing
-stopped_at: Counterparty trade evaluator player picker restored
-last_updated: "2026-06-13T18:20:00Z"
+stopped_at: Opportunity feed CTAs wired into local workflows
+last_updated: "2026-06-23T14:04:52-04:00"
 progress:
   total_phases: 21
   completed_phases: 16
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Tell me what my team is, what my best path is, who to trade with, what kind of deal to make, and whether the prospect or pick decision I'm considering is actually sharp in this format and league.
-**Current focus:** Post-Phase 21 trade evaluator gap closure — selected counterparty rostered players are usable again; multi-team third-party scoring remains deferred.
+**Current focus:** Post-Phase 21 opportunity feed actionability — opportunity cards now link into trade evaluator, manager dossiers, or player rankings with league context.
 
 ## Current Position
 
-Phase: Post-Phase 21 targeted trade evaluator fix
-Plan: Counterparty asset picker restored; Phase 21 remains complete
+Phase: Post-Phase 21 opportunity feed actionability
+Plan: Opportunity feed CTA context emitted by backend and rendered through frontend navigation links
 
 ## Performance Metrics
 
@@ -89,6 +89,7 @@ Recent decisions affecting current work:
 - [Refresh]: Actual draft-capital refresh marks both draft_capital and landing_spots freshness domains so rookie-board UI no longer serves stale offseason warnings after a successful manual refresh.
 - [DuckDB]: Local FastAPI requests reuse one process-level DuckDB file connection to avoid same-process file-handle conflicts during post-refresh query invalidation.
 - [Trade Evaluator]: The primary "You Receive" asset picker now scopes blank player search to the selected counterparty roster, so rostered players from that manager are browsable and evaluable again. Third-party receive buckets remain league-wide to preserve multi-team sidecar modeling.
+- [Opportunity Feed]: Cards emit and render concrete CTAs. Buy/sell opportunities open the trade evaluator preseeded with league/user roster/player owner context when resolvable; hold/fallback opportunities route to manager dossiers or player rankings.
 
 ### Pending Todos
 
@@ -103,6 +104,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-13T18:20:00Z
-Stopped at: Counterparty trade evaluator player picker restored and verified
+Last session: 2026-06-23T14:04:52-04:00
+Stopped at: Opportunity feed CTAs wired and verified
 Resume file: .planning/STATE.md

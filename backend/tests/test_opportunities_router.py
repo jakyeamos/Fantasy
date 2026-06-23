@@ -98,3 +98,5 @@ def test_opportunities_route_returns_items(db):
     payload = response.json()
     assert payload["total"] == 1
     assert payload["items"][0]["player_id"] == "player_1"
+    assert payload["items"][0]["cta"]["destination"] == "player_rankings"
+    assert payload["items"][0]["cta"]["league_id"] == "league_x"

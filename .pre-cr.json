@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "coveragePaths": [
+    "coverage/lcov.info",
+    "coverage/coverage-final.json",
+    ".nyc_output/coverage.json",
+    "coverage.lcov",
+    "lcov.info",
+    "coverage.out"
+  ],
+  "coverageFormat": "auto",
+  "coverageAdapters": [
+    {
+      "name": "backend-lcov",
+      "command": "true",
+      "coveragePath": "coverage.lcov",
+      "coverageFormat": "lcov"
+    }
+  ],
+  "threshold": 80,
+  "surfaces": {
+    "covered": [
+      "backend/src/fantasy/trends/models.py",
+      "backend/src/fantasy/trends/opportunity_engine.py",
+      "backend/src/fantasy/routers/opportunities.py"
+    ],
+    "ignored": [
+      ".planning/**",
+      "backend/tests/**",
+      "frontend/**"
+    ],
+    "unsupported": []
+  },
+  "checks": {
+    "coverage": true,
+    "security": true,
+    "checklist": true
+  },
+  "testCommand": "uv run --project backend pytest backend/tests/trends/test_opportunity_engine.py backend/tests/test_opportunities_router.py --cov=fantasy.trends.models --cov=fantasy.trends.opportunity_engine --cov=fantasy.routers.opportunities --cov-report=lcov --cov-report=term"
+}

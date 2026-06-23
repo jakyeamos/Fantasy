@@ -9,6 +9,7 @@ from fantasy.trends.constants import CONFIDENCE_MULTIPLIERS
 TrendLabel = Literal["will_rise", "will_maintain", "will_fall"]
 TrendConfidence = Literal["HIGH", "MEDIUM", "LOW"]
 SuggestedAction = Literal["buy", "sell", "hold"]
+CtaDestination = Literal["trade_evaluator", "manager_dossier", "player_rankings"]
 
 
 class TrendResult(BaseModel):
@@ -34,6 +35,17 @@ class SimilarPlayer(BaseModel):
     context: str
 
 
+class OpportunityCta(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    label: str
+    destination: CtaDestination
+    league_id: str | None = None
+    user_roster_id: int | None = None
+    manager_roster_id: int | None = None
+    target_player_roster_id: int | None = None
+
+
 class OpportunityFeedItem(BaseModel):
     model_config = ConfigDict(frozen=False)
 
@@ -51,6 +63,7 @@ class OpportunityFeedItem(BaseModel):
     conflict_explanation: str | None = None
     calendar_escalated: bool = False
     calendar_escalation_label: str | None = None
+    cta: OpportunityCta | None = None
 
 
 class OpportunityFeedResponse(BaseModel):

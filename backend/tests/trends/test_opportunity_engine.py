@@ -176,16 +176,76 @@ def test_suggested_action_sell(db):
     assert row.suggested_action == "sell"
 
 
+def test_owned_sell_opportunity_links_trade_evaluator_send_side(db):
+    conn = _base_feed_db(db)
+    _seed_player(conn, "player_x", "Player X", "WR", 30, 70.0)
+    _seed_trend_history(
+        conn,
+        player_id="player_x",
+        current_score=0.50,
+        prior_score=0.90,
+        current_adp=70.0,
+        prior_adp=34.0,
+    )
+
+    items = OpportunityEngine(
+        conn,
+        calendar_service=_StubCalendarService("early_season"),
+    ).build_feed()
+    row = next(item for item in items if item.player_id == "player_x")
+
+    assert row.suggested_action == "sell"
+    assert row.cta is not None
+    assert row.cta.destination == "trade_evaluator"
+    assert row.cta.league_id == "league_a"
+    assert row.cta.user_roster_id == 1
+    assert row.cta.target_player_roster_id == 1
+
+
 def test_suggested_action_buy(db):
     conn = _base_feed_db(db)
     _seed_player(conn, "player_buy", "Player Buy", "WR", 24, 80.0)
+    _seed_trend_history(
+        conn,
+        player_id="player_buy",
+        current_score=0.88,
+        prior_score=0.45,
+        current_adp=80.0,
+        prior_adp=112.0,
+    )
+
+    items = OpportunityEngine(
+        conn,
+        calendar_service=_StubCalendarService("early_season"),
+    ).build_feed()
+    row = next(item for item in items if item.player_id == "player_buy")
+
+    assert row.adp_gap < 0
+    assert row.suggested_action == "buy"
+
+
+def test_opponent_buy_opportunity_links_trade_evaluator_receive_side(db):
+    conn = _base_feed_db(db)
+    _seed_player(conn, "player_buy", "Player Buy", "WR", 24, 80.0)
+    conn.execute(
+        """
+        UPDATE rosters
+        SET players = '["player_buy"]'
+        WHERE league_id = 'league_a' AND roster_id = 2
+        """
+    )
     _seed_trend_history(conn, player_id="player_buy", current_score=0.88, prior_score=0.45, current_adp=80.0, prior_adp=112.0)
 
     items = OpportunityEngine(conn, calendar_service=_StubCalendarService("early_season")).build_feed()
     row = next(item for item in items if item.player_id == "player_buy")
 
-    assert row.adp_gap < 0
     assert row.suggested_action == "buy"
+    assert row.cta is not None
+    assert row.cta.destination == "trade_evaluator"
+    assert row.cta.league_id == "league_a"
+    assert row.cta.user_roster_id == 1
+    assert row.cta.manager_roster_id == 2
+    assert row.cta.target_player_roster_id == 2
 
 
 def test_veteran_buy_low_contending_team(db):
