@@ -35,6 +35,7 @@ from fantasy.rookie.models import (
     TradeVerdict,
 )
 from fantasy.rookie.rookie_repo import RookieRepo
+from fantasy.recommendation.card_engine import RecommendationCardEngine
 
 
 def _clamp(value: float, low: float = 0.0, high: float = 100.0) -> float:
@@ -75,6 +76,7 @@ class RookieEngine:
     def __init__(self, conn: duckdb.DuckDBPyConnection):
         self._conn = conn
         self._repo = RookieRepo(conn)
+        self._card_engine = RecommendationCardEngine(conn)
 
     def compute_board(self, league_id: str) -> RookieBoardResult:
         league_settings = self._repo.get_league_settings(league_id)
@@ -116,6 +118,10 @@ class RookieEngine:
                         composite_score=round(self._score_rookie(raw_player, league_settings), 2),
                         tier_number=1,
                         available_probability_by_slot={},
+                        model_vs_market_gap=self._card_engine.model_vs_market_gap(
+                            league_id,
+                            str(raw_player["player_id"]),
+                        ),
                     ),
                     "adp_rank": adp_rank_by_player[str(raw_player["player_id"])],
                 }

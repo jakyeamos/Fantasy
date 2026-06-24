@@ -1,6 +1,7 @@
 import { Separator } from "@/components/ui/separator"
 
 import type { ProspectModelOutput, RookiePlayer } from "@/api/types"
+import { MarketGapPanel } from "@/components/recommendations/MarketGapPanel"
 import { CompRow } from "@/components/rookie/CompRow"
 import { HitRateBadge } from "@/components/rookie/HitRateBadge"
 import { OverUndervalueFlag } from "@/components/rookie/OverUndervalueFlag"
@@ -99,10 +100,13 @@ export function RookiePlayerCard({
                 <p className="text-xs text-muted-foreground">No historical comps surfaced for this profile yet.</p>
               )}
             </div>
-            {/* TODO Phase 17: MarketGapPanel here once model_vs_market_gap is added to ProspectModelOutput. */}
+            {player.model_vs_market_gap ? <MarketGapPanel gap={player.model_vs_market_gap} /> : null}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">Phase 8 model output unavailable for this prospect.</p>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">Phase 8 model output unavailable for this prospect.</p>
+            {player.model_vs_market_gap ? <MarketGapPanel gap={player.model_vs_market_gap} /> : null}
+          </div>
         )}
       </CardContent>
     </Card>

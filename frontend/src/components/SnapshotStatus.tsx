@@ -3,6 +3,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { LeagueRefreshPipelineResponse } from "@/api/types"
 import { Button } from "@/components/ui/button"
 
+type SnapshotStatusProps = {
+  leagueId?: string
+  lastSnapshotAt: string | null
+}
+
 function formatSnapshot(snapshot: string | null) {
   if (!snapshot) return "No snapshot yet"
   const deltaMs = Date.now() - Date.parse(snapshot)
@@ -14,21 +19,41 @@ function formatSnapshot(snapshot: string | null) {
   return `Last snapshot: ${new Date(snapshot).toLocaleDateString()}`
 }
 
+function formatRefreshSummary(result: LeagueRefreshPipelineResponse) {
+  return [
+    `Sleeper ${result.sleeper_status}`,
+    `ADP ${result.adp.matched_unique_rows}/${result.adp.source_rows} matched, ${result.adp.unmatched_rows} unmatched`,
+    `Draft capital ${result.draft_capital.updated_rows} updated, ${result.draft_capital.rebuilt_boards} boards rebuilt`,
+    `Artifacts ${result.artifacts.roster_count} rosters, ${result.artifacts.player_value_count} values, ${result.artifacts.manager_profile_count} profiles, ${result.artifacts.snapshot_count} snapshots`,
+  ].join(" · ")
+}
+
+function formatRefreshError(error: Error) {
+  return error.message || "Full league refresh did not complete."
+}
+
 export function SnapshotStatus({
   leagueId,
   lastSnapshotAt,
-}: {
-  leagueId: string
-  lastSnapshotAt: string | null
-}) {
+}: SnapshotStatusProps) {
   const queryClient = useQueryClient()
-  const mutation = useMutation({
+  const mutation = useMutation<LeagueRefreshPipelineResponse, Error>({
     mutationFn: async (): Promise<LeagueRefreshPipelineResponse> => {
+      if (!leagueId) {
+        throw new Error("Choose a league before refreshing league data.")
+      }
       const response = await fetch(`/api/ingest/${leagueId}/refresh-pipeline?run_type=incremental&draft_year=2026`, {
         method: "POST",
       })
       if (!response.ok) {
-        throw new Error("Refresh failed")
+        const payload = (await response.json().catch(() => null)) as
+          | { detail?: string | { detail?: string } }
+          | null
+        const detail =
+          typeof payload?.detail === "string"
+            ? payload.detail
+            : payload?.detail?.detail
+        throw new Error(detail ?? "Full league refresh did not complete.")
       }
       return (await response.json()) as LeagueRefreshPipelineResponse
     },
@@ -52,18 +77,27 @@ export function SnapshotStatus({
   })
 
   return (
-    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-      <span>{formatSnapshot(lastSnapshotAt)}</span>
-      <Button
-        size="sm"
-        onClick={() => mutation.mutate()}
-        disabled={mutation.isPending}
-      >
-        {mutation.isPending ? "Refreshing..." : "Refresh league data"}
-      </Button>
+    <div className="space-y-2 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-3">
+        <span>{formatSnapshot(lastSnapshotAt)}</span>
+        {leagueId ? (
+          <Button
+            size="sm"
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending}
+          >
+            {mutation.isPending ? "Refreshing..." : "Refresh league data"}
+          </Button>
+        ) : null}
+      </div>
+      {mutation.isSuccess ? (
+        <span className="block max-w-3xl text-green-700 dark:text-green-400">
+          Refresh complete. {formatRefreshSummary(mutation.data)}
+        </span>
+      ) : null}
       {mutation.isError ? (
-        <span className="text-red-600 dark:text-red-400">
-          Refresh failed. Full league refresh did not complete.
+        <span className="block max-w-3xl text-red-600 dark:text-red-400">
+          Refresh failed. {formatRefreshError(mutation.error)}
         </span>
       ) : null}
     </div>

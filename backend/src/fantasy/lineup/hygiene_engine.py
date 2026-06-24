@@ -251,6 +251,12 @@ class HygieneEngine:
             timing_rationale=timing_rationale,
             packaging_rationale=packaging_rationale,
             player_context_flags=context_flags,
+            model_vs_market_gap=self._card_engine.model_vs_market_gap(
+                league_id,
+                primary_player_ids[0],
+            )
+            if primary_player_ids
+            else None,
         )
 
     def _player_name(self, player_id: str) -> str:

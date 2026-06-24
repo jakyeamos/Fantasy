@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from fantasy.recommendation.models import RecommendationCard
+from fantasy.recommendation.models import ModelVsMarketGap, RecommendationCard
 
 
 RiskBand = Literal["Low", "Moderate", "High"]
@@ -24,6 +24,7 @@ class RookiePlayer(BaseModel):
     composite_score: float
     tier_number: int
     available_probability_by_slot: dict[str, float] = Field(default_factory=dict)
+    model_vs_market_gap: ModelVsMarketGap | None = None
 
 
 class RookieTier(BaseModel):

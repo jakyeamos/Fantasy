@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict, Field
 
 from fantasy.lineup.constants import HYGIENE_ACTION_TYPES, TITLE_WINDOW_LABELS
-from fantasy.recommendation.models import RecommendationCard
+from fantasy.recommendation.models import ModelVsMarketGap, RecommendationCard
 
 
 class LeagueTaxiConfig(BaseModel):
@@ -88,6 +88,7 @@ class HygieneSuggestion(BaseModel):
     timing_rationale: str = ""
     packaging_rationale: str | None = None
     player_context_flags: list[str] = Field(default_factory=list)
+    model_vs_market_gap: ModelVsMarketGap | None = None
     hygiene_suggestion_version: int = 2
 
 

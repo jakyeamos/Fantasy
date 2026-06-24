@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router"
 
 import type { HygieneSuggestion } from "@/api/types"
+import { MarketGapBadge } from "@/components/recommendations/MarketGapBadge"
 import { Badge } from "@/components/ui/badge"
 import { buttonClasses } from "@/components/ui/button"
 
@@ -50,7 +51,9 @@ export function HygieneSuggestionRow({ suggestion, leagueId }: HygieneSuggestion
         >
           {badgeLabel}
         </Badge>
-        {/* TODO Phase 17: MarketGapBadge here once model_vs_market_gap is added to HygieneSuggestion. */}
+        {suggestion.model_vs_market_gap?.gap_classification ? (
+          <MarketGapBadge classification={suggestion.model_vs_market_gap.gap_classification} />
+        ) : null}
         <span className="text-sm font-medium">
           {names}
           {target}

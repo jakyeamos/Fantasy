@@ -122,7 +122,7 @@ class RecommendationCardEngine:
             [league_id, player_id],
         ).fetchone()
 
-    def _model_vs_market_gap(self, league_id: str, player_id: str):
+    def model_vs_market_gap(self, league_id: str, player_id: str):
         row = self._player_value_row(league_id, player_id)
         if row is None or row[6] is None or row[7] is None:
             return None
@@ -163,7 +163,7 @@ class RecommendationCardEngine:
 
     def _first_gap_from_players(self, league_id: str, player_ids: list[str]):
         for player_id in player_ids:
-            gap = self._model_vs_market_gap(league_id, player_id)
+            gap = self.model_vs_market_gap(league_id, player_id)
             if gap is not None:
                 return gap
         return None
@@ -315,7 +315,7 @@ class RecommendationCardEngine:
                 horizon="this_week",
                 league_specificity_notes="Contender benchmarks are derived from this league's active starters.",
                 manager_specificity_notes=None,
-                model_vs_market_gap=self._model_vs_market_gap(result.league_id, best_slot.player_id),
+                model_vs_market_gap=self.model_vs_market_gap(result.league_id, best_slot.player_id),
                 cta_label="Open Overview",
                 cta_destination=f"/league/{result.league_id}",
             )
@@ -372,7 +372,8 @@ class RecommendationCardEngine:
                 if suggestion.counterparty_name
                 else None
             ),
-            model_vs_market_gap=self._first_gap_from_players(league_id, target_ids),
+            model_vs_market_gap=suggestion.model_vs_market_gap
+            or self._first_gap_from_players(league_id, target_ids),
             cta_label="Review Roster",
             cta_destination=f"/league/{league_id}",
         )

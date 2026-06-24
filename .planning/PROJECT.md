@@ -15,6 +15,7 @@ The system must tell you — for each of your teams — what you are, what your 
 - League-page refresh now runs an incremental Sleeper ingest instead of freezing the current cached state, so manual refreshes rebuild analytics and write a fresh snapshot before the UI reloads.
 - Snapshot comparison membership is derived from `rosters.players`, so adds and departures still surface when player valuation rows lag behind roster ingestion.
 - League drill-in now has a Player Rankings tab backed by `/dashboard/league/{league_id}/player-rankings`, showing model/market-ranked players with each player owner inline.
+- Rookie-board cards and roster hygiene rows now surface live model-vs-market gaps from the shared recommendation-card market-gap engine after FantasyCalc ADP refreshes.
 
 ### Active
 
@@ -91,4 +92,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-04-24 after adding league player rankings with inline ownership*
+*Last updated: 2026-06-23 after wiring rookie-board and hygiene-row market-gap surfacing*

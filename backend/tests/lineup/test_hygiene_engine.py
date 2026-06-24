@@ -93,6 +93,62 @@ def test_cut_leads_with_slot_blocking_copy(db):
     assert "frees a roster spot" in cut[0].reasoning
 
 
+def test_hygiene_suggestions_include_model_vs_market_gap(db):
+    db.execute(
+        """
+        INSERT INTO leagues (
+            league_id, name, season, scoring_settings, roster_positions,
+            settings_blob, superflex, tep, ppr
+        )
+        VALUES ('lh_gap', 'H', '2025', '{}', '[]', '{}', FALSE, FALSE, 0.0)
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO rosters (id, league_id, roster_id, owner_id, starters, players, reserve, taxi)
+        VALUES (9901, 'lh_gap', 1, 'o', '["s1"]', '["s1","cutme"]', '[]', '[]')
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES ('cutme', 'Cut Me', 'WR', 'X', 27, '{}'), ('s1', 'Starter', 'WR', 'X', 25, '{}')
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO player_values (
+            id, league_id, roster_id, player_id,
+            comp_current_production, comp_short_term, comp_role_stability,
+            comp_age_curve, comp_insulation, comp_market_liquidity,
+            comp_positional_scarcity, comp_fragility, comp_ceiling, comp_floor,
+            comp_rerollability, comp_contract,
+            lens_production, lens_market, lens_insulation, lens_team_fit, lens_direction
+        )
+        VALUES (
+            990101, 'lh_gap', 1, 'cutme',
+            0.20,0,0,0.25,0.20,0,0,0,0.25,0.10,0,0,
+            0.20,0.55,0,0,0.05
+        )
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO market_values (id, player_id, fantasycalc_value, fantasycalc_rank, fantasycalc_trend30, adp_baseline)
+        VALUES (990201, 'cutme', 4200, 44, 0, 120.0)
+        """
+    )
+    eng = HygieneEngine(db)
+    inp = _inputs("lh_gap", 1, bench=["cutme"], starters=["s1"])
+
+    res = eng.compute("lh_gap", 1, inp, "true_contender", {1: inp})
+    cut = next(s for s in res.suggestions if s.action_type == "cut")
+
+    assert cut.model_vs_market_gap is not None
+    assert cut.model_vs_market_gap.gap_classification == "sell_high"
+    assert cut.model_vs_market_gap.market_rank == 44
+
+
 def test_max_five_cuts(db):
     db.execute(
         """

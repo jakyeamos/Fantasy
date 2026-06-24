@@ -90,6 +90,9 @@ Recent decisions affecting current work:
 - [DuckDB]: Local FastAPI requests reuse one process-level DuckDB file connection to avoid same-process file-handle conflicts during post-refresh query invalidation.
 - [Trade Evaluator]: The primary "You Receive" asset picker now scopes blank player search to the selected counterparty roster, so rostered players from that manager are browsable and evaluable again. Third-party receive buckets remain league-wide to preserve multi-team sidecar modeling.
 - [Opportunity Feed]: Cards emit and render concrete CTAs. Buy/sell opportunities open the trade evaluator preseeded with league/user roster/player owner context when resolvable; hold/fallback opportunities route to manager dossiers or player rankings.
+- [Market Gap Surfacing]: RookiePlayer and HygieneSuggestion responses now carry `model_vs_market_gap` from the shared recommendation-card market-gap engine, and the rookie board / hygiene rows reuse existing MarketGapPanel and MarketGapBadge components.
+- [Local Startup]: `./dev.sh` is the primary local launcher. It blocks on `.venv/bin/alembic upgrade heads` from `backend/` before starting uvicorn, which covers both current 021 Alembic heads and keeps the workflow repo-local against `data/fantasy.duckdb`.
+- [Trade Evaluator]: Multi-team trades now return `third_party_evaluations` with sidecar market fairness scores. Reroutes and package builder are no longer suppressed for multi-team requests when the primary counterparty path is otherwise evaluable.
 
 ### Pending Todos
 
@@ -98,8 +101,7 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 - [Phase 8]: Research is complete, but external dependencies (`scikit-learn`, `nflreadpy`, `scipy`) and the ETL/model pipeline are still the highest execution-risk area.
-- [Schema]: Dual schema management — Alembic migrations (001–010) are not run at startup; `startup_tasks.py` manually adds only 2 columns as a compat shim; `conftest.py` has a third independent schema copy. Any new Phase 8/9 tables must be added in all three places or they will fail silently. Resolve before Phase 8 execution.
-- [Schema]: No migration runner at startup — new users and phase deployments require `alembic upgrade head` manually; this step is not documented in the primary startup flow. Phase 8 adds 3 new tables that will not exist without it.
+- [Schema]: Dual schema management remains for tests/runtime compatibility (`startup_tasks.py` plus `conftest.py`), but the normal local launcher now runs Alembic before backend boot. Direct `uvicorn` usage still requires a manual `alembic upgrade heads`.
 - [Code Quality]: Silent exception swallowing in `pick_engine._load_class_strength_signal`, `trade_engine._build_pick_proxy`, and `ingest_service._backfill_roster_players` — all use bare `except Exception: pass/return 0.0` with no logging. Failures are invisible in production.
 
 ## Session Continuity

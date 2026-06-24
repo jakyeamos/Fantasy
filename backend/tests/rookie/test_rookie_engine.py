@@ -58,6 +58,43 @@ def test_compute_board_returns_tiers_and_class_strength(db):
     assert -1.0 <= board.class_strength_signal <= 1.0
 
 
+def test_compute_board_attaches_model_vs_market_gap_to_rookies(db):
+    db.execute(
+        """
+        INSERT INTO player_values (
+            id, league_id, roster_id, player_id,
+            comp_current_production, comp_short_term, comp_role_stability,
+            comp_age_curve, comp_insulation, comp_market_liquidity,
+            comp_positional_scarcity, comp_fragility, comp_ceiling, comp_floor,
+            comp_rerollability, comp_contract,
+            lens_production, lens_market, lens_insulation, lens_team_fit, lens_direction
+        )
+        VALUES
+            (7101, 'league_rookie', 1, 'wr1', 0.82,0,0,0.75,0.70,0,0,0,0.88,0.45,0,0, 0.82,0.55,0,0,0.80),
+            (7102, 'league_rookie', 1, 'wr2', 0.40,0,0,0.55,0.50,0,0,0,0.58,0.30,0,0, 0.40,0.52,0,0,0.45)
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO market_values (id, player_id, fantasycalc_value, fantasycalc_rank, fantasycalc_trend30, adp_baseline)
+        VALUES (7201, 'wr1', 6500, 12, 0, 1.0)
+        """
+    )
+    engine = _engine(db, ppr=1.0)
+
+    board = engine.compute_board("league_rookie")
+    player = next(
+        player
+        for tier in board.tiers
+        for player in tier.players
+        if player.player_id == "wr1"
+    )
+
+    assert player.model_vs_market_gap is not None
+    assert player.model_vs_market_gap.gap_classification == "buy_low"
+    assert player.model_vs_market_gap.market_rank == 12
+
+
 def test_assign_tiers_uses_score_bands(db):
     engine = _engine(db)
     players = [

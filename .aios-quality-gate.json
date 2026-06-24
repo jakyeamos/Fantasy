@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "projectId": "Fantasy",
+  "preCommitGates": [
+    "pre_cr"
+  ],
+  "fullGates": [
+    "pre_cr"
+  ]
+}

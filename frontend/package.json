@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:render": "node tests/marketGapRender.test.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.91.3",

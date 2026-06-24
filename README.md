@@ -20,33 +20,27 @@ Fantasy is a local-first dynasty fantasy football intelligence app with:
 ## Prerequisites
 
 - Python 3.12+
-- Node.js 20+ and npm
+- Node.js 20+ and pnpm
 - `uv` (recommended for backend dependency management)
 
 ## Quick Start
 
-### 1) Start the backend
+### 1) Install dependencies
 
 ```bash
 cd backend
 uv sync
-uv run alembic upgrade head
-uv run uvicorn fantasy.main:app --reload
+cd ../frontend
+pnpm install
 ```
 
-The API runs at `http://localhost:8000`.
-
-### 2) Start the frontend
-
-In a second terminal:
+### 2) Start the local app
 
 ```bash
-cd frontend
-npm install
-npm run dev
+./dev.sh
 ```
 
-The app runs at `http://localhost:5173`.
+The launcher applies local DuckDB migrations before the backend boots, then starts the API at `http://localhost:8000` and the app at `http://localhost:5173`.
 
 The Vite dev server proxies `/api/*` to `http://localhost:8000`, so local frontend requests work without extra API host configuration.
 
@@ -77,7 +71,7 @@ Build and type-check:
 
 ```bash
 cd frontend
-npm run build
+pnpm build
 ```
 
 ## Database Migrations
@@ -86,7 +80,7 @@ Apply latest migrations:
 
 ```bash
 cd backend
-uv run alembic upgrade head
+uv run alembic upgrade heads
 ```
 
 Create a new migration:

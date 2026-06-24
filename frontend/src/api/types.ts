@@ -507,6 +507,7 @@ export interface RookiePlayer {
   composite_score: number
   tier_number: number
   available_probability_by_slot: Record<string, number>
+  model_vs_market_gap?: ModelVsMarketGap | null
 }
 
 export interface SubFlag {
@@ -749,6 +750,7 @@ export interface HygieneSuggestion {
   timing_rationale: string
   packaging_rationale: string | null
   player_context_flags: string[]
+  model_vs_market_gap?: ModelVsMarketGap | null
 }
 
 export interface HygieneResult {

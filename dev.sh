@@ -6,13 +6,18 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 cleanup() {
   echo ""
   echo "Shutting down..."
-  kill "$BACKEND_PID" "$FRONTEND_PID" 2>/dev/null || true
-  wait "$BACKEND_PID" "$FRONTEND_PID" 2>/dev/null || true
+  if [[ -n "${BACKEND_PID:-}" || -n "${FRONTEND_PID:-}" ]]; then
+    kill "${BACKEND_PID:-}" "${FRONTEND_PID:-}" 2>/dev/null || true
+    wait "${BACKEND_PID:-}" "${FRONTEND_PID:-}" 2>/dev/null || true
+  fi
 }
 trap cleanup EXIT INT TERM
 
-echo "Starting backend..."
 cd "$ROOT/backend"
+echo "Applying backend migrations..."
+.venv/bin/alembic upgrade heads
+
+echo "Starting backend..."
 .venv/bin/uvicorn fantasy.main:app --reload &
 BACKEND_PID=$!
 
