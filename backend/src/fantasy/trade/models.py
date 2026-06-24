@@ -43,6 +43,16 @@ class StrategicDistinction(BaseModel):
     explanation: str
 
 
+class ThirdPartyTradeEvaluation(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    roster_id: int
+    sent_market_value: float
+    received_market_value: float
+    net_market_delta: float
+    market_fairness: DimensionScore
+
+
 class RerouteResult(BaseModel):
     model_config = ConfigDict(frozen=False)
 
@@ -81,6 +91,7 @@ class TradeEvaluation(BaseModel):
     strategic_distinction: StrategicDistinction
     reroutes: list[RerouteResult] | None = None
     package: PackageBuilderResult | None = None
+    third_party_evaluations: list[ThirdPartyTradeEvaluation] | None = None
     recommendation_context: RecommendationContext | None = None
     recommendation_cards: list[RecommendationCard] | None = None
 

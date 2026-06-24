@@ -304,6 +304,14 @@ export interface StrategicDistinction {
   explanation: string
 }
 
+export interface ThirdPartyTradeEvaluation {
+  roster_id: number
+  sent_market_value: number
+  received_market_value: number
+  net_market_delta: number
+  market_fairness: DimensionScore
+}
+
 export interface RerouteResult {
   reroute_type: "better_target" | "better_package" | "picks_buyer"
   headline: string
@@ -398,6 +406,7 @@ export interface TradeEvaluation {
   strategic_distinction: StrategicDistinction
   reroutes?: RerouteResult[] | null
   package?: PackageBuilderResult | null
+  third_party_evaluations?: ThirdPartyTradeEvaluation[] | null
   recommendation_context?: RecommendationContext | null
   recommendation_cards?: RecommendationCard[] | null
 }

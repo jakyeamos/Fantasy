@@ -10,7 +10,6 @@ from fantasy.rookie_pick.rookie_pick_repo import RookiePickRepo
 from fantasy.trade.models import (
     PackageBuilderResult,
     PackageOffer,
-    TradeAsset,
     TradeEvaluation,
     TradeRequest,
 )
@@ -27,8 +26,6 @@ class PackageBuilder:
         request: TradeRequest,
         evaluation: TradeEvaluation,
     ) -> PackageBuilderResult | None:
-        if request.third_party_trades:
-            return None
         manager_profile = (
             self._repo.get_manager_profile(request.league_id, request.counterparty_roster_id)
             if request.counterparty_roster_id is not None
@@ -43,7 +40,11 @@ class PackageBuilder:
             label="Fair Close",
             send_assets=list(request.user_sends),
             receive_assets=list(request.user_receives),
-            reasoning="Balances current market value with your roster direction without leaning too hard on the counterparty profile.",
+            reasoning=(
+                "Balances current market value with your roster direction without leaning too hard on the counterparty profile."
+                if not request.third_party_trades
+                else "Balances your net swap while the scored sidecar legs establish whether the extra team can accept the structure."
+            ),
         )
 
         aggressive_sends = list(request.user_sends)
@@ -54,6 +55,11 @@ class PackageBuilder:
             if pitch_angles
             else "Leans into the counterparty's documented weaknesses while staying structurally coherent."
         )
+        if request.third_party_trades:
+            aggressive_reasoning = (
+                aggressive_reasoning
+                + " Multi-team sidecar legs are scored separately; this open frames your primary ask."
+            )
         aggressive_open = PackageOffer(
             label="Aggressive Open",
             send_assets=aggressive_sends,

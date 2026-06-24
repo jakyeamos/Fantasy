@@ -42,7 +42,7 @@ def test_reroute_has_reasoning(trade_seed_data):
     assert all(reroute.reasoning for reroute in reroutes)
 
 
-def test_multi_team_trade_disables_reroutes(trade_seed_data):
+def test_multi_team_trade_keeps_primary_reroutes(trade_seed_data):
     request = _request()
     request.third_party_trades = [
         ThirdPartyTrade(
@@ -53,4 +53,5 @@ def test_multi_team_trade_disables_reroutes(trade_seed_data):
     ]
     evaluation = TradeEngine(trade_seed_data).evaluate(request)
     reroutes = RerouteEngine(trade_seed_data).generate(request, evaluation)
-    assert reroutes == []
+    assert reroutes
+    assert any(reroute.reroute_type == "better_target" for reroute in reroutes)

@@ -49,16 +49,10 @@ def evaluate_trade(
 ) -> TradeEvaluation:
     engine = TradeEngine(conn)
     evaluation = engine.evaluate(request)
-    has_multi_team_context = bool(request.third_party_trades)
-    if request.include_reroutes and not has_multi_team_context:
+    if request.include_reroutes:
         evaluation.reroutes = RerouteEngine(conn).generate(request, evaluation)
-    if request.include_package and not has_multi_team_context:
+    if request.include_package:
         evaluation.package = PackageBuilder(conn).build(request, evaluation)
-    if has_multi_team_context:
-        evaluation.strategic_distinction.explanation += (
-            " Reroutes and package builder are disabled for multi-team deals until "
-            "those helpers can model sidecar legs explicitly."
-        )
     evaluation.recommendation_context = _build_recommendation_context(
         conn,
         request.league_id,

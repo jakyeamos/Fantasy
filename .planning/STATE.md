@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: implementing
-stopped_at: Opportunity feed CTAs wired into local workflows
-last_updated: "2026-06-23T14:04:52-04:00"
+stopped_at: Multi-team trade evaluator sidecar scoring restored
+last_updated: "2026-06-23T22:48:22-04:00"
 progress:
   total_phases: 21
   completed_phases: 16
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Tell me what my team is, what my best path is, who to trade with, what kind of deal to make, and whether the prospect or pick decision I'm considering is actually sharp in this format and league.
-**Current focus:** Post-Phase 21 opportunity feed actionability — opportunity cards now link into trade evaluator, manager dossiers, or player rankings with league context.
+**Current focus:** Trade evaluator multi-team support — third-party legs now return scored sidecar evaluations, while reroutes and package builder run through the primary counterparty path when those inputs exist.
 
 ## Current Position
 
-Phase: Post-Phase 21 opportunity feed actionability
-Plan: Opportunity feed CTA context emitted by backend and rendered through frontend navigation links
+Phase: Trade evaluator gap closure
+Plan: Multi-team third-party trade scoring with primary-path reroutes and package builder support
 
 ## Performance Metrics
 
@@ -93,7 +93,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- [Phase 9 scope]: Multi-team third-party trade scoring — TradeEngine does not score three-way trades; deferred to Phase 9. Counterparty player selection is no longer pending as of 2026-06-13.
+- [Phase 9 scope]: Remaining multi-team trade depth is offer construction across every participant; the current evaluator scores third-party sidecar legs and keeps primary-path reroutes/package builder enabled.
 
 ### Blockers/Concerns
 
@@ -104,6 +104,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-23T14:04:52-04:00
-Stopped at: Opportunity feed CTAs wired and verified
+Last session: 2026-06-23T22:48:22-04:00
+Stopped at: Multi-team trade evaluator sidecar scoring wired and verified
 Resume file: .planning/STATE.md

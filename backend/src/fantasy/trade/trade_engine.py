@@ -15,6 +15,7 @@ from fantasy.trade.constants import (
 from fantasy.trade.models import (
     DimensionScore,
     StrategicDistinction,
+    ThirdPartyTradeEvaluation,
     TradeAsset,
     TradeEvaluation,
     TradeRequest,
@@ -99,18 +100,16 @@ class TradeEngine:
             "lens_production": 0.0,
         }
 
-    def _apply_multi_team_context(
+    def _score_third_party_trades(
         self,
         request: TradeRequest,
-        dimensions: list[DimensionScore],
-    ) -> None:
+    ) -> list[ThirdPartyTradeEvaluation]:
         third_party_trades = request.third_party_trades or []
         if not third_party_trades:
-            return
+            return []
 
-        leg_summaries: list[str] = []
-        max_imbalance = 0.0
-        for i, leg in enumerate(third_party_trades, start=1):
+        evaluations: list[ThirdPartyTradeEvaluation] = []
+        for leg in third_party_trades:
             sends_resolved = self._resolve_assets(
                 leg.sends, request.league_id, leg.roster_id, None
             )
@@ -121,28 +120,64 @@ class TradeEngine:
             recv_val = sum(float(v.get("lens_market") or 0.0) for v in receives_resolved)
             baseline = max(sent_val, recv_val, 0.01)
             net = recv_val - sent_val
-            pct = abs(net) / baseline * 100
-            max_imbalance = max(max_imbalance, pct)
-            direction = "gains" if net > 0 else "gives up" if net < 0 else "breaks even on"
-            leg_summaries.append(
-                f"Sidecar leg {i} (roster {leg.roster_id}) {direction} "
-                f"{round(pct, 1)}% net market value."
+            score = _clamp_score(50.0 + (net / baseline) * 50.0)
+            confidence = (
+                "HIGH"
+                if all(
+                    value.get("lens_market") is not None
+                    for value in sends_resolved + receives_resolved
+                )
+                else "LOW"
             )
+            direction = "receives" if net > 0 else "sends away" if net < 0 else "breaks even on"
+            reasoning = (
+                f"Roster {leg.roster_id} {direction} "
+                f"{abs(round((net / baseline) * 100, 1))}% net market value in its sidecar leg."
+                if net != 0
+                else f"Roster {leg.roster_id} is roughly even on sidecar market value."
+            )
+            evaluations.append(
+                ThirdPartyTradeEvaluation(
+                    roster_id=leg.roster_id,
+                    sent_market_value=round(sent_val, 4),
+                    received_market_value=round(recv_val, 4),
+                    net_market_delta=round(net, 4),
+                    market_fairness=DimensionScore(
+                        score=score,
+                        confidence=confidence,
+                        reasoning=reasoning,
+                    ),
+                )
+            )
+        return evaluations
 
-        sidecar_note = " ".join(leg_summaries)
+    def _apply_multi_team_context(
+        self,
+        third_party_evaluations: list[ThirdPartyTradeEvaluation],
+        dimensions: list[DimensionScore],
+    ) -> None:
+        if not third_party_evaluations:
+            return
+
+        max_imbalance = max(
+            abs(evaluation.market_fairness.score - 50.0) * 2.0
+            for evaluation in third_party_evaluations
+        )
+        sidecar_note = " ".join(
+            evaluation.market_fairness.reasoning
+            for evaluation in third_party_evaluations
+        )
         note = (
-            f" Multi-team context: {len(third_party_trades)} sidecar leg(s) scored. "
-            f"{sidecar_note} Scoring anchors to your net swap; sidecar fairness is informational."
+            f" Multi-team context: {len(third_party_evaluations)} third-party leg(s) scored. "
+            f"{sidecar_note} Primary dimensions still score your net swap against the main counterparty."
         )
         for dimension in dimensions:
             if max_imbalance > 25:
-                # Highly imbalanced sidecar — a participant may reject the deal
                 if dimension.confidence == "HIGH":
                     dimension.confidence = "MEDIUM"
                 elif dimension.confidence == "MEDIUM":
                     dimension.confidence = "LOW"
             else:
-                # Roughly balanced sidecar — light touch
                 if dimension.confidence == "HIGH":
                     dimension.confidence = "MEDIUM"
             dimension.reasoning += note
@@ -414,8 +449,9 @@ class TradeEngine:
             market_fairness,
             direction_fit,
         )
+        third_party_evaluations = self._score_third_party_trades(request)
         self._apply_multi_team_context(
-            request,
+            third_party_evaluations,
             [
                 market_fairness,
                 roster_fit,
@@ -426,6 +462,16 @@ class TradeEngine:
                 manager_exploit_quality,
             ],
         )
+        strategic_distinction = self._compute_strategic_distinction(
+            market_fairness,
+            direction_fit,
+            direction_label,
+        )
+        if third_party_evaluations:
+            strategic_distinction.explanation += (
+                f" Includes {len(third_party_evaluations)} scored third-party leg(s); "
+                "reroutes and package framing stay anchored to the primary counterparty."
+            )
         evaluation = TradeEvaluation(
             market_fairness=market_fairness,
             roster_fit=roster_fit,
@@ -434,11 +480,8 @@ class TradeEngine:
             insulation_delta=insulation_delta,
             liquidity_delta=liquidity_delta,
             manager_exploit_quality=manager_exploit_quality,
-            strategic_distinction=self._compute_strategic_distinction(
-                market_fairness,
-                direction_fit,
-                direction_label,
-            ),
+            strategic_distinction=strategic_distinction,
+            third_party_evaluations=third_party_evaluations or None,
         )
         evaluation.recommendation_cards = self._card_engine.build_trade_card(
             evaluation,

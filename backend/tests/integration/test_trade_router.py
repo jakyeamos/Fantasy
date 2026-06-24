@@ -204,7 +204,7 @@ def test_roster_list_endpoint(trade_seed_data):
     ]
 
 
-def test_multi_team_trade_suppresses_reroutes_and_package(trade_seed_data):
+def test_multi_team_trade_returns_sidecar_scores_reroutes_and_package(trade_seed_data):
     app = create_app()
     app.dependency_overrides[get_read_db_conn] = _override_conn(trade_seed_data)
     app.dependency_overrides[get_write_db_conn] = _override_conn(trade_seed_data)
@@ -222,6 +222,7 @@ def test_multi_team_trade_suppresses_reroutes_and_package(trade_seed_data):
     response = client.post("/trade/evaluate", json=request)
     assert response.status_code == 200
     payload = response.json()
-    assert payload["reroutes"] is None
-    assert payload["package"] is None
-    assert "disabled for multi-team deals" in payload["strategic_distinction"]["explanation"]
+    assert payload["reroutes"] is not None
+    assert payload["package"] is not None
+    assert payload["third_party_evaluations"][0]["roster_id"] == 3
+    assert "scored third-party leg" in payload["strategic_distinction"]["explanation"]

@@ -98,6 +98,10 @@ def test_multi_team_context_reduces_dimension_confidence(trade_seed_data):
     evaluation = engine.evaluate(request)
     assert evaluation.market_fairness.confidence == "MEDIUM"
     assert "Multi-team context:" in evaluation.market_fairness.reasoning
+    assert evaluation.third_party_evaluations is not None
+    assert evaluation.third_party_evaluations[0].roster_id == 3
+    assert 0.0 <= evaluation.third_party_evaluations[0].market_fairness.score <= 100.0
+    assert "scored third-party leg" in evaluation.strategic_distinction.explanation
 
 
 def test_rebuild_pick_proxy_supports_current_labels(trade_seed_data):

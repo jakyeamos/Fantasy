@@ -24,6 +24,7 @@ export function EvaluationOutputPanel({
   userReceives,
   pickValuesByKey,
   counterpartyName,
+  rosterNamesById,
   onOpenReroutes,
   onOpenPackage,
 }: {
@@ -33,6 +34,7 @@ export function EvaluationOutputPanel({
   userReceives: TradeAsset[]
   pickValuesByKey: Map<string, PickValue>
   counterpartyName?: string | null
+  rosterNamesById?: Map<number, string>
   onOpenReroutes: () => void
   onOpenPackage: () => void
 }) {
@@ -76,6 +78,25 @@ export function EvaluationOutputPanel({
             />
           ))}
         </div>
+        {evaluation.third_party_evaluations?.length ? (
+          <div className="rounded-xl border border-border/40 bg-card/45 p-4">
+            <p className="terminal-label text-muted-foreground">Third-Party Legs</p>
+            <div className="mt-3 space-y-3">
+              {evaluation.third_party_evaluations.map((sidecar) => (
+                <div key={sidecar.roster_id} className="space-y-2">
+                  <DimensionScoreRow
+                    label={`${rosterNamesById?.get(sidecar.roster_id) ?? `Roster ${sidecar.roster_id}`} Market Fairness`}
+                    score={sidecar.market_fairness}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Sends {sidecar.sent_market_value.toFixed(2)} market value, receives{" "}
+                    {sidecar.received_market_value.toFixed(2)}.
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
         {pickSummaryRows.length ? (
           <div className="space-y-3">
             <p className="terminal-label text-muted-foreground">Pick Context</p>

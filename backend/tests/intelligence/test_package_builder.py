@@ -32,7 +32,7 @@ def test_package_builder_personalizes_when_profile_exists(trade_seed_data):
     assert result.fair_close.reasoning
 
 
-def test_multi_team_trade_disables_package_builder(trade_seed_data):
+def test_multi_team_trade_builds_primary_package(trade_seed_data):
     request = _request()
     request.third_party_trades = [
         ThirdPartyTrade(
@@ -43,4 +43,6 @@ def test_multi_team_trade_disables_package_builder(trade_seed_data):
     ]
     evaluation = TradeEngine(trade_seed_data).evaluate(request)
     result = PackageBuilder(trade_seed_data).build(request, evaluation)
-    assert result is None
+    assert result is not None
+    assert "sidecar legs are scored separately" in result.aggressive_open.reasoning
+    assert "scored sidecar legs" in result.fair_close.reasoning

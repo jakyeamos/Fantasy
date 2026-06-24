@@ -24,8 +24,6 @@ class RerouteEngine:
         self, request: TradeRequest, evaluation: TradeEvaluation
     ) -> list[RerouteResult]:
         reroutes: list[RerouteResult] = []
-        if request.third_party_trades:
-            return reroutes
         primary_target = self._primary_target(request)
         if primary_target is None or request.counterparty_roster_id is None:
             return reroutes
@@ -59,7 +57,6 @@ class RerouteEngine:
                 reverse=True,
             )
             for alternative in ranked[:2]:
-                alternative_value = current_values.get(alternative["player_id"], {})
                 reroutes.append(
                     RerouteResult(
                         reroute_type="better_target",
@@ -119,7 +116,7 @@ class RerouteEngine:
                             reroute_type="better_package",
                             headline=f"Send {replacement['full_name']} instead",
                             reasoning=(
-                                f"This version keeps the same target while trimming the market cost from your side."
+                                "This version keeps the same target while trimming the market cost from your side."
                             ),
                             suggested_assets=[
                                 TradeAsset(
