@@ -12,12 +12,10 @@
 
 ## Current repo-specific rules learned from gate history
 
+- Verify Pre-CR setup before relying on the readiness result.
 - Split oversized files by responsibility before committing.
 - Run focused tests with coverage before committing changed source lines.
-- Verify Pre-CR setup before relying on the readiness result.
 
 ## High-priority agent reminders
 
-- Split oversized files by responsibility before committing.
-- Run focused tests with coverage before committing changed source lines.
 - Verify Pre-CR setup before relying on the readiness result.

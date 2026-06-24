@@ -6,33 +6,27 @@
 
 ## Gate decisions
 
-- Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable.
-- Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable.
-- Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable.
-- Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable.
-- Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable.
-- Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable.
-- Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable.
-- Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable.
-- AIOS warn [warning]: AIOS warning only: 951 nonblank lines exceeds production source size limit 500; split by responsibility or document an exception
-- Pre-CR warn [warning]: Pre-CR warning only: coverage result was unavailable.
+- Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable. (no file evidence)
+- Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable. (no file evidence)
+- Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable. (no file evidence)
+- Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable. (no file evidence)
+- Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable. (no file evidence)
+- Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable. (no file evidence)
+- Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable. (no file evidence)
+- AIOS warn [warning]: AIOS warning only: 951 nonblank lines exceeds production source size limit 500; split by responsibility or document an exception (frontend/src/routes/trades.tsx)
+- Pre-CR warn [warning]: Pre-CR warning only: coverage result was unavailable. (no file evidence)
+- AIOS warn [warning]: AIOS warning only: 949 nonblank lines exceeds production source size limit 600; split by responsibility or document an exception (backend/src/fantasy/lineup/hygiene_engine.py)
 
 ## Repeated failure patterns
 
-### Pattern: pre-cr did not produce a passing coverage result
-- Seen: 9 times
-- Gates: Pre-CR
-- Category: process
-- Common cause: Pre-CR could not complete its configured readiness workflow.
-- Avoid by: Verify Pre-CR setup before relying on the readiness result.
-- Example fix: Fix the Pre-CR setup or execution error, then rerun the gate.
+- pre-cr did not produce a passing coverage result (9 event(s), Pre-CR, process, fingerprint `f2e4027cb6fbe33827c97e3e`)
 
 ## Agent learning lessons
 
+- Verify Pre-CR setup before relying on the readiness result.
 - Split oversized files by responsibility before committing.
 - Run focused tests with coverage before committing changed source lines.
-- Verify Pre-CR setup before relying on the readiness result.
 
 ## Commit-readiness status
 
-- ready with warnings
+- ready only with override
