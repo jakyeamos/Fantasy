@@ -169,7 +169,8 @@ class TradeEngine:
         )
         note = (
             f" Multi-team context: {len(third_party_evaluations)} third-party leg(s) scored. "
-            f"{sidecar_note} Primary dimensions still score your net swap against the main counterparty."
+            f"{sidecar_note} Primary dimensions still score your net swap, and participant "
+            "sidecars feed reroute and package explanations."
         )
         for dimension in dimensions:
             if max_imbalance > 25:
@@ -470,7 +471,7 @@ class TradeEngine:
         if third_party_evaluations:
             strategic_distinction.explanation += (
                 f" Includes {len(third_party_evaluations)} scored third-party leg(s); "
-                "reroutes and package framing stay anchored to the primary counterparty."
+                "reroutes and package framing can explain each participant's path."
             )
         evaluation = TradeEvaluation(
             market_fairness=market_fairness,

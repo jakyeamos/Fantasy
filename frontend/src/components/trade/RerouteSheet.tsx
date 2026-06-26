@@ -20,7 +20,7 @@ export function RerouteSheet({
           <div>
             <p className="terminal-label text-primary/85">Alternative Paths</p>
             <p className="mt-2 font-headline text-2xl font-bold">Better Options</p>
-            <p className="text-xs text-muted-foreground">Up to 3 reroute paths</p>
+            <p className="text-xs text-muted-foreground">Participant-scoped reroute paths</p>
           </div>
           <Button variant="ghost" onClick={onClose}>
             Close
@@ -35,6 +35,11 @@ export function RerouteSheet({
             {reroutes.map((reroute, index) => (
               <Card key={`${reroute.headline}-${index}`}>
                 <CardContent className="space-y-2 p-4">
+                  {reroute.target_label ? (
+                    <p className="terminal-label text-muted-foreground">
+                      {reroute.target_label}
+                    </p>
+                  ) : null}
                   <p className="text-sm font-semibold">{reroute.headline}</p>
                   <p className="text-sm italic text-muted-foreground">{reroute.reasoning}</p>
                 </CardContent>

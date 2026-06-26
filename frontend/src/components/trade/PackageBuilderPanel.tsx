@@ -58,6 +58,48 @@ export function PackageBuilderPanel({
           </Card>
         ))}
       </div>
+      {packageBuilder.participant_offers?.length ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Participant Offers</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {packageBuilder.participant_offers.map((offer) => (
+              <div
+                key={`${offer.roster_id}-${offer.role}`}
+                className="rounded-lg border border-border/35 bg-card/45 p-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">{offer.label}</p>
+                    <p className="terminal-label text-muted-foreground">
+                      {offer.role.replace("_", " ")}
+                    </p>
+                  </div>
+                  {offer.market_fairness ? (
+                    <span className="rounded-md border border-border/45 px-2 py-1 text-xs font-medium">
+                      {Math.round(offer.market_fairness.score)}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="mt-3 space-y-2 text-sm">
+                  <p>
+                    <span className="terminal-label text-muted-foreground">Sends</span>{" "}
+                    {renderAssets(offer.send_assets)}
+                  </p>
+                  <p>
+                    <span className="terminal-label text-muted-foreground">Receives</span>{" "}
+                    {renderAssets(offer.receive_assets)}
+                  </p>
+                </div>
+                <p className="mt-3 border-t border-border/50 pt-3 text-sm italic text-muted-foreground">
+                  {offer.reasoning}
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   )
 }

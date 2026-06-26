@@ -60,6 +60,8 @@ class RerouteResult(BaseModel):
     headline: str
     reasoning: str
     suggested_assets: list[TradeAsset] | None = None
+    target_roster_id: int | None = None
+    target_label: str | None = None
 
 
 class PackageOffer(BaseModel):
@@ -71,11 +73,24 @@ class PackageOffer(BaseModel):
     reasoning: str
 
 
+class ParticipantPackageOffer(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    roster_id: int
+    role: Literal["user", "primary_counterparty", "third_party"]
+    label: str
+    send_assets: list[TradeAsset]
+    receive_assets: list[TradeAsset]
+    reasoning: str
+    market_fairness: DimensionScore | None = None
+
+
 class PackageBuilderResult(BaseModel):
     model_config = ConfigDict(frozen=False)
 
     aggressive_open: PackageOffer
     fair_close: PackageOffer
+    participant_offers: list[ParticipantPackageOffer] | None = None
 
 
 class TradeEvaluation(BaseModel):

@@ -317,6 +317,8 @@ export interface RerouteResult {
   headline: string
   reasoning: string
   suggested_assets?: TradeAsset[] | null
+  target_roster_id?: number | null
+  target_label?: string | null
 }
 
 export interface PackageOffer {
@@ -326,9 +328,20 @@ export interface PackageOffer {
   reasoning: string
 }
 
+export interface ParticipantPackageOffer {
+  roster_id: number
+  role: "user" | "primary_counterparty" | "third_party"
+  label: string
+  send_assets: TradeAsset[]
+  receive_assets: TradeAsset[]
+  reasoning: string
+  market_fairness?: DimensionScore | null
+}
+
 export interface PackageBuilderResult {
   aggressive_open: PackageOffer
   fair_close: PackageOffer
+  participant_offers?: ParticipantPackageOffer[] | null
 }
 
 export type RecommendationTypeLabel =

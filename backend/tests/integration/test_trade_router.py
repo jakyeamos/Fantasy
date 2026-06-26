@@ -224,5 +224,7 @@ def test_multi_team_trade_returns_sidecar_scores_reroutes_and_package(trade_seed
     payload = response.json()
     assert payload["reroutes"] is not None
     assert payload["package"] is not None
+    assert payload["package"]["participant_offers"] is not None
+    assert {offer["roster_id"] for offer in payload["package"]["participant_offers"]} == {1, 2, 3}
     assert payload["third_party_evaluations"][0]["roster_id"] == 3
     assert "scored third-party leg" in payload["strategic_distinction"]["explanation"]

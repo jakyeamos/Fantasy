@@ -20,58 +20,111 @@ class RerouteEngine:
                 return asset
         return None
 
+    def _first_player_asset(self, assets: list[TradeAsset]) -> TradeAsset | None:
+        for asset in assets:
+            if asset.asset_type == "player" and asset.player_id is not None:
+                return asset
+        return None
+
     def generate(
         self, request: TradeRequest, evaluation: TradeEvaluation
     ) -> list[RerouteResult]:
         reroutes: list[RerouteResult] = []
-        primary_target = self._primary_target(request)
-        if primary_target is None or request.counterparty_roster_id is None:
-            return reroutes
-
-        counterparty_players = self._repo.get_roster_players(
-            request.league_id, request.counterparty_roster_id
-        )
-        current_values = {
-            row["player_id"]: row
-            for row in self._repo.get_player_values(
-                [player["player_id"] for player in counterparty_players],
-                request.league_id,
-                request.user_roster_id,
-            )
-        }
-        target_value = current_values.get(primary_target.player_id or "")
-        target_position = target_value.get("position") if target_value else None
-        if target_position is not None:
-            alternatives = [
-                player
-                for player in counterparty_players
-                if player["position"] == target_position
-                and player["player_id"] != primary_target.player_id
-            ]
-            ranked = sorted(
-                alternatives,
-                key=lambda item: (
-                    float(current_values.get(item["player_id"], {}).get("lens_direction") or 0.0)
-                    + float(current_values.get(item["player_id"], {}).get("lens_market") or 0.0)
-                ),
-                reverse=True,
-            )
-            for alternative in ranked[:2]:
-                reroutes.append(
-                    RerouteResult(
-                        reroute_type="better_target",
-                        headline=f"Target {alternative['full_name']} instead",
-                        reasoning=(
-                            f"Higher direction-fit at {target_position} based on current market and fit lenses."
-                        ),
-                        suggested_assets=[
-                            TradeAsset(
-                                asset_type="player",
-                                player_id=alternative["player_id"],
-                            )
-                        ],
+        participant_limit = MAX_REROUTES
+        participant_targets: list[tuple[int, str, TradeAsset, list[TradeAsset]]] = []
+        if request.counterparty_roster_id is not None:
+            primary_target = self._primary_target(request)
+            if primary_target is not None:
+                participant_targets.append(
+                    (
+                        request.counterparty_roster_id,
+                        f"Roster {request.counterparty_roster_id}",
+                        primary_target,
+                        request.user_receives,
                     )
                 )
+        for leg in request.third_party_trades or []:
+            target = self._first_player_asset(leg.sends) or self._first_player_asset(leg.receives)
+            if target is not None:
+                participant_targets.append(
+                    (leg.roster_id, f"Roster {leg.roster_id}", target, leg.receives)
+                )
+
+        for participant_roster_id, participant_label, target_asset, receive_assets in participant_targets:
+            participant_reroutes: list[RerouteResult] = []
+            participant_players = self._repo.get_roster_players(
+                request.league_id, participant_roster_id
+            )
+            current_values = {
+                row["player_id"]: row
+                for row in self._repo.get_player_values(
+                    [player["player_id"] for player in participant_players],
+                    request.league_id,
+                    request.user_roster_id,
+                )
+            }
+            target_value = current_values.get(target_asset.player_id or "")
+            target_position = target_value.get("position") if target_value else None
+            if target_position is None:
+                target_roster_player = next(
+                    (
+                        player
+                        for player in participant_players
+                        if player["player_id"] == target_asset.player_id
+                    ),
+                    None,
+                )
+                target_position = (
+                    str(target_roster_player["position"])
+                    if target_roster_player is not None
+                    else None
+                )
+            if target_position is not None:
+                alternatives = [
+                    player
+                    for player in participant_players
+                    if player["position"] == target_position
+                    and player["player_id"] != target_asset.player_id
+                ]
+                ranked = sorted(
+                    alternatives,
+                    key=lambda item: (
+                        float(current_values.get(item["player_id"], {}).get("lens_direction") or 0.0)
+                        + float(current_values.get(item["player_id"], {}).get("lens_market") or 0.0)
+                    ),
+                    reverse=True,
+                )
+                for alternative in ranked[:2]:
+                    participant_reroutes.append(
+                        RerouteResult(
+                            reroute_type="better_target",
+                            headline=f"Target {alternative['full_name']} instead",
+                            reasoning=(
+                                f"{participant_label} has a higher direction-fit option at "
+                                f"{target_position} based on current market and fit lenses."
+                            ),
+                            suggested_assets=[
+                                TradeAsset(
+                                    asset_type="player",
+                                    player_id=alternative["player_id"],
+                                )
+                            ],
+                            target_roster_id=participant_roster_id,
+                            target_label=participant_label,
+                        )
+                    )
+
+            picks_buyer = self._generate_picks_buyer_reroute(
+                request.league_id,
+                participant_roster_id,
+                receive_assets,
+            )
+            if picks_buyer is not None:
+                picks_buyer.target_roster_id = participant_roster_id
+                picks_buyer.target_label = participant_label
+                picks_buyer.reasoning = f"{participant_label}: {picks_buyer.reasoning}"
+                participant_reroutes.append(picks_buyer)
+            reroutes.extend(participant_reroutes[:participant_limit])
 
         if len(reroutes) < MAX_REROUTES and request.user_sends:
             current_send = next(
@@ -124,22 +177,13 @@ class RerouteEngine:
                                     player_id=replacement["player_id"],
                                 )
                             ],
+                            target_roster_id=request.user_roster_id,
+                            target_label="Your roster",
                         )
                     )
 
-        if (
-            len(reroutes) < MAX_REROUTES
-            and request.counterparty_roster_id is not None
-        ):
-            picks_buyer = self._generate_picks_buyer_reroute(
-                request.league_id,
-                request.counterparty_roster_id,
-                request.user_receives,
-            )
-            if picks_buyer is not None:
-                reroutes.append(picks_buyer)
-
-        return reroutes[:MAX_REROUTES]
+        participant_count = max(1, len(participant_targets))
+        return reroutes[: MAX_REROUTES * participant_count]
 
     def _generate_picks_buyer_reroute(
         self,

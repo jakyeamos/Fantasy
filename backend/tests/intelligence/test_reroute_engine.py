@@ -55,3 +55,31 @@ def test_multi_team_trade_keeps_primary_reroutes(trade_seed_data):
     reroutes = RerouteEngine(trade_seed_data).generate(request, evaluation)
     assert reroutes
     assert any(reroute.reroute_type == "better_target" for reroute in reroutes)
+
+
+def test_multi_team_trade_generates_reroutes_for_third_party_participants(trade_seed_data):
+    trade_seed_data.execute(
+        """
+        INSERT INTO rosters (id, league_id, roster_id, owner_id, starters, players, reserve, taxi)
+        VALUES
+            (3, 'league_x', 3, 'user_c', '["vet1"]', '["vet1","rb2"]', '[]', '[]')
+        """
+    )
+    request = _request()
+    request.third_party_trades = [
+        ThirdPartyTrade(
+            roster_id=3,
+            sends=[TradeAsset(asset_type="player", player_id="vet1")],
+            receives=[TradeAsset(asset_type="player", player_id="rookie1")],
+        )
+    ]
+
+    evaluation = TradeEngine(trade_seed_data).evaluate(request)
+    reroutes = RerouteEngine(trade_seed_data).generate(request, evaluation)
+
+    assert any(
+        reroute.target_roster_id == 3
+        and reroute.reroute_type == "better_target"
+        and "Roster 3" in reroute.reasoning
+        for reroute in reroutes
+    )

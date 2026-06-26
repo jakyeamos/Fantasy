@@ -13,6 +13,7 @@ The system must tell you — for each of your teams — what you are, what your 
 ### Validated
 
 - League-page refresh now runs an incremental Sleeper ingest instead of freezing the current cached state, so manual refreshes rebuild analytics and write a fresh snapshot before the UI reloads.
+- Multi-team trade evaluator reroutes and package builder outputs now use third-party sidecar evaluations to explain offers for every participant in the deal, not only the primary counterparty.
 - Snapshot comparison membership is derived from `rosters.players`, so adds and departures still surface when player valuation rows lag behind roster ingestion.
 - League drill-in now has a Player Rankings tab backed by `/dashboard/league/{league_id}/player-rankings`, showing model/market-ranked players with each player owner inline.
 - Rookie-board cards and roster hygiene rows now surface live model-vs-market gaps from the shared recommendation-card market-gap engine after FantasyCalc ADP refreshes.

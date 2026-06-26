@@ -8,8 +8,10 @@ from fantasy.rookie_pick.constants import (
 )
 from fantasy.rookie_pick.rookie_pick_repo import RookiePickRepo
 from fantasy.trade.models import (
+    DimensionScore,
     PackageBuilderResult,
     PackageOffer,
+    ParticipantPackageOffer,
     TradeEvaluation,
     TradeRequest,
 )
@@ -58,7 +60,7 @@ class PackageBuilder:
         if request.third_party_trades:
             aggressive_reasoning = (
                 aggressive_reasoning
-                + " Multi-team sidecar legs are scored separately; this open frames your primary ask."
+                + " Multi-team sidecar legs now feed participant-specific package framing."
             )
         aggressive_open = PackageOffer(
             label="Aggressive Open",
@@ -92,7 +94,80 @@ class PackageBuilder:
                         + " This manager consistently pays a premium for draft capital - "
                         + "consider adding a pick to improve acceptance odds."
                     )
+        participant_offers = self._build_participant_offers(request, evaluation)
         return PackageBuilderResult(
             aggressive_open=aggressive_open,
             fair_close=fair_close,
+            participant_offers=participant_offers or None,
         )
+
+    def _build_counterparty_market_score(
+        self,
+        evaluation: TradeEvaluation,
+    ) -> DimensionScore:
+        score = round(100.0 - evaluation.market_fairness.score, 2)
+        return DimensionScore(
+            score=score,
+            confidence=evaluation.market_fairness.confidence,
+            reasoning="Counterparty view mirrors your net market score for the core swap.",
+        )
+
+    def _build_participant_offers(
+        self,
+        request: TradeRequest,
+        evaluation: TradeEvaluation,
+    ) -> list[ParticipantPackageOffer]:
+        offers = [
+            ParticipantPackageOffer(
+                roster_id=request.user_roster_id,
+                role="user",
+                label="Your Net Package",
+                send_assets=list(request.user_sends),
+                receive_assets=list(request.user_receives),
+                market_fairness=evaluation.market_fairness,
+                reasoning=(
+                    "Your package view scores everything you send and receive across the full deal."
+                ),
+            )
+        ]
+        if request.counterparty_roster_id is not None:
+            offers.append(
+                ParticipantPackageOffer(
+                    roster_id=request.counterparty_roster_id,
+                    role="primary_counterparty",
+                    label=f"Roster {request.counterparty_roster_id} Core Package",
+                    send_assets=list(request.user_receives),
+                    receive_assets=list(request.user_sends),
+                    market_fairness=self._build_counterparty_market_score(evaluation),
+                    reasoning=(
+                        "Primary counterparty package mirrors the core swap so the offer can be "
+                        "explained from that manager's side, not only yours."
+                    ),
+                )
+            )
+        third_party_scores = {
+            sidecar.roster_id: sidecar.market_fairness
+            for sidecar in evaluation.third_party_evaluations or []
+        }
+        for leg in request.third_party_trades or []:
+            market_fairness = third_party_scores.get(leg.roster_id)
+            score_text = (
+                f"{market_fairness.score:.1f}"
+                if market_fairness is not None
+                else "unscored"
+            )
+            offers.append(
+                ParticipantPackageOffer(
+                    roster_id=leg.roster_id,
+                    role="third_party",
+                    label=f"Roster {leg.roster_id} Sidecar Package",
+                    send_assets=list(leg.sends),
+                    receive_assets=list(leg.receives),
+                    market_fairness=market_fairness,
+                    reasoning=(
+                        f"Uses the third-party sidecar market score ({score_text}) to explain "
+                        "why this participant can accept its own send and receive leg."
+                    ),
+                )
+            )
+        return offers

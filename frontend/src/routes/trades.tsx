@@ -659,8 +659,8 @@ function TradeEvaluatorPage() {
           <CardTitle className="text-3xl">Evaluate Trade</CardTitle>
           <p className="max-w-3xl text-sm text-muted-foreground">
             Build your outgoing and incoming package first, then layer in extra teams for
-            multi-team trades. The seven dimensions stay anchored to your net swap and the
-            primary counterparty profile while each extra roster gets its own sidecar score.
+            multi-team trades. The seven dimensions stay anchored to your net swap, while
+            reroutes and package framing can explain each participant's path through the deal.
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -731,15 +731,14 @@ function TradeEvaluatorPage() {
                     : "Primary Counterparty"}
                 </CardTitle>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Reroutes and package framing stay anchored to this opponent profile.
+                  This opponent still drives manager exploit scoring for the core swap.
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Manager exploit scoring, reroutes, and package framing still anchor to{" "}
-                  {counterpartyRosterName ?? `roster ${counterpartyRosterId || "?"}`}. Your
-                  receive buckets can still pull assets from any team in a multi-team deal, and
-                  extra roster legs are scored separately.
+                  Manager exploit scoring anchors to{" "}
+                  {counterpartyRosterName ?? `roster ${counterpartyRosterId || "?"}`}. Reroutes
+                  and package outputs also include each extra roster with its own scored leg.
                 </p>
                 <div className="rounded-xl border border-border/45 bg-card/45 p-4">
                   <p className="terminal-label text-muted-foreground">
@@ -751,8 +750,8 @@ function TradeEvaluatorPage() {
                       : "2 core teams"}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Extra teams get sidecar market scores while your main package stays evaluated
-                    from your roster&apos;s perspective.
+                    Extra teams get sidecar market scores and participant-specific package
+                    explanations alongside your core swap.
                   </p>
                 </div>
               </CardContent>
@@ -793,7 +792,8 @@ function TradeEvaluatorPage() {
                               : `Third Team ${index + 1}`}
                           </CardTitle>
                           <p className="text-sm text-muted-foreground">
-                            Score the sidecar leg while preserving the primary negotiation lens.
+                            Score this participant&apos;s send and receive leg for package and
+                            reroute explanations.
                           </p>
                         </div>
                         <Button
@@ -976,8 +976,8 @@ function TradeEvaluatorPage() {
             </Button>
             {thirdPartyTrades.length ? (
               <p className="max-w-2xl text-xs text-muted-foreground">
-                Multi-team legs return sidecar scores; reroutes and package builder stay focused
-                on the primary counterparty path.
+                Multi-team legs return sidecar scores that feed participant-specific reroutes
+                and package explanations.
               </p>
             ) : null}
           </div>
