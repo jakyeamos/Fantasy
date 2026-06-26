@@ -16,6 +16,7 @@ The system must tell you — for each of your teams — what you are, what your 
 - Snapshot comparison membership is derived from `rosters.players`, so adds and departures still surface when player valuation rows lag behind roster ingestion.
 - League drill-in now has a Player Rankings tab backed by `/dashboard/league/{league_id}/player-rankings`, showing model/market-ranked players with each player owner inline.
 - Rookie-board cards and roster hygiene rows now surface live model-vs-market gaps from the shared recommendation-card market-gap engine after FantasyCalc ADP refreshes.
+- DuckDB request handling now opens request-scoped file connections instead of sharing one global connection across FastAPI worker threads, preventing concurrent UI requests from corrupting pending query state.
 
 ### Active
 
@@ -92,4 +93,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-23 after wiring rookie-board and hygiene-row market-gap surfacing*
+*Last updated: 2026-06-26 after stabilizing DuckDB request-scoped connections from UI rubric audit*
