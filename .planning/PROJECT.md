@@ -17,6 +17,7 @@ The system must tell you — for each of your teams — what you are, what your 
 - League drill-in now has a Player Rankings tab backed by `/dashboard/league/{league_id}/player-rankings`, showing model/market-ranked players with each player owner inline.
 - Rookie-board cards and roster hygiene rows now surface live model-vs-market gaps from the shared recommendation-card market-gap engine after FantasyCalc ADP refreshes.
 - DuckDB request handling now opens request-scoped file connections instead of sharing one global connection across FastAPI worker threads, preventing concurrent UI requests from corrupting pending query state.
+- The 2026-06-26 UI rubric audit is recorded in `.planning/UI-RUBRIC-AUDIT-2026-06-26.md`, including the fixed mobile dashboard issue and remaining Opportunity Feed performance finding.
 
 ### Active
 
@@ -93,4 +94,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-26 after stabilizing DuckDB request-scoped connections from UI rubric audit*
+*Last updated: 2026-06-26 after recording the rendered UI rubric audit findings*
