@@ -20,6 +20,7 @@ The system must tell you — for each of your teams — what you are, what your 
 - DuckDB request handling now opens request-scoped file connections instead of sharing one global connection across FastAPI worker threads, preventing concurrent UI requests from corrupting pending query state.
 - The 2026-06-26 UI rubric audit is recorded in `.planning/UI-RUBRIC-AUDIT-2026-06-26.md`, including the fixed mobile dashboard issue and remaining Opportunity Feed performance finding.
 - The TMCP UI remediation pass now bounds Opportunity Feed similarity enrichment, adds a frontend request timeout/error path, and hides React Query Devtools on mobile so the feed settles and mobile content is unobstructed.
+- The Opportunity Feed now has a ranked, scannable visual treatment with route-level signal totals, top-impact context, and stronger per-card rank/action/impact hierarchy.
 
 ### Active
 
@@ -96,4 +97,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-27 after executing the TMCP UI remediation pass*
+*Last updated: 2026-06-27 after polishing the Opportunity Feed visual hierarchy*

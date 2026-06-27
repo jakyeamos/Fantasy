@@ -7,9 +7,15 @@ function OpportunityCardSkeleton() {
   return (
     <Card>
       <CardContent className="space-y-3 p-5">
-        <Skeleton className="h-6 w-32" />
-        <Skeleton className="h-4 w-48" />
+        <div className="flex items-center gap-3">
+          <Skeleton className="size-11 rounded-lg" />
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-3 w-28" />
+          </div>
+        </div>
         <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-10 w-full" />
       </CardContent>
     </Card>
   )
@@ -64,9 +70,9 @@ export function OpportunityCardList({
   }
 
   return (
-    <div className="space-y-4">
-      {items.map((item) => (
-        <OpportunityCard key={item.player_id} item={item} />
+    <div className="space-y-3">
+      {items.map((item, index) => (
+        <OpportunityCard key={item.player_id} item={item} rank={index + 1} />
       ))}
     </div>
   )
