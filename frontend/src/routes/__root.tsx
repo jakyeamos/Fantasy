@@ -2,15 +2,11 @@ import { useEffect, useMemo, useState } from "react"
 import {
   Activity,
   ArrowLeftRight,
-  BarChart3,
-  Bell,
   Briefcase,
   ChevronRight,
-  History,
   LayoutDashboard,
   Menu,
   Moon,
-  Search,
   Star,
   Sun,
   Terminal,
@@ -196,7 +192,10 @@ function RootLayout() {
       return "No snapshot"
     }
 
-    const minutes = Math.max(1, Math.round((Date.now() - Date.parse(snapshot)) / 60_000))
+    const minutes = Math.max(
+      1,
+      Math.round((Date.now() - Date.parse(snapshot)) / 60_000),
+    )
     if (minutes < 60) return `${minutes}m ago`
     const hours = Math.round(minutes / 60)
     if (hours < 24) return `${hours}h ago`
@@ -328,7 +327,9 @@ function RootLayout() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Last snapshot</span>
-                  <span className="font-mono text-foreground">{latestSnapshot}</span>
+                  <span className="font-mono text-foreground">
+                    {latestSnapshot}
+                  </span>
                 </div>
               </div>
             </div>
@@ -338,7 +339,9 @@ function RootLayout() {
                 JY
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-foreground">Analyst Desk</p>
+                <p className="truncate text-sm font-semibold text-foreground">
+                  Analyst Desk
+                </p>
                 <p className="terminal-label text-muted-foreground">Proven</p>
               </div>
             </div>
@@ -362,7 +365,9 @@ function RootLayout() {
                     <p className="font-headline text-base font-bold tracking-tight">
                       Dynasty Intelligence
                     </p>
-                    <p className="terminal-label text-primary/75">Front-Office Cockpit</p>
+                    <p className="terminal-label text-primary/75">
+                      Front-Office Cockpit
+                    </p>
                   </div>
                 </div>
 
@@ -370,56 +375,33 @@ function RootLayout() {
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <span className="terminal-label">Terminal</span>
                     <ChevronRight className="size-3" />
-                    <span className="terminal-label text-primary">{routeMeta.title}</span>
+                    <span className="terminal-label text-primary">
+                      {routeMeta.title}
+                    </span>
                     <ChevronRight className="size-3" />
                     <span className="terminal-label">{routeMeta.subtitle}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="relative hidden md:block">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <input
-                      type="text"
-                      placeholder="Search assets..."
-                      className="h-10 w-56 pl-10 pr-3 text-[11px] uppercase tracking-[0.14em] lg:w-72"
-                    />
-                  </div>
-
-                  <div className="hidden items-center gap-2 lg:flex">
-                    <button
-                      type="button"
-                      className="flex size-10 items-center justify-center rounded-md border border-border/60 bg-card/50 text-muted-foreground hover:text-primary"
-                      aria-label="Alerts"
-                    >
-                      <Bell className="size-4" />
-                    </button>
-                    <button
-                      type="button"
-                      className="flex size-10 items-center justify-center rounded-md border border-border/60 bg-card/50 text-muted-foreground hover:text-primary"
-                      aria-label="History"
-                    >
-                      <History className="size-4" />
-                    </button>
-                    <button
-                      type="button"
-                      className="flex size-10 items-center justify-center rounded-md border border-border/60 bg-card/50 text-muted-foreground hover:text-primary"
-                      aria-label="Metrics"
-                    >
-                      <BarChart3 className="size-4" />
-                    </button>
-                  </div>
-
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     className="w-10 px-0"
                     onClick={toggleTheme}
-                    aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-                    title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+                    aria-label={
+                      isDark ? "Switch to light mode" : "Switch to dark mode"
+                    }
+                    title={
+                      isDark ? "Switch to light mode" : "Switch to dark mode"
+                    }
                   >
-                    {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+                    {isDark ? (
+                      <Sun className="size-4" />
+                    ) : (
+                      <Moon className="size-4" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -429,7 +411,9 @@ function RootLayout() {
                   <h1 className="font-headline text-3xl font-extrabold tracking-tight">
                     {routeMeta.title}
                   </h1>
-                  <p className="mt-1 text-sm text-muted-foreground">{routeMeta.subtitle}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {routeMeta.subtitle}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="rounded-lg border border-border/40 bg-card/50 px-3 py-2">
@@ -447,7 +431,9 @@ function RootLayout() {
                     <span className="terminal-label text-muted-foreground">
                       Last Snapshot
                     </span>
-                    <p className="mt-1 font-mono text-sm text-foreground">{latestSnapshot}</p>
+                    <p className="mt-1 font-mono text-sm text-foreground">
+                      {latestSnapshot}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -488,7 +474,9 @@ function RootLayout() {
               <div className="flex items-center gap-3">
                 <span className="font-mono">Terminal status: operational</span>
                 <span className="hidden md:inline">|</span>
-                <span className="font-mono">Latest snapshot: {latestSnapshot}</span>
+                <span className="font-mono">
+                  Latest snapshot: {latestSnapshot}
+                </span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="font-mono">

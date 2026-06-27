@@ -28,6 +28,7 @@ type PositionFilter = "ALL" | "QB" | "RB" | "WR" | "TE"
 type OwnershipFilter = "ALL" | "MINE" | "OTHER"
 
 const positionFilters: PositionFilter[] = ["ALL", "QB", "RB", "WR", "TE"]
+const MAX_RENDERED_RANKINGS = 80
 
 function formatValue(value: number | null): string {
   if (value === null) return "--"
@@ -107,6 +108,8 @@ function PlayerRankingsPage() {
   const topOwnedCount = rankings.filter((player) => player.is_user_roster && player.rank <= 48).length
   const topTierCount = rankings.filter((player) => player.tier === 1).length
   const activeUserRosterId = requestedRosterId ?? league.user_roster_id
+  const renderedRankings = visibleRankings.slice(0, MAX_RENDERED_RANKINGS)
+  const hiddenRankingCount = Math.max(0, visibleRankings.length - renderedRankings.length)
 
   return (
     <div className="space-y-6">
@@ -119,6 +122,11 @@ function PlayerRankingsPage() {
               <p className="text-sm leading-6 text-muted-foreground">
                 Ranked board for {league.league_name}. Values blend market lens, production,
                 insulation, and roster-direction fit; each row shows who owns the player in this league.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Showing {renderedRankings.length.toLocaleString()} of{" "}
+                {visibleRankings.length.toLocaleString()} matching players. Search or filter to narrow
+                the board.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:min-w-[320px]">
@@ -179,7 +187,7 @@ function PlayerRankingsPage() {
 
       <Card>
         <CardContent className="p-0">
-          <div className="hidden grid-cols-[72px_minmax(240px,1.4fr)_120px_minmax(220px,0.9fr)_120px_120px] gap-4 border-b border-border/50 px-5 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground lg:grid">
+          <div className="hidden grid-cols-[56px_minmax(180px,1.45fr)_88px_minmax(150px,1fr)_76px_88px] gap-3 border-b border-border/50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground lg:grid">
             <span>Rank</span>
             <span>Player</span>
             <span>Value</span>
@@ -188,11 +196,11 @@ function PlayerRankingsPage() {
             <span>Trend</span>
           </div>
           <div className="divide-y divide-border/45">
-            {visibleRankings.map((player) => (
+            {renderedRankings.map((player) => (
               <div
-                key={player.player_id}
+                key={`${player.player_id}-${player.roster_id}-${player.rank}`}
                 className={cn(
-                  "grid gap-3 px-5 py-4 lg:grid-cols-[72px_minmax(240px,1.4fr)_120px_minmax(220px,0.9fr)_120px_120px] lg:items-center lg:gap-4",
+                  "grid gap-3 px-5 py-4 lg:grid-cols-[56px_minmax(180px,1.45fr)_88px_minmax(150px,1fr)_76px_88px] lg:items-center lg:gap-3 lg:px-4",
                   player.is_user_roster ? "bg-primary/7" : "hover:bg-card/65",
                 )}
               >
@@ -244,7 +252,7 @@ function PlayerRankingsPage() {
                       to="/trades"
                       search={playerTradeSearch(player, leagueId, activeUserRosterId)}
                       className={buttonClasses({
-                        variant: "outline",
+                        variant: "ghost",
                         size: "sm",
                         className: "h-7 px-2 text-[9px]",
                       })}
@@ -277,6 +285,12 @@ function PlayerRankingsPage() {
               </div>
             ))}
           </div>
+          {hiddenRankingCount > 0 ? (
+            <div className="border-t border-border/45 p-5 text-sm text-muted-foreground">
+              {hiddenRankingCount.toLocaleString()} more players are available. Use search, position,
+              or ownership filters to narrow the board.
+            </div>
+          ) : null}
           {visibleRankings.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
               No players match the current filters.

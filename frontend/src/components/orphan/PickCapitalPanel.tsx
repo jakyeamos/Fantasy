@@ -8,11 +8,14 @@ type PickCapitalPanelProps = {
 }
 
 export function PickCapitalPanel({ intake, picks }: PickCapitalPanelProps) {
-  const picksByYear = picks.reduce<Record<number, PickValue[]>>((groups, pick) => {
-    const year = pick.pick.pick_year
-    groups[year] = [...(groups[year] ?? []), pick]
-    return groups
-  }, {})
+  const picksByYear = picks.reduce<Record<number, PickValue[]>>(
+    (groups, pick) => {
+      const year = pick.pick.pick_year
+      groups[year] = [...(groups[year] ?? []), pick]
+      return groups
+    },
+    {},
+  )
 
   return (
     <Card>
@@ -29,13 +32,15 @@ export function PickCapitalPanel({ intake, picks }: PickCapitalPanelProps) {
               <div key={year} className="space-y-2">
                 <p className="terminal-label text-muted-foreground">{year}</p>
                 <div className="space-y-2">
-                  {yearPicks.map((pick) => (
+                  {yearPicks.map((pick, index) => (
                     <div
-                      key={`${pick.pick.pick_year}-${pick.pick.pick_round}`}
+                      key={`${pick.pick.pick_year}-${pick.pick.pick_round}-${pick.pick.pick_owner_roster_id}-${index}`}
                       className="flex items-center justify-between rounded-lg border border-border/50 bg-card/35 px-4 py-3"
                     >
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline">Round {pick.pick.pick_round}</Badge>
+                        <Badge variant="outline">
+                          Round {pick.pick.pick_round}
+                        </Badge>
                         <span className="text-sm text-muted-foreground">
                           {pick.pick.projected_slot ?? "Current slot"}
                         </span>

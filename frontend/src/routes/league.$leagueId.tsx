@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react"
 
 import { useQuery } from "@tanstack/react-query"
-import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router"
+import {
+  Link,
+  Outlet,
+  createFileRoute,
+  useLocation,
+} from "@tanstack/react-router"
 
 import {
   calendarContextOptions,
@@ -35,7 +40,9 @@ export const Route = createFileRoute("/league/$leagueId")({
   component: LeagueDetailPage,
 })
 
-function titleWindowLabelContext(label: "Peak Window" | "Fading Window" | "Outside Window") {
+function titleWindowLabelContext(
+  label: "Peak Window" | "Fading Window" | "Outside Window",
+) {
   switch (label) {
     case "Peak Window":
       return "This roster has enough ceiling, stability, and depth to push for a title without needing perfect weekly luck."
@@ -59,13 +66,15 @@ function LeagueDetailPage() {
 
 function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
   const location = useLocation()
-  const [requestedRosterId, setRequestedRosterId] = useState<number | null>(() =>
-    readStoredLeagueRosterId(leagueId),
+  const [requestedRosterId, setRequestedRosterId] = useState<number | null>(
+    () => readStoredLeagueRosterId(leagueId),
   )
   const query = useQuery(leagueDetailOptions(leagueId, requestedRosterId))
   const rosterOptionsQuery = useQuery(leagueRosterOptions(leagueId))
   const calendarQuery = useQuery(calendarContextOptions(leagueId))
-  const lineupQuery = useQuery(lineupScoreOptions(leagueId, query.data?.user_roster_id ?? 0))
+  const lineupQuery = useQuery(
+    lineupScoreOptions(leagueId, query.data?.user_roster_id ?? 0),
+  )
   const [comparisonOpen, setComparisonOpen] = useState(false)
 
   useEffect(() => {
@@ -83,10 +92,18 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
     if (!rosterOptionsQuery.data || requestedRosterId === null) {
       return
     }
-    if (rosterOptionsQuery.data.some((option) => option.roster_id === requestedRosterId)) {
+    if (
+      rosterOptionsQuery.data.some(
+        (option) => option.roster_id === requestedRosterId,
+      )
+    ) {
       return
     }
-    setRequestedRosterId(query.data?.user_roster_id ?? rosterOptionsQuery.data[0]?.roster_id ?? null)
+    setRequestedRosterId(
+      query.data?.user_roster_id ??
+        rosterOptionsQuery.data[0]?.roster_id ??
+        null,
+    )
   }, [query.data?.user_roster_id, requestedRosterId, rosterOptionsQuery.data])
 
   if (query.isLoading) {
@@ -119,12 +136,14 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
   const isComparisonRoute = location.pathname === `${leaguePath}/comparison`
   const isManagersRoute = location.pathname.startsWith(`${leaguePath}/managers`)
   const isLeagueOpsRoute = location.pathname === `${leaguePath}/league-ops`
-  const isPlayerRankingsRoute = location.pathname === `${leaguePath}/player-rankings`
+  const isPlayerRankingsRoute =
+    location.pathname === `${leaguePath}/player-rankings`
   const isRookieBoardRoute = location.pathname === `${leaguePath}/rookie-board`
   const isRosterMovesRoute = location.pathname === `${leaguePath}/roster-moves`
   const isWaiversRoute = location.pathname === `${leaguePath}/waivers`
   const isStartupRoute = location.pathname === `${leaguePath}/startup`
-  const isOrphanIntakeRoute = location.pathname === `${leaguePath}/orphan-intake`
+  const isOrphanIntakeRoute =
+    location.pathname === `${leaguePath}/orphan-intake`
   const titleWindowData = lineupQuery.data ?? null
   const titleWindowBadgeClass =
     titleWindowData?.title_window_label === "Peak Window"
@@ -144,353 +163,412 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
     <LeagueRosterSelectionProvider value={selectionContext}>
       <div className="space-y-8">
         <Card className="overflow-visible">
-        <CardHeader className="grid gap-8 lg:grid-cols-[minmax(280px,440px)_minmax(0,1fr)]">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <div>
-                <p className="terminal-label text-muted-foreground">League Briefing</p>
-                <CardTitle className="mt-2 text-3xl">{league.league_name}</CardTitle>
-                {league.user_roster_name ? (
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Viewing {league.user_roster_name}.
+          <CardHeader
+            className={
+              isOverviewRoute
+                ? "grid gap-8 lg:grid-cols-[minmax(280px,440px)_minmax(0,1fr)]"
+                : "grid gap-4 p-4 lg:grid-cols-[minmax(260px,420px)_minmax(0,1fr)] lg:items-start lg:p-5"
+            }
+          >
+            <div className={isOverviewRoute ? "space-y-3" : "space-y-3"}>
+              <div className="flex flex-wrap items-center gap-3">
+                <div>
+                  <p className="terminal-label text-muted-foreground">
+                    League Briefing
                   </p>
+                  <CardTitle
+                    className={
+                      isOverviewRoute ? "mt-2 text-3xl" : "mt-1 text-xl"
+                    }
+                  >
+                    {league.league_name}
+                  </CardTitle>
+                  {league.user_roster_name ? (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Viewing {league.user_roster_name}.
+                    </p>
+                  ) : null}
+                </div>
+                {calendarQuery.data ? (
+                  <CalendarStateBadge state={calendarQuery.data.active_state} />
+                ) : null}
+                {titleWindowData ? (
+                  <HoverTrigger
+                    className="inline-flex"
+                    popout={
+                      <Popout title={titleWindowData.title_window_label}>
+                        <p>
+                          {titleWindowLabelContext(
+                            titleWindowData.title_window_label,
+                          )}
+                        </p>
+                        <p>
+                          Composite title score:{" "}
+                          <span className="text-foreground">
+                            {titleWindowData.title_window_composite.toFixed(2)}
+                          </span>
+                          . Ceiling reads{" "}
+                          {titleWindowScoreWord(titleWindowData.ceiling_score)},
+                          stability reads{" "}
+                          {titleWindowScoreWord(
+                            titleWindowData.stability_score,
+                          )}
+                          , and depth reads{" "}
+                          {titleWindowScoreWord(titleWindowData.depth_score)}.
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline">
+                            Ceiling {titleWindowData.ceiling_score.toFixed(2)}
+                          </Badge>
+                          <Badge variant="outline">
+                            Stability{" "}
+                            {titleWindowData.stability_score.toFixed(2)}
+                          </Badge>
+                          <Badge variant="outline">
+                            Depth {titleWindowData.depth_score.toFixed(2)}
+                          </Badge>
+                        </div>
+                      </Popout>
+                    }
+                  >
+                    <Badge className={titleWindowBadgeClass}>
+                      {titleWindowData.title_window_label}
+                    </Badge>
+                  </HoverTrigger>
                 ) : null}
               </div>
-              {calendarQuery.data ? (
-                <CalendarStateBadge state={calendarQuery.data.active_state} />
-              ) : null}
-              {titleWindowData ? (
-                <HoverTrigger
-                  className="inline-flex"
-                  popout={
-                    <Popout title={titleWindowData.title_window_label}>
-                      <p>{titleWindowLabelContext(titleWindowData.title_window_label)}</p>
-                      <p>
-                        Composite title score:{" "}
-                        <span className="text-foreground">
-                          {titleWindowData.title_window_composite.toFixed(2)}
-                        </span>
-                        . Ceiling reads {titleWindowScoreWord(titleWindowData.ceiling_score)},
-                        stability reads {titleWindowScoreWord(titleWindowData.stability_score)},
-                        and depth reads {titleWindowScoreWord(titleWindowData.depth_score)}.
-                      </p>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline">
-                          Ceiling {titleWindowData.ceiling_score.toFixed(2)}
-                        </Badge>
-                        <Badge variant="outline">
-                          Stability {titleWindowData.stability_score.toFixed(2)}
-                        </Badge>
-                        <Badge variant="outline">
-                          Depth {titleWindowData.depth_score.toFixed(2)}
-                        </Badge>
-                      </div>
-                    </Popout>
-                  }
-                >
-                  <Badge className={titleWindowBadgeClass}>
-                    {titleWindowData.title_window_label}
-                  </Badge>
-                </HoverTrigger>
-              ) : null}
-            </div>
-            <div>
-              <DirectionReadPopover
-                directionRead={league.direction_read}
-                directionLabel={league.direction_label}
-                directionAlternates={league.direction_alternates}
-                directionNote={league.direction_note}
-                directionReasoning={league.direction_reasoning}
-                directionFitFlags={league.direction_fit_flags}
-              />
-              {ceilingWord ? (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Starter ceiling is {ceilingWord}.
-                </p>
-              ) : null}
-              <div className="mt-4">
+              {isOverviewRoute ? (
+                <div>
+                  <DirectionReadPopover
+                    directionRead={league.direction_read}
+                    directionLabel={league.direction_label}
+                    directionAlternates={league.direction_alternates}
+                    directionNote={league.direction_note}
+                    directionReasoning={league.direction_reasoning}
+                    directionFitFlags={league.direction_fit_flags}
+                  />
+                  {ceilingWord ? (
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      Starter ceiling is {ceilingWord}.
+                    </p>
+                  ) : null}
+                  <div className="mt-4">
+                    <LeagueRosterSelector
+                      options={rosterOptionsQuery.data ?? []}
+                      value={requestedRosterId ?? league.user_roster_id}
+                      onChange={setRequestedRosterId}
+                      disabled={rosterOptionsQuery.isLoading}
+                    />
+                  </div>
+                </div>
+              ) : (
                 <LeagueRosterSelector
                   options={rosterOptionsQuery.data ?? []}
                   value={requestedRosterId ?? league.user_roster_id}
                   onChange={setRequestedRosterId}
                   disabled={rosterOptionsQuery.isLoading}
                 />
-              </div>
+              )}
             </div>
-          </div>
-          <div className="space-y-4 lg:pt-1">
-            <div className="flex flex-wrap items-center justify-start gap-2 lg:justify-end">
-              <Link
-                to="/draft-room"
-                search={{ leagueId, pickSlot: 1 }}
-                className={buttonClasses({
-                  variant: "outline",
-                  size: "sm",
-                  className: "h-9",
-                })}
-              >
-                Enter Draft Room
-              </Link>
-              <Link
-                to="/trades"
-                search={{ leagueId, userRosterId: league.user_roster_id ?? undefined }}
-                className={buttonClasses({ size: "sm", className: "h-9" })}
-              >
-                Evaluate Trade
-              </Link>
-            </div>
-
-            <nav aria-label="League sections" className="space-y-3">
-              <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
+            <div className="space-y-4 lg:pt-1">
+              <div className="flex flex-wrap items-center justify-start gap-2 lg:justify-end">
                 <Link
-                  to="/league/$leagueId"
-                  params={{ leagueId }}
+                  to="/draft-room"
+                  search={{ leagueId, pickSlot: 1 }}
                   className={buttonClasses({
-                    variant: isOverviewRoute ? "default" : "outline",
+                    variant: "outline",
                     size: "sm",
-                    className: "h-9 px-3",
+                    className: "h-9",
                   })}
                 >
-                  Overview
+                  Enter Draft Room
                 </Link>
+                <Link
+                  to="/trades"
+                  search={{
+                    leagueId,
+                    userRosterId: league.user_roster_id ?? undefined,
+                  }}
+                  className={buttonClasses({ size: "sm", className: "h-9" })}
+                >
+                  Evaluate Trade
+                </Link>
+              </div>
+
+              <nav aria-label="League sections" className="space-y-3">
+                <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
+                  <Link
+                    to="/league/$leagueId"
+                    params={{ leagueId }}
+                    className={buttonClasses({
+                      variant: isOverviewRoute ? "default" : "outline",
+                      size: "sm",
+                      className: "h-9 px-3",
+                    })}
+                  >
+                    Overview
+                  </Link>
+                  <Link
+                    to="/league/$leagueId/comparison"
+                    params={{ leagueId }}
+                    className={buttonClasses({
+                      variant: isComparisonRoute ? "default" : "outline",
+                      size: "sm",
+                      className: "h-9 px-3",
+                    })}
+                  >
+                    Comparison
+                  </Link>
+                  <Link
+                    to="/league/$leagueId/managers"
+                    params={{ leagueId }}
+                    className={buttonClasses({
+                      variant: isManagersRoute ? "default" : "outline",
+                      size: "sm",
+                      className: "h-9 px-3",
+                    })}
+                  >
+                    Managers
+                  </Link>
+                  <Link
+                    to="/league/$leagueId/roster-moves"
+                    params={{ leagueId }}
+                    className={buttonClasses({
+                      variant: isRosterMovesRoute ? "default" : "outline",
+                      size: "sm",
+                      className: "h-9 px-3",
+                    })}
+                  >
+                    Roster Moves
+                  </Link>
+                  <Link
+                    to="/league/$leagueId/player-rankings"
+                    params={{ leagueId }}
+                    className={buttonClasses({
+                      variant: isPlayerRankingsRoute ? "default" : "outline",
+                      size: "sm",
+                      className: "h-9 px-3",
+                    })}
+                  >
+                    Rankings
+                  </Link>
+                </div>
+
+                <div className="flex flex-wrap justify-start gap-1.5 lg:justify-end">
+                  <Link
+                    to="/league/$leagueId/league-ops"
+                    params={{ leagueId }}
+                    className={buttonClasses({
+                      variant: isLeagueOpsRoute ? "secondary" : "ghost",
+                      size: "sm",
+                      className: "h-8 px-2.5",
+                    })}
+                  >
+                    League Ops
+                  </Link>
+                  <Link
+                    to="/league/$leagueId/rookie-board"
+                    params={{ leagueId }}
+                    className={buttonClasses({
+                      variant: isRookieBoardRoute ? "secondary" : "ghost",
+                      size: "sm",
+                      className: "h-8 px-2.5",
+                    })}
+                  >
+                    Rookie Board
+                  </Link>
+                  <Link
+                    to="/league/$leagueId/waivers"
+                    params={{ leagueId }}
+                    className={buttonClasses({
+                      variant: isWaiversRoute ? "secondary" : "ghost",
+                      size: "sm",
+                      className: "h-8 px-2.5",
+                    })}
+                  >
+                    Waivers
+                  </Link>
+                  <Link
+                    to="/league/$leagueId/startup"
+                    params={{ leagueId }}
+                    className={buttonClasses({
+                      variant: isStartupRoute ? "secondary" : "ghost",
+                      size: "sm",
+                      className: `h-8 px-2.5 ${isStartupRoute ? "" : "opacity-60"}`,
+                    })}
+                  >
+                    Startup
+                  </Link>
+                  <Link
+                    to="/league/$leagueId/orphan-intake"
+                    params={{ leagueId }}
+                    className={buttonClasses({
+                      variant: isOrphanIntakeRoute ? "secondary" : "ghost",
+                      size: "sm",
+                      className: "h-8 px-2.5",
+                    })}
+                  >
+                    Orphan Intake
+                  </Link>
+                </div>
+              </nav>
+            </div>
+          </CardHeader>
+          <CardContent
+            className={`flex flex-wrap items-center justify-between gap-3 border-t border-border/40 ${
+              isOverviewRoute ? "pt-5" : "p-4 lg:p-5"
+            }`}
+          >
+            <SnapshotStatus
+              leagueId={leagueId}
+              lastSnapshotAt={league.last_snapshot_at}
+            />
+            {league.user_roster_id ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setComparisonOpen(true)}
+              >
+                Compare to snapshot
+              </Button>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        {isOverviewRoute && league.user_roster_id ? (
+          <LineupStrengthCard
+            leagueId={leagueId}
+            rosterId={league.user_roster_id}
+          />
+        ) : null}
+
+        {isOverviewRoute ? (
+          <>
+            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <Card>
+                <CardHeader className="pb-2">
+                  <p className="terminal-label text-muted-foreground">
+                    Exploit windows
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <p className="font-headline text-3xl font-extrabold tracking-tight">
+                    {league.exploit_windows.length}
+                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Managers currently showing live behavioral triggers.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <p className="terminal-label text-muted-foreground">
+                    Market movement
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <p className="font-headline text-3xl font-extrabold tracking-tight">
+                    {league.risers.length + league.fallers.length}
+                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Player valuation changes surfaced in the latest ingest.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <p className="terminal-label text-muted-foreground">
+                    Active Roster
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <p className="font-headline text-3xl font-extrabold tracking-tight">
+                    {league.user_roster_name ?? "No roster selected"}
+                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Switching the selector updates every league tab from this
+                    team&apos;s perspective.
+                  </p>
+                </CardContent>
+              </Card>
+            </section>
+
+            <Card>
+              <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <CardTitle>Section Guide</CardTitle>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Keep overview high-level, then use the dedicated tabs for
+                    league comparison, roster actions, and league operations.
+                  </p>
+                </div>
+              </CardHeader>
+              <CardContent className="flex flex-wrap items-center gap-3">
                 <Link
                   to="/league/$leagueId/comparison"
                   params={{ leagueId }}
-                  className={buttonClasses({
-                    variant: isComparisonRoute ? "default" : "outline",
-                    size: "sm",
-                    className: "h-9 px-3",
-                  })}
+                  className={buttonClasses({ variant: "outline" })}
                 >
-                  Comparison
-                </Link>
-                <Link
-                  to="/league/$leagueId/managers"
-                  params={{ leagueId }}
-                  className={buttonClasses({
-                    variant: isManagersRoute ? "default" : "outline",
-                    size: "sm",
-                    className: "h-9 px-3",
-                  })}
-                >
-                  Managers
+                  Open Comparison
                 </Link>
                 <Link
                   to="/league/$leagueId/roster-moves"
                   params={{ leagueId }}
-                  className={buttonClasses({
-                    variant: isRosterMovesRoute ? "default" : "outline",
-                    size: "sm",
-                    className: "h-9 px-3",
-                  })}
+                  className={buttonClasses({ variant: "outline" })}
                 >
-                  Roster Moves
+                  Open Roster Moves
                 </Link>
                 <Link
-                  to="/league/$leagueId/player-rankings"
+                  to="/league/$leagueId/league-ops"
                   params={{ leagueId }}
-                  className={buttonClasses({
-                    variant: isPlayerRankingsRoute ? "default" : "outline",
-                    size: "sm",
-                    className: "h-9 px-3",
-                  })}
+                  className={buttonClasses({ variant: "outline" })}
                 >
-                  Rankings
+                  Open League Ops
                 </Link>
-              </div>
-
-            <div className="flex flex-wrap justify-start gap-1.5 lg:justify-end">
-              <Link
-                to="/league/$leagueId/league-ops"
-                params={{ leagueId }}
-                className={buttonClasses({
-                  variant: isLeagueOpsRoute ? "secondary" : "ghost",
-                  size: "sm",
-                  className: "h-8 px-2.5",
-                })}
-              >
-                League Ops
-              </Link>
-              <Link
-                to="/league/$leagueId/rookie-board"
-                params={{ leagueId }}
-                className={buttonClasses({
-                  variant: isRookieBoardRoute ? "secondary" : "ghost",
-                  size: "sm",
-                  className: "h-8 px-2.5",
-                })}
-              >
-                Rookie Board
-              </Link>
-              <Link
-                to="/league/$leagueId/waivers"
-                params={{ leagueId }}
-                className={buttonClasses({
-                  variant: isWaiversRoute ? "secondary" : "ghost",
-                  size: "sm",
-                  className: "h-8 px-2.5",
-                })}
-              >
-                Waivers
-              </Link>
-              <Link
-                to="/league/$leagueId/startup"
-                params={{ leagueId }}
-                className={buttonClasses({
-                  variant: isStartupRoute ? "secondary" : "ghost",
-                  size: "sm",
-                  className: "h-8 px-2.5",
-                })}
-              >
-                Startup Draft
-              </Link>
-              <Link
-                to="/league/$leagueId/orphan-intake"
-                params={{ leagueId }}
-                className={buttonClasses({
-                  variant: isOrphanIntakeRoute ? "secondary" : "ghost",
-                  size: "sm",
-                  className: "h-8 px-2.5",
-                })}
-              >
-                Orphan Intake
-              </Link>
-            </div>
-            </nav>
-          </div>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center justify-between gap-3 border-t border-border/40 pt-5">
-          <SnapshotStatus leagueId={leagueId} lastSnapshotAt={league.last_snapshot_at} />
-          {league.user_roster_id ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setComparisonOpen(true)}
-            >
-              Compare to snapshot
-            </Button>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      {isOverviewRoute && league.user_roster_id ? (
-        <LineupStrengthCard leagueId={leagueId} rosterId={league.user_roster_id} />
-      ) : null}
-
-      {isOverviewRoute ? (
-        <>
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <p className="terminal-label text-muted-foreground">Exploit windows</p>
-              </CardHeader>
-              <CardContent>
-                <p className="font-headline text-3xl font-extrabold tracking-tight">
-                  {league.exploit_windows.length}
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Managers currently showing live behavioral triggers.
-                </p>
+                <Link
+                  to="/league/$leagueId/managers"
+                  params={{ leagueId }}
+                  className={buttonClasses({ variant: "outline" })}
+                >
+                  Review Dossiers
+                </Link>
+                <Link
+                  to="/trades"
+                  search={{
+                    leagueId,
+                    userRosterId: league.user_roster_id ?? undefined,
+                  }}
+                  className={buttonClasses({ variant: "outline" })}
+                >
+                  Open Trade Lab
+                </Link>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-2">
-                <p className="terminal-label text-muted-foreground">Market movement</p>
-              </CardHeader>
-              <CardContent>
-                <p className="font-headline text-3xl font-extrabold tracking-tight">
-                  {league.risers.length + league.fallers.length}
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Player valuation changes surfaced in the latest ingest.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <p className="terminal-label text-muted-foreground">Active Roster</p>
-              </CardHeader>
-              <CardContent>
-                <p className="font-headline text-3xl font-extrabold tracking-tight">
-                  {league.user_roster_name ?? "No roster selected"}
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Switching the selector updates every league tab from this team&apos;s perspective.
-                </p>
-              </CardContent>
-            </Card>
-          </section>
-
-          <Card>
-            <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <CardTitle>Section Guide</CardTitle>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Keep overview high-level, then use the dedicated tabs for league comparison,
-                  roster actions, and league operations.
-                </p>
-              </div>
-            </CardHeader>
-            <CardContent className="flex flex-wrap items-center gap-3">
-              <Link
-                to="/league/$leagueId/comparison"
-                params={{ leagueId }}
-                className={buttonClasses({ variant: "outline" })}
-              >
-                Open Comparison
-              </Link>
-              <Link
-                to="/league/$leagueId/roster-moves"
-                params={{ leagueId }}
-                className={buttonClasses({ variant: "outline" })}
-              >
-                Open Roster Moves
-              </Link>
-              <Link
-                to="/league/$leagueId/league-ops"
-                params={{ leagueId }}
-                className={buttonClasses({ variant: "outline" })}
-              >
-                Open League Ops
-              </Link>
-              <Link
-                to="/league/$leagueId/managers"
-                params={{ leagueId }}
-                className={buttonClasses({ variant: "outline" })}
-              >
-                Review Dossiers
-              </Link>
-              <Link
-                to="/trades"
-                search={{ leagueId, userRosterId: league.user_roster_id ?? undefined }}
-                className={buttonClasses({ variant: "outline" })}
-              >
-                Open Trade Lab
-              </Link>
-            </CardContent>
-          </Card>
-
-          <ConcentrationAlertBanner
+            <ConcentrationAlertBanner
+              leagueId={leagueId}
+              ownerId={league.user_owner_id}
+              userRosterPlayerIds={league.user_roster_player_ids}
+            />
+            <RisersFallersList
+              risers={league.risers}
+              fallers={league.fallers}
+            />
+          </>
+        ) : (
+          <Outlet />
+        )}
+        {league.user_roster_id ? (
+          <SnapshotComparisonSheet
             leagueId={leagueId}
-            ownerId={league.user_owner_id}
-            userRosterPlayerIds={league.user_roster_player_ids}
+            rosterId={league.user_roster_id}
+            open={comparisonOpen}
+            onOpenChange={setComparisonOpen}
           />
-          <RisersFallersList risers={league.risers} fallers={league.fallers} />
-        </>
-      ) : (
-        <Outlet />
-      )}
-      {league.user_roster_id ? (
-        <SnapshotComparisonSheet
-          leagueId={leagueId}
-          rosterId={league.user_roster_id}
-          open={comparisonOpen}
-          onOpenChange={setComparisonOpen}
-        />
-      ) : null}
+        ) : null}
       </div>
     </LeagueRosterSelectionProvider>
   )

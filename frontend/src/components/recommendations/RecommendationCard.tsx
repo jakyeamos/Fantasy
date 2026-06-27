@@ -4,7 +4,7 @@ import { MarketGapPanel } from "@/components/recommendations/MarketGapPanel"
 import { PlayerContextFlagRow } from "@/components/recommendations/PlayerContextFlagRow"
 import { PriorityRankPill } from "@/components/recommendations/PriorityRankPill"
 import { SupportingFactorRow } from "@/components/recommendations/SupportingFactorRow"
-import { Button } from "@/components/ui/button"
+import { Button, buttonClasses } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 
@@ -96,9 +96,12 @@ export function RecommendationCard({
             {card.cta_label}
           </Button>
         ) : (
-          <Button variant="outline" size="sm" asChild>
-            <a href={card.cta_destination}>{card.cta_label}</a>
-          </Button>
+          <a
+            href={card.cta_destination}
+            className={buttonClasses({ variant: "outline", size: "sm" })}
+          >
+            {card.cta_label}
+          </a>
         )}
       </CardContent>
     </Card>
