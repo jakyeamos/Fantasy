@@ -144,7 +144,7 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
     <LeagueRosterSelectionProvider value={selectionContext}>
       <div className="space-y-8">
         <Card className="overflow-visible">
-        <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <CardHeader className="grid gap-8 lg:grid-cols-[minmax(280px,440px)_minmax(0,1fr)]">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
               <div>
@@ -218,58 +218,95 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex flex-wrap gap-2">
+          <div className="space-y-4 lg:pt-1">
+            <div className="flex flex-wrap items-center justify-start gap-2 lg:justify-end">
               <Link
-                to="/league/$leagueId"
-                params={{ leagueId }}
+                to="/draft-room"
+                search={{ leagueId, pickSlot: 1 }}
                 className={buttonClasses({
-                  variant: isOverviewRoute ? "default" : "outline",
+                  variant: "outline",
+                  size: "sm",
+                  className: "h-9",
                 })}
               >
-                Overview
+                Enter Draft Room
               </Link>
               <Link
-                to="/league/$leagueId/comparison"
-                params={{ leagueId }}
-                className={buttonClasses({
-                  variant: isComparisonRoute ? "default" : "outline",
-                })}
+                to="/trades"
+                search={{ leagueId, userRosterId: league.user_roster_id ?? undefined }}
+                className={buttonClasses({ size: "sm", className: "h-9" })}
               >
-                Comparison
+                Evaluate Trade
               </Link>
-              <Link
-                to="/league/$leagueId/managers"
-                params={{ leagueId }}
-                className={buttonClasses({
-                  variant: isManagersRoute ? "default" : "outline",
-                })}
-              >
-                Managers
-              </Link>
-              <Link
-                to="/league/$leagueId/roster-moves"
-                params={{ leagueId }}
-                className={buttonClasses({
-                  variant: isRosterMovesRoute ? "default" : "outline",
-                })}
-              >
-                Roster Moves
-              </Link>
-              <Link
-                to="/league/$leagueId/player-rankings"
-                params={{ leagueId }}
-                className={buttonClasses({
-                  variant: isPlayerRankingsRoute ? "default" : "outline",
-                })}
-              >
-                Rankings
-              </Link>
+            </div>
+
+            <nav aria-label="League sections" className="space-y-3">
+              <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
+                <Link
+                  to="/league/$leagueId"
+                  params={{ leagueId }}
+                  className={buttonClasses({
+                    variant: isOverviewRoute ? "default" : "outline",
+                    size: "sm",
+                    className: "h-9 px-3",
+                  })}
+                >
+                  Overview
+                </Link>
+                <Link
+                  to="/league/$leagueId/comparison"
+                  params={{ leagueId }}
+                  className={buttonClasses({
+                    variant: isComparisonRoute ? "default" : "outline",
+                    size: "sm",
+                    className: "h-9 px-3",
+                  })}
+                >
+                  Comparison
+                </Link>
+                <Link
+                  to="/league/$leagueId/managers"
+                  params={{ leagueId }}
+                  className={buttonClasses({
+                    variant: isManagersRoute ? "default" : "outline",
+                    size: "sm",
+                    className: "h-9 px-3",
+                  })}
+                >
+                  Managers
+                </Link>
+                <Link
+                  to="/league/$leagueId/roster-moves"
+                  params={{ leagueId }}
+                  className={buttonClasses({
+                    variant: isRosterMovesRoute ? "default" : "outline",
+                    size: "sm",
+                    className: "h-9 px-3",
+                  })}
+                >
+                  Roster Moves
+                </Link>
+                <Link
+                  to="/league/$leagueId/player-rankings"
+                  params={{ leagueId }}
+                  className={buttonClasses({
+                    variant: isPlayerRankingsRoute ? "default" : "outline",
+                    size: "sm",
+                    className: "h-9 px-3",
+                  })}
+                >
+                  Rankings
+                </Link>
+              </div>
+
+            <div className="flex flex-wrap justify-start gap-1.5 lg:justify-end">
               <Link
                 to="/league/$leagueId/league-ops"
                 params={{ leagueId }}
                 className={buttonClasses({
-                  variant: isLeagueOpsRoute ? "default" : "outline",
+                  variant: isLeagueOpsRoute ? "secondary" : "ghost",
+                  size: "sm",
+                  className: "h-8 px-2.5",
                 })}
               >
                 League Ops
@@ -278,7 +315,9 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
                 to="/league/$leagueId/rookie-board"
                 params={{ leagueId }}
                 className={buttonClasses({
-                  variant: isRookieBoardRoute ? "default" : "outline",
+                  variant: isRookieBoardRoute ? "secondary" : "ghost",
+                  size: "sm",
+                  className: "h-8 px-2.5",
                 })}
               >
                 Rookie Board
@@ -287,7 +326,9 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
                 to="/league/$leagueId/waivers"
                 params={{ leagueId }}
                 className={buttonClasses({
-                  variant: isWaiversRoute ? "default" : "outline",
+                  variant: isWaiversRoute ? "secondary" : "ghost",
+                  size: "sm",
+                  className: "h-8 px-2.5",
                 })}
               >
                 Waivers
@@ -296,7 +337,9 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
                 to="/league/$leagueId/startup"
                 params={{ leagueId }}
                 className={buttonClasses({
-                  variant: isStartupRoute ? "default" : "outline",
+                  variant: isStartupRoute ? "secondary" : "ghost",
+                  size: "sm",
+                  className: "h-8 px-2.5",
                 })}
               >
                 Startup Draft
@@ -305,28 +348,15 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
                 to="/league/$leagueId/orphan-intake"
                 params={{ leagueId }}
                 className={buttonClasses({
-                  variant: isOrphanIntakeRoute ? "default" : "outline",
+                  variant: isOrphanIntakeRoute ? "secondary" : "ghost",
+                  size: "sm",
+                  className: "h-8 px-2.5",
                 })}
               >
                 Orphan Intake
               </Link>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                to="/draft-room"
-                search={{ leagueId, pickSlot: 1 }}
-                className={buttonClasses({ variant: "outline" })}
-              >
-                Enter Draft Room
-              </Link>
-              <Link
-                to="/trades"
-                search={{ leagueId, userRosterId: league.user_roster_id ?? undefined }}
-                className={buttonClasses({})}
-              >
-                Evaluate Trade
-              </Link>
-            </div>
+            </nav>
           </div>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center justify-between gap-3 border-t border-border/40 pt-5">
