@@ -1,4 +1,5 @@
 from fantasy.trends.constants import COMPONENT_COLS
+from fantasy.trends import opportunity_engine
 from fantasy.trends.opportunity_engine import OpportunityEngine
 from fantasy.trends.trend_repo import TrendRepo
 
@@ -296,3 +297,42 @@ def test_no_calendar_escalation(db):
     items = OpportunityEngine(conn, calendar_service=_StubCalendarService("early_season")).build_feed()
 
     assert all(item.calendar_escalated is False for item in items)
+
+
+def test_feed_bounds_similarity_enrichment(db, monkeypatch):
+    conn = _base_feed_db(db)
+    for index in range(opportunity_engine.MAX_SIMILAR_PLAYER_ENRICHMENTS + 3):
+        player_id = f"player_sim_{index}"
+        _seed_player(conn, player_id, f"Player Sim {index}", "WR", 24, 70.0 + index)
+        _seed_trend_history(
+            conn,
+            player_id=player_id,
+            current_score=0.88,
+            prior_score=0.45,
+            current_adp=70.0 + index,
+            prior_adp=112.0 + index,
+        )
+
+    enriched_player_ids: list[str] = []
+
+    def _fake_similar_players(player_id, _conn):
+        enriched_player_ids.append(str(player_id))
+        return []
+
+    monkeypatch.setattr(
+        opportunity_engine,
+        "find_similar_players",
+        _fake_similar_players,
+    )
+
+    items = OpportunityEngine(
+        conn,
+        calendar_service=_StubCalendarService("early_season"),
+    ).build_feed()
+
+    assert len(items) > opportunity_engine.MAX_SIMILAR_PLAYER_ENRICHMENTS
+    assert len(enriched_player_ids) == opportunity_engine.MAX_SIMILAR_PLAYER_ENRICHMENTS
+    assert enriched_player_ids == [
+        item.player_id
+        for item in items[: opportunity_engine.MAX_SIMILAR_PLAYER_ENRICHMENTS]
+    ]

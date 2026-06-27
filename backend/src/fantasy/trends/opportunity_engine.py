@@ -24,6 +24,9 @@ MarketRecommendation = Literal[
     "hold",
 ]
 
+MAX_OPPORTUNITY_FEED_ITEMS = 50
+MAX_SIMILAR_PLAYER_ENRICHMENTS = 8
+
 
 def is_conflict(market_recommendation: str, trend_label: str) -> bool:
     if market_recommendation in {"buy_low", "hold_despite_weak_market"}:
@@ -127,7 +130,7 @@ class OpportunityEngine:
                         ),
                     ),
                     owned_in_leagues=owned_in_leagues,
-                    similar_players=find_similar_players(player_id, self._conn),
+                    similar_players=[],
                     conflict_explanation=conflict_explanation,
                     calendar_escalated=escalation_label is not None,
                     calendar_escalation_label=escalation_label,
@@ -142,7 +145,10 @@ class OpportunityEngine:
                 item.player_id,
             )
         )
-        return items
+        bounded_items = items[:MAX_OPPORTUNITY_FEED_ITEMS]
+        for item in bounded_items[:MAX_SIMILAR_PLAYER_ENRICHMENTS]:
+            item.similar_players = find_similar_players(item.player_id, self._conn)
+        return bounded_items
 
     def _contender_league_ids(self, user_rosters: list[dict[str, object]]) -> set[str]:
         contender_leagues: set[str] = set()

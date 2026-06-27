@@ -19,6 +19,7 @@ The system must tell you — for each of your teams — what you are, what your 
 - Rookie-board cards and roster hygiene rows now surface live model-vs-market gaps from the shared recommendation-card market-gap engine after FantasyCalc ADP refreshes.
 - DuckDB request handling now opens request-scoped file connections instead of sharing one global connection across FastAPI worker threads, preventing concurrent UI requests from corrupting pending query state.
 - The 2026-06-26 UI rubric audit is recorded in `.planning/UI-RUBRIC-AUDIT-2026-06-26.md`, including the fixed mobile dashboard issue and remaining Opportunity Feed performance finding.
+- The TMCP UI remediation pass now bounds Opportunity Feed similarity enrichment, adds a frontend request timeout/error path, and hides React Query Devtools on mobile so the feed settles and mobile content is unobstructed.
 
 ### Active
 
@@ -95,4 +96,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-26 after recording the rendered UI rubric audit findings*
+*Last updated: 2026-06-27 after executing the TMCP UI remediation pass*

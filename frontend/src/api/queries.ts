@@ -39,8 +39,8 @@ import type {
   WaiverRecommendationsResponse,
 } from "@/api/types"
 
-export async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(`/api${path}`)
+export async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`/api${path}`, init)
   if (!response.ok) {
     throw new Error(`Request failed: ${path}`)
   }
@@ -262,7 +262,17 @@ export const portfolioExposureOptions = (ownerId?: string | null) =>
 
 export const opportunityFeedOptions = queryOptions({
   queryKey: ["opportunities", "feed"],
-  queryFn: () => getJson<OpportunityFeedResponse>("/opportunities"),
+  queryFn: async () => {
+    const controller = new AbortController()
+    const timeoutId = window.setTimeout(() => controller.abort(), 10_000)
+    try {
+      return await getJson<OpportunityFeedResponse>("/opportunities", {
+        signal: controller.signal,
+      })
+    } finally {
+      window.clearTimeout(timeoutId)
+    }
+  },
   staleTime: 5 * 60 * 1000,
 })
 

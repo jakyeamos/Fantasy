@@ -38,7 +38,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
-      {import.meta.env.DEV ? <ReactQueryDevtools initialIsOpen={false} /> : null}
+      {import.meta.env.DEV ? (
+        <div className="hidden sm:block">
+          <ReactQueryDevtools initialIsOpen={false} />
+        </div>
+      ) : null}
     </QueryClientProvider>
   </React.StrictMode>,
 )
