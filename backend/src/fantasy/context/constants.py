@@ -27,6 +27,11 @@ FALLBACK_STATE: str = "early_season"
 
 FRESHNESS_THRESHOLDS: dict[str, int] = {
     "injuries": 48,
+    "usage": 72,
+    "schedule": 168,
+    "waivers": 24,
+    "market": 72,
+    "stats": 72,
     "depth_chart": 168,
     "free_agency": 72,
     "combine": 24,

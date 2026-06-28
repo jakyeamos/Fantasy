@@ -16,6 +16,12 @@ function urgencyVariant(urgency: WaiverRecommendation["urgency"]) {
   return "outline"
 }
 
+function confidenceVariant(confidence: WaiverRecommendation["confidence"]) {
+  if (confidence === "HIGH") return "default"
+  if (confidence === "MEDIUM") return "secondary"
+  return "outline"
+}
+
 export function WaiverPlayerRow({ recommendation }: WaiverPlayerRowProps) {
   const [showRationale, setShowRationale] = useState(false)
 
@@ -34,6 +40,7 @@ export function WaiverPlayerRow({ recommendation }: WaiverPlayerRowProps) {
               <span className="text-xs text-muted-foreground">{recommendation.team}</span>
             ) : null}
             {recommendation.is_immediate_start ? <Badge variant="secondary">Startable</Badge> : null}
+            {recommendation.dynasty_stash ? <Badge variant="outline">Stash</Badge> : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {recommendation.recommendation_label === "free_agent_only" ? (
@@ -46,6 +53,19 @@ export function WaiverPlayerRow({ recommendation }: WaiverPlayerRowProps) {
               </span>
             )}
             <Badge variant={urgencyVariant(recommendation.urgency)}>{recommendation.urgency}</Badge>
+            <Badge variant={confidenceVariant(recommendation.confidence)}>
+              {recommendation.confidence}
+            </Badge>
+          </div>
+          <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+            <span>
+              <span className="font-semibold text-foreground">Fit:</span>{" "}
+              {recommendation.roster_fit}
+            </span>
+            <span>
+              <span className="font-semibold text-foreground">Drop:</span>{" "}
+              {recommendation.drop_candidate ?? "lowest bench churn asset"}
+            </span>
           </div>
         </div>
         <ChevronDown
@@ -56,7 +76,15 @@ export function WaiverPlayerRow({ recommendation }: WaiverPlayerRowProps) {
         />
       </button>
       {showRationale ? (
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">{recommendation.rationale}</p>
+        <div className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
+          <p>{recommendation.rationale}</p>
+          {recommendation.drop_reason ? <p>{recommendation.drop_reason}</p> : null}
+          {recommendation.data_freshness_warning ? (
+            <p className="text-orange-300">
+              Waiver budgets or roster state may be stale; refresh before bidding.
+            </p>
+          ) : null}
+        </div>
       ) : null}
     </div>
   )

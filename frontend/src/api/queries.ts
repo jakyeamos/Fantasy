@@ -4,6 +4,7 @@ import type {
   ActionPlan,
   AcknowledgedResponse,
   CalendarContext,
+  CommandCenterResponse,
   FreshnessTag,
   CorrelatedRiskRow,
   DashboardLeagueSummary,
@@ -72,6 +73,24 @@ export const dashboardSummaryOptions = queryOptions({
   queryFn: () => getJson<DashboardLeagueSummary[]>("/dashboard/summary"),
   staleTime: 5 * 60 * 1000,
 })
+
+export const commandCenterOptions = queryOptions({
+  queryKey: ["actions", "command-center"],
+  queryFn: () => getJson<CommandCenterResponse>("/actions/command-center"),
+  staleTime: 60 * 1000,
+})
+
+export const leagueActionsOptions = (leagueId: string) =>
+  queryOptions({
+    queryKey: ["actions", "league", leagueId],
+    queryFn: () => getJson<CommandCenterResponse>(`/actions/league/${leagueId}`),
+    staleTime: 60 * 1000,
+    enabled: leagueId.trim().length > 0,
+  })
+
+export async function recomputeActions(): Promise<CommandCenterResponse> {
+  return postJson<CommandCenterResponse>("/actions/recompute", {})
+}
 
 export const leagueDetailOptions = (leagueId: string, rosterId?: number | null) =>
   queryOptions({
@@ -269,10 +288,20 @@ export const opportunityFeedOptions = queryOptions({
       return await getJson<OpportunityFeedResponse>("/opportunities", {
         signal: controller.signal,
       })
+    } catch (error) {
+      if (controller.signal.aborted) {
+        const timeoutError = new Error(
+          "Opportunity feed request timed out after 10 seconds.",
+        )
+        timeoutError.name = "TimeoutError"
+        throw timeoutError
+      }
+      throw error
     } finally {
       window.clearTimeout(timeoutId)
     }
   },
+  retry: false,
   staleTime: 5 * 60 * 1000,
 })
 

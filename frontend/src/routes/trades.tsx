@@ -343,16 +343,27 @@ function TradeEvaluatorPage() {
       player_position: search.targetPlayerPosition ?? null,
     }
   }, [search.targetPlayerId, search.targetPlayerName, search.targetPlayerPosition])
+  const prefillTargetRosterId = search.targetPlayerRosterId ?? search.counterpartyRosterId ?? 0
 
   useEffect(() => {
-    if (!prefilledPlayerAsset || !search.targetPlayerRosterId || userRosterId <= 0) {
+    if (search.leagueId && search.leagueId !== leagueId) {
+      setLeagueId(search.leagueId)
+      prefillKeyRef.current = null
+    }
+    if (search.counterpartyRosterId && search.counterpartyRosterId !== counterpartyRosterId) {
+      setCounterpartyRosterId(search.counterpartyRosterId)
+    }
+  }, [counterpartyRosterId, leagueId, search.counterpartyRosterId, search.leagueId])
+
+  useEffect(() => {
+    if (!prefilledPlayerAsset || !prefillTargetRosterId || userRosterId <= 0) {
       return
     }
 
     const prefillKey = [
       leagueId,
       userRosterId,
-      search.targetPlayerRosterId,
+      prefillTargetRosterId,
       prefilledPlayerAsset.player_id,
     ].join(":")
     if (prefillKeyRef.current === prefillKey) {
@@ -360,19 +371,19 @@ function TradeEvaluatorPage() {
     }
 
     prefillKeyRef.current = prefillKey
-    if (search.targetPlayerRosterId === userRosterId) {
+    if (prefillTargetRosterId === userRosterId) {
       setUserSends((current) => appendUniqueAsset(current, prefilledPlayerAsset))
       setQueryTarget({ kind: "user", bucket: "send" })
       return
     }
 
-    setCounterpartyRosterId(search.targetPlayerRosterId)
+    setCounterpartyRosterId(prefillTargetRosterId)
     setUserReceives((current) => appendUniqueAsset(current, prefilledPlayerAsset))
     setQueryTarget({ kind: "user", bucket: "receive" })
   }, [
     leagueId,
     prefilledPlayerAsset,
-    search.targetPlayerRosterId,
+    prefillTargetRosterId,
     userRosterId,
   ])
 
@@ -650,6 +661,8 @@ function TradeEvaluatorPage() {
         trade.rosterId > 0 ||
         (trade.sends.length === 0 && trade.receives.length === 0),
     )
+  const showSuggestedStart =
+    leagueId.trim().length > 0 && userSends.length === 0 && userReceives.length === 0
 
   return (
     <div className="space-y-8">
@@ -687,6 +700,47 @@ function TradeEvaluatorPage() {
             <p className="rounded-lg border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               Your team could not be identified for this league, so trade evaluation is disabled.
             </p>
+          ) : null}
+
+          {showSuggestedStart ? (
+            <Card className="border-primary/25 bg-primary/5">
+              <CardHeader>
+                <p className="terminal-label text-primary/85">Suggested Offer Starting Point</p>
+                <CardTitle className="text-xl">
+                  {prefilledPlayerAsset
+                    ? `Build around ${prefilledPlayerAsset.player_name}`
+                    : "Choose a target, then anchor price before adding assets"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm leading-6 text-muted-foreground">
+                {prefilledPlayerAsset ? (
+                  <p>
+                    The recommendation target is queued as your receive side once the
+                    roster context resolves. Start with a fair-value liquid asset or a
+                    tier-down plus a pick, then evaluate before sending.
+                  </p>
+                ) : (
+                  <p>
+                    Open a command-center or opportunity CTA for a prefilled target, or
+                    select a counterparty and add a player you want to receive.
+                  </p>
+                )}
+                <div className="grid gap-2 md:grid-cols-3">
+                  <p>
+                    <span className="font-semibold text-foreground">Send shape:</span>{" "}
+                    liquid player, pick, or tier-down package.
+                  </p>
+                  <p>
+                    <span className="font-semibold text-foreground">Receive shape:</span>{" "}
+                    target player plus optional balancing asset.
+                  </p>
+                  <p>
+                    <span className="font-semibold text-foreground">Pitch angle:</span>{" "}
+                    solve the other manager&apos;s roster need, not your model score.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           ) : null}
 
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">

@@ -37,6 +37,14 @@ import {
 } from "@/lib/league-roster-selection"
 
 export const Route = createFileRoute("/league/$leagueId")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    rosterId:
+      typeof search.rosterId === "number"
+        ? search.rosterId
+        : typeof search.rosterId === "string"
+          ? Number(search.rosterId) || undefined
+          : undefined,
+  }),
   component: LeagueDetailPage,
 })
 
@@ -66,8 +74,9 @@ function LeagueDetailPage() {
 
 function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
   const location = useLocation()
+  const search = Route.useSearch()
   const [requestedRosterId, setRequestedRosterId] = useState<number | null>(
-    () => readStoredLeagueRosterId(leagueId),
+    () => search.rosterId ?? readStoredLeagueRosterId(leagueId),
   )
   const query = useQuery(leagueDetailOptions(leagueId, requestedRosterId))
   const rosterOptionsQuery = useQuery(leagueRosterOptions(leagueId))
@@ -80,6 +89,12 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
   useEffect(() => {
     persistStoredLeagueRosterId(leagueId, requestedRosterId)
   }, [leagueId, requestedRosterId])
+
+  useEffect(() => {
+    if (search.rosterId && search.rosterId !== requestedRosterId) {
+      setRequestedRosterId(search.rosterId)
+    }
+  }, [requestedRosterId, search.rosterId])
 
   useEffect(() => {
     if (requestedRosterId !== null || !query.data?.user_roster_id) {

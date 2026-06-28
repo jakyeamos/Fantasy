@@ -19,6 +19,12 @@ function formatGap(adpGap: number) {
   return rounded >= 0 ? `+${rounded}` : String(rounded)
 }
 
+function availabilityLabel(availability: OpportunityFeedItem["availability"]) {
+  if (availability === "my_roster") return "My roster"
+  if (availability === "opponent_roster") return "Opponent-owned"
+  return "Available"
+}
+
 export function OpportunityCard({
   item,
   rank,
@@ -48,6 +54,9 @@ export function OpportunityCard({
                   {item.player_name}
                 </p>
                 <Badge variant="outline">{item.position}</Badge>
+                <Badge variant={item.availability === "available" ? "secondary" : "outline"}>
+                  {availabilityLabel(item.availability)}
+                </Badge>
                 <OwnershipSymbol leagueIds={item.owned_in_leagues} />
               </div>
             </div>

@@ -4,7 +4,7 @@ import json
 from collections import Counter
 from datetime import datetime, timezone
 from statistics import median
-from typing import Any
+from typing import Any, Literal
 
 import duckdb
 
@@ -310,6 +310,70 @@ class WaiverEngine:
             for row in rows
         ]
 
+    def _drop_candidates(
+        self,
+        league_id: str,
+        roster_id: int,
+    ) -> list[dict[str, str]]:
+        roster_row = self._conn.execute(
+            """
+            SELECT players, starters, reserve, taxi
+            FROM rosters
+            WHERE league_id = ? AND roster_id = ?
+            LIMIT 1
+            """,
+            [league_id, roster_id],
+        ).fetchone()
+        if roster_row is None:
+            return []
+
+        roster_ids = [str(player_id) for player_id in _loads(roster_row[0], [])]
+        starters = {str(player_id) for player_id in _loads(roster_row[1], [])}
+        protected = starters | {str(player_id) for player_id in _loads(roster_row[2], [])}
+        protected |= {str(player_id) for player_id in _loads(roster_row[3], [])}
+        bench_ids = [
+            player_id
+            for player_id in roster_ids
+            if player_id not in protected and player_id not in (None, "", "0")
+        ]
+        if not bench_ids:
+            return []
+
+        player_rows = self._player_rows(bench_ids)
+        stats_map = self._stats_map(bench_ids)
+        adp_map = self._adp_map(bench_ids)
+        scored: list[tuple[float, dict[str, str]]] = []
+        for player in player_rows:
+            player_id = str(player["player_id"])
+            avg_points = stats_map.get(player_id)
+            adp = adp_map.get(player_id)
+            score = 35.0
+            if avg_points is not None:
+                score += min(35.0, avg_points * 4.0)
+            if adp is not None:
+                score += max(0.0, 45.0 - min(45.0, adp / 4.0))
+            age = player.get("age")
+            if age is not None and int(age) >= 29:
+                score -= 8.0
+            reason_parts = ["lowest bench asset by production and market proxy"]
+            if avg_points is not None:
+                reason_parts.append(f"{avg_points:.1f} weekly points")
+            if adp is not None:
+                reason_parts.append(f"ADP {adp:.0f}")
+            scored.append(
+                (
+                    score,
+                    {
+                        "player_id": player_id,
+                        "player_name": str(player["player_name"]),
+                        "position": str(player["position"]),
+                        "reason": "; ".join(reason_parts),
+                    },
+                )
+            )
+        scored.sort(key=lambda item: (item[0], item[1]["player_name"].lower()))
+        return [payload for _, payload in scored[:5]]
+
     def _score_available_player(
         self,
         player: dict[str, Any],
@@ -375,6 +439,36 @@ class WaiverEngine:
             return "Medium"
         return "Low"
 
+    def _roster_fit_label(
+        self,
+        *,
+        position: str,
+        weak_positions: set[str],
+        is_immediate_start: bool,
+        age: int | None,
+    ) -> str:
+        if is_immediate_start:
+            return f"Starter patch at {position}"
+        if position in weak_positions:
+            return f"Depth need at {position}"
+        if age is not None and age <= 25:
+            return "Dynasty stash"
+        return "Bench churn upgrade"
+
+    def _confidence_label(
+        self,
+        *,
+        player_score: float,
+        data_freshness_warning: bool,
+    ) -> Literal["HIGH", "MEDIUM", "LOW"]:
+        if data_freshness_warning and player_score < 70:
+            return "LOW"
+        if player_score >= 68:
+            return "HIGH"
+        if player_score >= 45:
+            return "MEDIUM"
+        return "LOW"
+
     def compute_recommendations(
         self,
         league_id: str,
@@ -388,6 +482,7 @@ class WaiverEngine:
         player_rows = self._player_rows(available_ids)
         stats_map = self._stats_map(available_ids)
         adp_map = self._adp_map(available_ids)
+        drop_candidates = self._drop_candidates(league_id, roster_id)
         league_median_remaining = self._league_median_remaining(
             league_id,
             int(state["total_budget"] or 100),
@@ -433,6 +528,14 @@ class WaiverEngine:
                 f"{player['player_name']} fits a {_format_direction(direction_label)} build "
                 f"and addresses {player['position']} depth."
             )
+            drop_candidate = drop_candidates[0] if drop_candidates else None
+            age = player.get("age")
+            roster_fit = self._roster_fit_label(
+                position=str(player["position"]),
+                weak_positions=weak_positions,
+                is_immediate_start=is_immediate_start,
+                age=int(age) if age is not None else None,
+            )
             recommendation = WaiverRecommendation(
                 player_id=player_id,
                 player_name=str(player["player_name"]),
@@ -445,6 +548,20 @@ class WaiverEngine:
                 urgency=urgency,
                 rationale=rationale,
                 is_immediate_start=is_immediate_start,
+                drop_candidate=drop_candidate["player_name"] if drop_candidate else None,
+                drop_candidate_player_id=drop_candidate["player_id"] if drop_candidate else None,
+                drop_reason=(
+                    f"{drop_candidate['player_name']} is the preferred drop: "
+                    f"{drop_candidate['reason']}."
+                    if drop_candidate
+                    else None
+                ),
+                roster_fit=roster_fit,
+                dynasty_stash=roster_fit == "Dynasty stash",
+                confidence=self._confidence_label(
+                    player_score=player_score,
+                    data_freshness_warning=bool(state["data_freshness_warning"]),
+                ),
                 data_freshness_warning=bool(state["data_freshness_warning"]),
                 hours_since_ingest=state["hours_since_ingest"],
             )

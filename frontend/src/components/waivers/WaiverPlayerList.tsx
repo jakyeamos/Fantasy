@@ -20,8 +20,9 @@ export function WaiverPlayerList({
         </CardHeader>
         <CardContent>
           <p className="text-sm leading-6 text-muted-foreground">
-            The engine found no players worth adding at this time. Check back after the next
-            ingest or when a new player becomes available.
+            The engine found no add/drop moves worth forcing. This can mean every
+            available player is below the bench threshold, league waiver data has
+            not been ingested, or the selected roster has no safe drop candidate.
           </p>
         </CardContent>
       </Card>
@@ -31,8 +32,8 @@ export function WaiverPlayerList({
   return (
     <Card>
       <CardHeader>
-        <p className="terminal-label text-muted-foreground">Add Candidates</p>
-        <CardTitle>Waiver Board</CardTitle>
+        <p className="terminal-label text-muted-foreground">Add / Drop / FAAB</p>
+        <CardTitle>Waiver Decision Board</CardTitle>
       </CardHeader>
       <CardContent>
         {dataFreshnessWarning ? (

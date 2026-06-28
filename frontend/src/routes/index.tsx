@@ -5,6 +5,7 @@ import { ArrowRight, Radar, ShieldAlert, Sparkles, TrendingUp } from "lucide-rea
 import { dashboardSummaryOptions, opportunityFeedOptions } from "@/api/queries"
 import { LeagueCard } from "@/components/LeagueCard"
 import { SnapshotStatus } from "@/components/SnapshotStatus"
+import { CommandCenter } from "@/components/actions/CommandCenter"
 import { buttonClasses } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -69,6 +70,8 @@ function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      <CommandCenter />
+
       <section className="space-y-4">
         <Card className="overflow-hidden">
           <CardHeader className="space-y-4">

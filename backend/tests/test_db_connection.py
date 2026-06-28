@@ -21,7 +21,7 @@ def test_file_connections_open_independent_handles(monkeypatch):
     ]
 
 
-def test_read_connection_uses_read_only_file_handle(monkeypatch):
+def test_read_connection_uses_request_safe_write_capable_handle(monkeypatch):
     calls: list[tuple[str, bool | None]] = []
     sentinel = object()
 
@@ -32,7 +32,7 @@ def test_read_connection_uses_read_only_file_handle(monkeypatch):
     monkeypatch.setattr(connection.duckdb, "connect", _fake_connect)
 
     assert connection.get_read_connection() is sentinel
-    assert calls == [(connection.get_settings().db_path, True)]
+    assert calls == [(connection.get_settings().db_path, None)]
 
 
 def test_close_connection_closes_handle():

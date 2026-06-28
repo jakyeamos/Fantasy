@@ -32,9 +32,16 @@ def close_connection(conn: duckdb.DuckDBPyConnection) -> None:
 
 
 def get_read_connection() -> duckdb.DuckDBPyConnection:
-    """Open a read-only connection when possible."""
+    """Open a request-safe connection to DuckDB.
+
+    DuckDB rejects mixed read-only and write-capable connections in the same
+    process. The local app has GET routes that can warm derived artifacts, so
+    request connections use one write-capable policy.
+    """
 
     settings = get_settings()
     db_path = _resolve_path(settings.db_path)
+    if db_path != ":memory:":
+        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
 
-    return duckdb.connect(db_path, read_only=db_path != ":memory:")
+    return duckdb.connect(db_path)

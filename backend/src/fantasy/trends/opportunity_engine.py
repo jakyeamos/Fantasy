@@ -12,7 +12,7 @@ from fantasy.portfolio.portfolio_repo import PortfolioRepo
 from fantasy.trends.constants import CALENDAR_ESCALATION_LABELS, OPPORTUNITY_GAP_THRESHOLD
 from fantasy.trends.models import OpportunityCta, OpportunityFeedItem
 from fantasy.trends.models import confidence_multiplier
-from fantasy.trends.similarity import find_similar_players
+from fantasy.trends.similarity import find_similar_players_from_snapshots
 from fantasy.trends.trend_engine import TrendEngine
 from fantasy.trends.trend_repo import TrendRepo
 
@@ -64,10 +64,15 @@ class OpportunityEngine:
         )
         escalation_label = CALENDAR_ESCALATION_LABELS.get(calendar_state)
 
+        candidates = self._repo.list_candidate_players()
+        candidate_ids = [str(candidate["player_id"]) for candidate in candidates]
+        snapshots = self._trend_engine.current_snapshots(candidate_ids)
+        trends = self._trend_engine.compute_trends(candidate_ids, snapshots=snapshots)
+
         items: list[OpportunityFeedItem] = []
-        for candidate in self._repo.list_candidate_players():
+        for candidate in candidates:
             player_id = str(candidate["player_id"])
-            snapshot = self._trend_engine.current_snapshot(player_id)
+            snapshot = snapshots.get(player_id)
             if snapshot is None:
                 continue
 
@@ -75,7 +80,7 @@ class OpportunityEngine:
             if startup_adp is None:
                 continue
 
-            trend = self._trend_engine.compute_trend(player_id)
+            trend = trends[player_id]
             expected_adp = self._expected_adp(snapshot)
             adp_gap = round(expected_adp - float(startup_adp), 2)
             if abs(adp_gap) < OPPORTUNITY_GAP_THRESHOLD:
@@ -96,16 +101,20 @@ class OpportunityEngine:
                     trend_label=trend.trend_label,
                 )
 
-            impact_score = abs(adp_gap) * confidence_multiplier(trend.confidence)
-            if escalation_label is not None:
-                impact_score *= 1.1
-
             owned_in_leagues = owned_map.get(player_id, [])
             cta = self._cta_for_player(
                 player_id=player_id,
                 suggested_action=suggested_action,
                 user_rosters=user_rosters,
                 roster_contexts=roster_contexts,
+            )
+            availability = self._availability(player_id, roster_contexts)
+            impact_score = self._impact_score(
+                adp_gap=adp_gap,
+                confidence=trend.confidence,
+                suggested_action=suggested_action,
+                availability=availability,
+                calendar_escalated=escalation_label is not None,
             )
             items.append(
                 OpportunityFeedItem(
@@ -116,6 +125,7 @@ class OpportunityEngine:
                     trend_confidence=trend.confidence,
                     adp_gap=adp_gap,
                     suggested_action=suggested_action,
+                    availability=availability,
                     impact_score=round(impact_score, 2),
                     why_summary=self._why_summary(
                         player_name=str(candidate.get("full_name") or player_id),
@@ -147,8 +157,56 @@ class OpportunityEngine:
         )
         bounded_items = items[:MAX_OPPORTUNITY_FEED_ITEMS]
         for item in bounded_items[:MAX_SIMILAR_PLAYER_ENRICHMENTS]:
-            item.similar_players = find_similar_players(item.player_id, self._conn)
+            item.similar_players = find_similar_players_from_snapshots(
+                item.player_id,
+                snapshots.values(),
+            )
         return bounded_items
+
+    def _availability(
+        self,
+        player_id: str,
+        roster_contexts: dict[str, list[dict[str, object]]],
+    ) -> Literal["my_roster", "opponent_roster", "available"]:
+        contexts = roster_contexts.get(player_id, [])
+        if any(bool(context["is_user_roster"]) for context in contexts):
+            return "my_roster"
+        if contexts:
+            return "opponent_roster"
+        return "available"
+
+    def _impact_score(
+        self,
+        *,
+        adp_gap: float,
+        confidence: Literal["HIGH", "MEDIUM", "LOW"],
+        suggested_action: str,
+        availability: str,
+        calendar_escalated: bool,
+    ) -> float:
+        score = abs(adp_gap) * confidence_multiplier(confidence)
+        availability_multiplier = {
+            "my_roster": 1.25,
+            "opponent_roster": 1.2,
+            "available": 0.62,
+        }.get(availability, 0.8)
+        action_multiplier = {
+            "buy": 1.15,
+            "sell": 1.15,
+            "hold": 0.75,
+        }.get(suggested_action, 0.8)
+        score *= availability_multiplier * action_multiplier
+        if confidence == "LOW":
+            score *= {
+                "my_roster": 0.85,
+                "opponent_roster": 0.65,
+                "available": 0.28,
+            }.get(availability, 0.5)
+        if availability == "available" and suggested_action == "hold":
+            score *= 0.45
+        if calendar_escalated:
+            score *= 1.1
+        return score
 
     def _contender_league_ids(self, user_rosters: list[dict[str, object]]) -> set[str]:
         contender_leagues: set[str] = set()

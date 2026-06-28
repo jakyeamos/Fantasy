@@ -404,8 +404,40 @@ export interface RecommendationCard {
   league_specificity_notes: string | null
   manager_specificity_notes: string | null
   model_vs_market_gap: ModelVsMarketGap | null
+  trend_result: TrendResult | null
   cta_label: string
   cta_destination: string
+}
+
+export interface CommandAction {
+  id: string
+  league_id: string | null
+  roster_id: number | null
+  category:
+    | "waiver"
+    | "lineup"
+    | "trade"
+    | "market"
+    | "rookie_pick"
+    | "portfolio"
+    | "manager"
+  priority_rank: number
+  urgency: "today" | "this_week" | "watch" | "low"
+  confidence: ConfidenceLabel
+  headline: string
+  recommended_action: string
+  why_now: string
+  risk_if_wrong: string
+  evidence: string[]
+  cta_label: string
+  cta_destination: string
+  stale_domains: string[]
+}
+
+export interface CommandCenterResponse {
+  actions: CommandAction[]
+  total: number
+  computed_at: string
 }
 
 export interface TradeEvaluation {
@@ -422,6 +454,18 @@ export interface TradeEvaluation {
   third_party_evaluations?: ThirdPartyTradeEvaluation[] | null
   recommendation_context?: RecommendationContext | null
   recommendation_cards?: RecommendationCard[] | null
+}
+
+export interface TradeSuggestion {
+  league_id: string
+  target_player_id?: string | null
+  target_player_name?: string | null
+  target_manager_roster_id?: number | null
+  send_assets: string[]
+  receive_assets: string[]
+  fairness_band: "underpay" | "fair" | "overpay" | "unknown"
+  acceptance_confidence: ConfidenceLabel
+  manager_pitch_angle: string
 }
 
 export interface PlayerSearchResult {
@@ -521,6 +565,7 @@ export interface RookiePlayer {
   tier_number: number
   available_probability_by_slot: Record<string, number>
   model_vs_market_gap?: ModelVsMarketGap | null
+  draft_action?: string | null
 }
 
 export interface SubFlag {
@@ -596,6 +641,9 @@ export interface DraftRoomResponse {
   pick_slot_display: string
   trade_verdict: TradeVerdict
   best_in_abstract: RookiePlayer | null
+  trade_back_line?: string | null
+  avoid_at_cost?: string[]
+  expected_available_tier?: string | null
   tendency_warnings: TendencyWarning[]
   recommendation_cards?: RecommendationCard[] | null
 }
@@ -805,6 +853,12 @@ export interface WaiverRecommendation {
   urgency: "High" | "Medium" | "Low"
   rationale: string
   is_immediate_start: boolean
+  drop_candidate: string | null
+  drop_candidate_player_id: string | null
+  drop_reason: string | null
+  roster_fit: string
+  dynasty_stash: boolean
+  confidence: ConfidenceLabel
   data_freshness_warning: boolean
   hours_since_ingest: number | null
 }
@@ -889,6 +943,17 @@ export type TrendLabel = "will_rise" | "will_maintain" | "will_fall"
 export type TrendConfidence = "HIGH" | "MEDIUM" | "LOW"
 export type SuggestedAction = "buy" | "sell" | "hold"
 
+export interface TrendResult {
+  player_id: string
+  trend_label: TrendLabel
+  confidence: TrendConfidence
+  delta_magnitude: number
+  component_deltas: Record<string, number>
+  adp_delta: number | null
+  seasons_compared: number
+  backfilled: boolean
+}
+
 export interface SimilarPlayer {
   player_id: string
   player_name: string
@@ -914,6 +979,7 @@ export interface OpportunityFeedItem {
   trend_confidence: TrendConfidence
   adp_gap: number
   suggested_action: SuggestedAction
+  availability: "my_roster" | "opponent_roster" | "available"
   impact_score: number
   why_summary: string
   owned_in_leagues: string[]
@@ -928,4 +994,6 @@ export interface OpportunityFeedResponse {
   items: OpportunityFeedItem[]
   total: number
   computed_at: string
+  status: "ok" | "degraded"
+  degraded_reason: string | null
 }

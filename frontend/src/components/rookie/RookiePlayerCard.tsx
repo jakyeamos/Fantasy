@@ -63,6 +63,11 @@ export function RookiePlayerCard({
             Available at ~{selectedSlot}
           </p>
         ) : null}
+        {player.draft_action ? (
+          <p className="mt-3 rounded-lg border border-border/50 bg-background/40 px-3 py-2 text-xs text-foreground">
+            Draft action: {player.draft_action}
+          </p>
+        ) : null}
         <Separator className="my-3" />
         {isModelLoading ? (
           <div className="space-y-3">

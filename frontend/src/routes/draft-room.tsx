@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
@@ -30,6 +30,11 @@ function DraftRoomPage() {
   const [leagueId, setLeagueId] = useState(search.leagueId)
   const [pickSlot, setPickSlot] = useState(search.pickSlot)
   const query = useQuery(draftRoomOptions(leagueId, pickSlot))
+
+  useEffect(() => {
+    setLeagueId(search.leagueId)
+    setPickSlot(search.pickSlot)
+  }, [search.leagueId, search.pickSlot])
 
   return (
     <div className="space-y-8">
@@ -96,6 +101,32 @@ function DraftRoomPage() {
       {query.data ? (
         <div className="space-y-6">
           <VerdictBanner verdict={query.data.trade_verdict} />
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Ready-State Advice</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 text-sm leading-6 text-muted-foreground md:grid-cols-3">
+              <p>
+                <span className="font-semibold text-foreground">Selected pick:</span>{" "}
+                {query.data.pick_slot_display}
+              </p>
+              <p>
+                <span className="font-semibold text-foreground">Trade-back line:</span>{" "}
+                {query.data.trade_back_line ?? query.data.trade_verdict.reasoning}
+              </p>
+              <p>
+                <span className="font-semibold text-foreground">Expected tier:</span>{" "}
+                {query.data.expected_available_tier ?? "Use board tier at the slot."}
+              </p>
+              {query.data.avoid_at_cost?.length ? (
+                <p className="md:col-span-3">
+                  <span className="font-semibold text-foreground">Avoid at cost:</span>{" "}
+                  {query.data.avoid_at_cost.join(", ")}
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>

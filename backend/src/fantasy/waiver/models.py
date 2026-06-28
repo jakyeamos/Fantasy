@@ -21,6 +21,12 @@ class WaiverRecommendation(BaseModel):
     urgency: Literal["High", "Medium", "Low"]
     rationale: str
     is_immediate_start: bool
+    drop_candidate: str | None = None
+    drop_candidate_player_id: str | None = None
+    drop_reason: str | None = None
+    roster_fit: str = "Depth churn"
+    dynasty_stash: bool = False
+    confidence: Literal["HIGH", "MEDIUM", "LOW"] = "MEDIUM"
     data_freshness_warning: bool = False
     hours_since_ingest: float | None = None
 

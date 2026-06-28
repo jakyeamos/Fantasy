@@ -11,6 +11,7 @@ from fantasy.config import get_settings
 from fantasy.db.connection import close_connection, get_write_connection
 from fantasy.ingestion.nfl_data_loader import load_adp_baseline
 from fantasy.routers import (
+    actions,
     context,
     corrections,
     dashboard,
@@ -91,6 +92,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(ingest.router)
+    app.include_router(actions.router)
     app.include_router(corrections.router)
     app.include_router(health.router)
     app.include_router(intelligence.router)

@@ -23,6 +23,7 @@ The system must tell you — for each of your teams — what you are, what your 
 - The Opportunity Feed now has a ranked, scannable visual treatment with route-level signal totals, top-impact context, and stronger per-card rank/action/impact hierarchy.
 - The league briefing header now separates command actions, primary navigation, and secondary league tools instead of rendering every destination as equal-weight oversized buttons.
 - The app-wide UI remediation pass now caps Player Rankings rendering, compacts league subroute briefing chrome, demotes unavailable Startup navigation, removes nonfunctional global header utilities, and fixes known React console warning sources.
+- The dashboard now opens with a cross-league command center backed by `/actions/command-center`, waiver cards include add/drop/FAAB guidance, opportunity ranking prioritizes actionable roster context over raw ADP gaps, and the refreshed DuckDB request policy removes mixed read-only/write connection failures.
 
 ### Active
 
@@ -99,4 +100,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-27 after the app-wide UI remediation pass*
+*Last updated: 2026-06-28 after the command-center, waiver, opportunity, and DuckDB reliability pass*

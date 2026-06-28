@@ -10,6 +10,7 @@ TrendLabel = Literal["will_rise", "will_maintain", "will_fall"]
 TrendConfidence = Literal["HIGH", "MEDIUM", "LOW"]
 SuggestedAction = Literal["buy", "sell", "hold"]
 CtaDestination = Literal["trade_evaluator", "manager_dossier", "player_rankings"]
+OpportunityAvailability = Literal["my_roster", "opponent_roster", "available"]
 
 
 class TrendResult(BaseModel):
@@ -56,6 +57,7 @@ class OpportunityFeedItem(BaseModel):
     trend_confidence: TrendConfidence
     adp_gap: float
     suggested_action: SuggestedAction
+    availability: OpportunityAvailability = "available"
     impact_score: float
     why_summary: str
     owned_in_leagues: list[str] = Field(default_factory=list)
@@ -72,6 +74,8 @@ class OpportunityFeedResponse(BaseModel):
     items: list[OpportunityFeedItem] = Field(default_factory=list)
     total: int
     computed_at: str
+    status: Literal["ok", "degraded"] = "ok"
+    degraded_reason: str | None = None
 
 
 def confidence_multiplier(confidence: TrendConfidence) -> float:

@@ -153,6 +153,8 @@ class RookieEngine:
         }
         for row in scored_rows:
             row["player"] = player_by_id[row["player"].player_id]  # type: ignore[index]
+            player = row["player"]  # type: ignore[assignment]
+            player.draft_action = self._draft_action(player)
 
         class_strength_signal = self._compute_class_strength(
             [row["player"] for row in scored_rows]  # type: ignore[list-item]
@@ -183,13 +185,14 @@ class RookieEngine:
             pick_slot,
             league_size=int(league_settings["league_size"]),
         )
-        best_in_abstract = next(
-            (
-                player
-                for tier in board.tiers
-                for player in tier.players
-            ),
+        best_in_abstract = available[0] if available else next(
+            (player for tier in board.tiers for player in tier.players),
             None,
+        )
+        trade_verdict = self._compute_trade_verdict(
+            pick_slot,
+            board,
+            best_in_abstract,
         )
         return DraftRoomResult(
             league_id=league_id,
@@ -197,8 +200,24 @@ class RookieEngine:
             pick_slot_display=self._format_slot(
                 pick_slot, league_size=int(league_settings["league_size"])
             ),
-            trade_verdict=self._compute_trade_verdict(pick_slot, board, available[0] if available else None),
+            trade_verdict=trade_verdict,
             best_in_abstract=best_in_abstract,
+            trade_back_line=self._trade_back_line(
+                pick_slot=pick_slot,
+                verdict=trade_verdict.verdict,
+                best_player=best_in_abstract,
+                league_size=int(league_settings["league_size"]),
+            ),
+            avoid_at_cost=[
+                player.full_name
+                for player in available
+                if player.tier_number >= 4 or player.risk_band == "High"
+            ][:5],
+            expected_available_tier=(
+                f"Tier {best_in_abstract.tier_number}"
+                if best_in_abstract is not None
+                else None
+            ),
             tendency_warnings=self._build_tendency_warnings(
                 tendencies,
                 available,
@@ -531,6 +550,38 @@ class RookieEngine:
             verdict="trade",
             label="Trade it",
             reasoning=f"Your {_format_pick_slot(pick_slot)} carries more market leverage than the likely prospect tier here.",
+        )
+
+    def _draft_action(self, player: RookiePlayer) -> str:
+        if player.tier_number == 1:
+            return "take at or after market cost"
+        if player.tier_number == 2 and player.risk_band != "High":
+            return "target if roster needs position"
+        if player.tier_number == 3:
+            return "trade back before taking"
+        return "avoid unless falls"
+
+    def _trade_back_line(
+        self,
+        *,
+        pick_slot: int,
+        verdict: str,
+        best_player: RookiePlayer | None,
+        league_size: int,
+    ) -> str:
+        if best_player is None:
+            return "Trade out unless a premium tier unexpectedly falls."
+        display_slot = self._format_slot(pick_slot, league_size=league_size)
+        if verdict == "use":
+            return (
+                f"Use {display_slot} if {best_player.full_name} is there; "
+                "only trade back for a clear overpay."
+            )
+        if best_player.tier_number <= 2:
+            return f"Trade back only if you can stay in Tier {best_player.tier_number}."
+        return (
+            f"Move back from {display_slot}; do not take Tier "
+            f"{best_player.tier_number} at full market cost."
         )
 
     def _build_tendency_warnings(

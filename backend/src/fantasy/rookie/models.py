@@ -25,6 +25,7 @@ class RookiePlayer(BaseModel):
     tier_number: int
     available_probability_by_slot: dict[str, float] = Field(default_factory=dict)
     model_vs_market_gap: ModelVsMarketGap | None = None
+    draft_action: str | None = None
 
 
 class RookieTier(BaseModel):
@@ -71,5 +72,8 @@ class DraftRoomResult(BaseModel):
     pick_slot_display: str
     trade_verdict: TradeVerdict
     best_in_abstract: RookiePlayer | None = None
+    trade_back_line: str | None = None
+    avoid_at_cost: list[str] = Field(default_factory=list)
+    expected_available_tier: str | None = None
     tendency_warnings: list[TendencyWarning] = Field(default_factory=list)
     recommendation_cards: list[RecommendationCard] | None = None

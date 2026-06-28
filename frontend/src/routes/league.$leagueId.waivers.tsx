@@ -13,8 +13,8 @@ export const Route = createFileRoute("/league/$leagueId/waivers")({
 })
 
 function WaiversPage() {
-  const { leagueId, league } = useLeagueRosterSelection()
-  const rosterId = league.user_roster_id ?? 0
+  const { leagueId, league, requestedRosterId } = useLeagueRosterSelection()
+  const rosterId = requestedRosterId ?? league.user_roster_id ?? 0
   const waiverQuery = useQuery(waiverRecommendationsOptions(leagueId, rosterId))
 
   if (!rosterId) {
