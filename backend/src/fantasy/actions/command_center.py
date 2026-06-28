@@ -33,6 +33,7 @@ from fantasy.weekly.models import LineupGapDecision, StartSitDecision, WeeklyPla
 from fantasy.weekly.weekly_edge_service import WeeklyEdgeService
 
 WEEKLY_DOMAINS = ["injuries", "usage", "schedule", "waivers", "market", "stats"]
+SELL_EDGE_SIGNALS = {"sell_high", "sell_low"}
 MOVE_LANE_SPECS = (
     ("start_sit", "Start/sit", {"lineup"}, "No ranked start/sit or lineup-risk action from weekly data."),
     ("waiver", "Waiver", {"waiver"}, "No ranked waiver add/drop/FAAB action from cached boards."),
@@ -57,7 +58,7 @@ class CommandCenterEngine:
 
         actions.extend(self._waiver_actions(user_rosters))
         actions.extend(self._weekly_actions(user_rosters))
-        actions.extend(self._edge_radar_actions(league_id))
+        actions.extend(self._edge_radar_actions(league_id, user_rosters))
         actions.extend(self._opportunity_actions(league_id))
         actions.extend(
             build_manager_actions(self._conn, user_rosters, self._league_name)
@@ -448,10 +449,25 @@ class CommandCenterEngine:
                 actions.append(action)
         return actions
 
-    def _edge_radar_actions(self, league_id: str | None) -> list[CommandAction]:
+    def _edge_radar_actions(
+        self,
+        league_id: str | None,
+        user_rosters: list[dict[str, object]],
+    ) -> list[CommandAction]:
         response = EdgeRadarEngine(self._conn).build(league_id=league_id, limit=8)
+        owned_player_ids = self._owned_player_ids_by_league(user_rosters)
         actions: list[CommandAction] = []
+        seen_action_ids: set[str] = set()
         for item in response.items[:6]:
+            if item.signal_type in SELL_EDGE_SIGNALS and not self._user_owns_edge_player(
+                item,
+                owned_player_ids,
+            ):
+                continue
+            action_id = f"edge:{item.id}"
+            if action_id in seen_action_ids:
+                continue
+            seen_action_ids.add(action_id)
             if item.signal_type == "waiver_pickup":
                 category = "waiver"
             elif item.signal_type == "draft_diamond":
@@ -466,7 +482,7 @@ class CommandCenterEngine:
                 category = "market"
             actions.append(
                 CommandAction(
-                    id=f"edge:{item.id}",
+                    id=action_id,
                     league_id=item.league_id,
                     roster_id=item.roster_id,
                     category=category,
@@ -493,6 +509,32 @@ class CommandCenterEngine:
                 )
             )
         return actions
+
+    def _owned_player_ids_by_league(
+        self,
+        rosters: list[dict[str, object]],
+    ) -> dict[str, set[str]]:
+        owned_player_ids: dict[str, set[str]] = {}
+        for roster in rosters:
+            league_id = str(roster["league_id"])
+            players = roster.get("players", [])
+            if not isinstance(players, list):
+                continue
+            owned_player_ids[league_id] = {
+                str(player_id)
+                for player_id in players
+                if player_id not in (None, "", 0, "0")
+            }
+        return owned_player_ids
+
+    def _user_owns_edge_player(
+        self,
+        item: EdgeRadarItem,
+        owned_player_ids: dict[str, set[str]],
+    ) -> bool:
+        if item.league_id is None or item.player_id is None:
+            return False
+        return item.player_id in owned_player_ids.get(item.league_id, set())
 
     def _edge_urgency(self, item: EdgeRadarItem) -> CommandUrgency:
         if abs(item.market_delta) >= 0.25:

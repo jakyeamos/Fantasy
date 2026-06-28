@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from fantasy.actions.command_center import CommandCenterEngine
 from fantasy.edge_radar.engine import EdgeRadarEngine
+from fantasy.edge_radar.models import EdgeRadarItem
 from fantasy.main import create_app
 from fantasy.routers.deps import get_read_db_conn, get_write_db_conn
 
@@ -548,3 +549,98 @@ def test_command_center_consumes_edge_radar_discoveries_as_actions(db):
     assert action.headline == "Buy low: Buy Low"
     assert "market delta is +0.32" in action.recommended_action
     assert action.cta_destination.startswith("/trades?")
+
+
+def test_command_center_only_emits_sell_actions_for_user_roster_players(db):
+    _seed_league(db)
+    db.execute(
+        """
+        UPDATE rosters
+        SET players = '["buy_low","buy_high","opponent_sell"]'
+        WHERE league_id = 'edge_league' AND roster_id = 2
+        """
+    )
+    _seed_player(
+        db,
+        player_id="sell_high",
+        player_name="My Sell High",
+        position="WR",
+        model_value=0.42,
+        market_value=0.77,
+        adp=22,
+    )
+    _seed_player(
+        db,
+        player_id="opponent_sell",
+        player_name="Opponent Sell",
+        position="RB",
+        model_value=0.41,
+        market_value=0.76,
+        adp=28,
+    )
+    _seed_player(
+        db,
+        player_id="buy_low",
+        player_name="Opponent Buy",
+        position="WR",
+        model_value=0.82,
+        market_value=0.50,
+        adp=90,
+    )
+
+    response = CommandCenterEngine(db).build("edge_league")
+
+    edge_headlines = [
+        action.headline
+        for action in response.actions
+        if action.id.startswith("edge:")
+    ]
+    assert "Sell high: My Sell High" in edge_headlines
+    assert "Buy low: Opponent Buy" in edge_headlines
+    assert "Sell high: Opponent Sell" not in edge_headlines
+
+
+def test_command_center_deduplicates_edge_radar_actions_by_id(db, monkeypatch):
+    _seed_league(db)
+    duplicate_item = EdgeRadarItem(
+        id="buy_low:edge_league:buy_low",
+        signal_type="buy_low",
+        league_id="edge_league",
+        roster_id=1,
+        player_id="buy_low",
+        player_name="Buy Low",
+        position="WR",
+        action_label="Buy low",
+        market_delta=0.32,
+        market_price=0.50,
+        model_value=0.82,
+        conviction_score=32.0,
+        confidence="HIGH",
+        acceptable_price="Keep at least 0.32 normalized points of discount.",
+        timing_window="This week before market reprices.",
+        source_evidence=["Market delta: +0.32"],
+        risks=["The public market may be right."],
+        cta_label="Open Trade Lab",
+        cta_destination="/trades?leagueId=edge_league&receivePlayerId=buy_low",
+    )
+
+    class FakeEdgeRadarEngine:
+        def __init__(self, _conn):
+            pass
+
+        def build(self, league_id, limit):
+            return type("EdgeResponse", (), {"items": [duplicate_item, duplicate_item]})()
+
+    monkeypatch.setattr(
+        "fantasy.actions.command_center.EdgeRadarEngine",
+        FakeEdgeRadarEngine,
+    )
+
+    response = CommandCenterEngine(db).build("edge_league")
+
+    edge_action_ids = [
+        action.id
+        for action in response.actions
+        if action.id == "edge:buy_low:edge_league:buy_low"
+    ]
+    assert edge_action_ids == ["edge:buy_low:edge_league:buy_low"]

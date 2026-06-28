@@ -12,6 +12,7 @@ The system must tell you — for each of your teams — what you are, what your 
 
 ### Validated
 
+- Command-center Edge Radar trade cards now suppress sell recommendations unless the player is actually on the selected portfolio roster, while still allowing opponent buy targets and deduplicating repeated Edge Radar action IDs before rendering.
 - Edge Radar now exists as an internal backend discovery layer that ranks buy low, buy high, sell high, sell low, and waiver pickup signals by normalized model-vs-market delta, enriches player signals with similar-player outcome evidence from age/team/system/coach metadata when available, and feeds discoveries into Command Center actions instead of adding a competing frontend destination.
 - League-page refresh now runs an incremental Sleeper ingest instead of freezing the current cached state, so manual refreshes rebuild analytics and write a fresh snapshot before the UI reloads.
 - Multi-team trade evaluator reroutes and package builder outputs now use third-party sidecar evaluations to explain offers for every participant in the deal, not only the primary counterparty.
@@ -122,4 +123,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after Command Center gained required move-lane coverage*
+*Last updated: 2026-06-28 after Command Center sell cards were constrained to rostered players*
