@@ -28,6 +28,7 @@ The system must tell you — for each of your teams — what you are, what your 
 - Weekly context can now be explicitly refreshed through `/weekly/league/{league_id}/refresh-context`, stores nflverse/nflreadpy schedule opponent context in DuckDB, marks injuries/usage/schedule/stats freshness domains, and surfaces matchup/usage notes inside weekly edge cards.
 - Command-center trade actions now build from real roster assets and manager pitch evidence, then deep-link Trade Lab with concrete send/receive player params instead of generic package placeholders.
 - The oversized league overview and trade route files were split into focused league/trade components and route helper modules while preserving route hydration and evaluator behavior.
+- Command-center trade package construction now lives in a dedicated trade suggestion builder, and the Trade Lab route hydration/search parsing lives in route helper modules so both source files stay below local size gates.
 
 ### Active
 
@@ -104,4 +105,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after the weekly public-context, executable trade suggestion, and route-split tranche*
+*Last updated: 2026-06-28 after the weekly public-context, executable trade suggestion, route-split, and size-gate cleanup tranche*

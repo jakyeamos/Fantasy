@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from fantasy.actions.command_center import CommandCenterEngine
+from fantasy.actions.trade_suggestions import TradeSuggestionBuilder
 from fantasy.trends.models import OpportunityCta, OpportunityFeedItem
 
 
@@ -95,7 +95,7 @@ def test_trade_suggestion_uses_real_roster_assets(db):
         ),
     )
 
-    suggestion = CommandCenterEngine(db)._trade_suggestion(item)
+    suggestion = TradeSuggestionBuilder(db).build(item)
     assert suggestion is not None
     assert suggestion.send_player_ids == ["send_wr"]
     assert suggestion.receive_player_ids[0] == "target_wr"

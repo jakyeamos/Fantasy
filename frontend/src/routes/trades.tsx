@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
@@ -14,10 +14,7 @@ import { dashboardSummaryOptions, pickValuesOptions } from "@/api/queries"
 import { EvaluationOutputPanel } from "@/components/trade/EvaluationOutputPanel"
 import { PackageBuilderPanel } from "@/components/trade/PackageBuilderPanel"
 import { RerouteSheet } from "@/components/trade/RerouteSheet"
-import {
-  LeagueField,
-  RosterField,
-} from "@/components/trade/TradeBuilderFields"
+import { LeagueField, RosterField } from "@/components/trade/TradeBuilderFields"
 import {
   CoreDealBoard,
   SuggestedOfferStartCard,
@@ -41,6 +38,8 @@ import {
   toThirdPartyTrade,
   type ThirdPartyTradeDraft,
 } from "@/lib/tradeRouteHelpers"
+import { validateTradeSearch } from "@/lib/tradeSearchParams"
+import { useTradePrefill } from "@/lib/useTradePrefill"
 
 async function fetchJson<T>(path: string) {
   const response = await fetch(`/api${path}`)
@@ -49,59 +48,12 @@ async function fetchJson<T>(path: string) {
 }
 
 export const Route = createFileRoute("/trades")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    leagueId: typeof search.leagueId === "string" ? search.leagueId : undefined,
-    userRosterId:
-      typeof search.userRosterId === "number"
-        ? search.userRosterId
-        : typeof search.userRosterId === "string"
-          ? Number(search.userRosterId) || undefined
-          : undefined,
-    counterpartyRosterId:
-      typeof search.counterpartyRosterId === "number"
-        ? search.counterpartyRosterId
-        : typeof search.counterpartyRosterId === "string"
-          ? Number(search.counterpartyRosterId) || undefined
-          : undefined,
-    targetPlayerId:
-      typeof search.targetPlayerId === "string" ? search.targetPlayerId : undefined,
-    targetPlayerName:
-      typeof search.targetPlayerName === "string" ? search.targetPlayerName : undefined,
-    targetPlayerPosition:
-      typeof search.targetPlayerPosition === "string"
-        ? search.targetPlayerPosition
-        : undefined,
-    targetPlayerRosterId:
-      typeof search.targetPlayerRosterId === "number"
-        ? search.targetPlayerRosterId
-        : typeof search.targetPlayerRosterId === "string"
-          ? Number(search.targetPlayerRosterId) || undefined
-          : undefined,
-    sendPlayerId:
-      typeof search.sendPlayerId === "string" ? search.sendPlayerId : undefined,
-    sendPlayerName:
-      typeof search.sendPlayerName === "string" ? search.sendPlayerName : undefined,
-    sendPlayerPosition:
-      typeof search.sendPlayerPosition === "string"
-        ? search.sendPlayerPosition
-        : undefined,
-    receivePlayerId:
-      typeof search.receivePlayerId === "string" ? search.receivePlayerId : undefined,
-    receivePlayerName:
-      typeof search.receivePlayerName === "string"
-        ? search.receivePlayerName
-        : undefined,
-    receivePlayerPosition:
-      typeof search.receivePlayerPosition === "string"
-        ? search.receivePlayerPosition
-        : undefined,
-  }),
+  validateSearch: validateTradeSearch,
   component: TradeEvaluatorPage,
 })
 
 function TradeEvaluatorPage() {
   const search = Route.useSearch()
-  const prefillKeyRef = useRef<string | null>(null)
   const [leagueId, setLeagueId] = useState(search.leagueId ?? "")
   const [counterpartyRosterId, setCounterpartyRosterId] = useState(
     search.counterpartyRosterId ?? 0,
@@ -140,113 +92,18 @@ function TradeEvaluatorPage() {
     () => rosterOptions.filter((option) => option.roster_id !== userRosterId),
     [rosterOptions, userRosterId],
   )
-  const prefilledPlayerAsset = useMemo<TradeAsset | null>(() => {
-    if (!search.targetPlayerId || !search.targetPlayerName) {
-      return null
-    }
-
-    return {
-      asset_type: "player",
-      player_id: search.targetPlayerId,
-      player_name: search.targetPlayerName,
-      player_position: search.targetPlayerPosition ?? null,
-    }
-  }, [search.targetPlayerId, search.targetPlayerName, search.targetPlayerPosition])
-  const prefilledSendAsset = useMemo<TradeAsset | null>(() => {
-    if (!search.sendPlayerId || !search.sendPlayerName) {
-      return null
-    }
-
-    return {
-      asset_type: "player",
-      player_id: search.sendPlayerId,
-      player_name: search.sendPlayerName,
-      player_position: search.sendPlayerPosition ?? null,
-    }
-  }, [search.sendPlayerId, search.sendPlayerName, search.sendPlayerPosition])
-  const prefilledReceiveAsset = useMemo<TradeAsset | null>(() => {
-    if (!search.receivePlayerId || !search.receivePlayerName) {
-      return null
-    }
-
-    return {
-      asset_type: "player",
-      player_id: search.receivePlayerId,
-      player_name: search.receivePlayerName,
-      player_position: search.receivePlayerPosition ?? null,
-    }
-  }, [search.receivePlayerId, search.receivePlayerName, search.receivePlayerPosition])
-  const prefillTargetRosterId = search.targetPlayerRosterId ?? search.counterpartyRosterId ?? 0
-
-  useEffect(() => {
-    if (search.leagueId && search.leagueId !== leagueId) {
-      setLeagueId(search.leagueId)
-      prefillKeyRef.current = null
-    }
-    if (search.counterpartyRosterId && search.counterpartyRosterId !== counterpartyRosterId) {
-      setCounterpartyRosterId(search.counterpartyRosterId)
-    }
-  }, [counterpartyRosterId, leagueId, search.counterpartyRosterId, search.leagueId])
-
-  useEffect(() => {
-    if (prefilledSendAsset || prefilledReceiveAsset) {
-      const prefillKey = [
-        leagueId,
-        userRosterId,
-        counterpartyRosterId,
-        prefilledSendAsset?.player_id ?? "",
-        prefilledReceiveAsset?.player_id ?? "",
-      ].join(":")
-      if (prefillKeyRef.current === prefillKey || userRosterId <= 0) {
-        return
-      }
-
-      prefillKeyRef.current = prefillKey
-      if (prefilledSendAsset) {
-        setUserSends((current) => appendUniqueAsset(current, prefilledSendAsset))
-      }
-      if (prefilledReceiveAsset) {
-        setUserReceives((current) => appendUniqueAsset(current, prefilledReceiveAsset))
-      }
-      if (counterpartyRosterId > 0) {
-        setQueryTarget({ kind: "user", bucket: "receive" })
-      }
-      return
-    }
-
-    if (!prefilledPlayerAsset || !prefillTargetRosterId || userRosterId <= 0) {
-      return
-    }
-
-    const prefillKey = [
-      leagueId,
-      userRosterId,
-      prefillTargetRosterId,
-      prefilledPlayerAsset.player_id,
-    ].join(":")
-    if (prefillKeyRef.current === prefillKey) {
-      return
-    }
-
-    prefillKeyRef.current = prefillKey
-    if (prefillTargetRosterId === userRosterId) {
-      setUserSends((current) => appendUniqueAsset(current, prefilledPlayerAsset))
-      setQueryTarget({ kind: "user", bucket: "send" })
-      return
-    }
-
-    setCounterpartyRosterId(prefillTargetRosterId)
-    setUserReceives((current) => appendUniqueAsset(current, prefilledPlayerAsset))
-    setQueryTarget({ kind: "user", bucket: "receive" })
-  }, [
+  const { prefilledPlayerAsset, prefilledSendAsset, prefilledReceiveAsset } =
+    useTradePrefill({
+    search,
     leagueId,
     counterpartyRosterId,
-    prefilledPlayerAsset,
-    prefilledReceiveAsset,
-    prefilledSendAsset,
-    prefillTargetRosterId,
+    setCounterpartyRosterId,
+    setLeagueId,
+    setQueryTarget,
+    setUserReceives,
+    setUserSends,
     userRosterId,
-  ])
+  })
 
   useEffect(() => {
     if (rostersQuery.isLoading) {
@@ -421,7 +278,6 @@ function TradeEvaluatorPage() {
   })
 
   const handleLeagueChange = (nextLeagueId: string) => {
-    prefillKeyRef.current = null
     setLeagueId(nextLeagueId)
     setCounterpartyRosterId(0)
     setThirdPartyTrades([])
