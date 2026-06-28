@@ -16,6 +16,9 @@ import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export const Route = createFileRoute("/portfolio")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    playerId: typeof search.playerId === "string" ? search.playerId : undefined,
+  }),
   component: PortfolioPage,
 })
 
@@ -31,6 +34,7 @@ function formatLongDate(value: string | null) {
 }
 
 function PortfolioPage() {
+  const search = Route.useSearch()
   const exposureQuery = useQuery(portfolioExposureOptions())
   const healthQuery = useQuery(portfolioHealthOptions())
   const dashboardQuery = useQuery(dashboardSummaryOptions)
@@ -136,6 +140,7 @@ function PortfolioPage() {
             leagueColumns={leagueColumns}
             isLoading={exposureQuery.isLoading}
             isError={exposureQuery.isError}
+            highlightedPlayerId={search.playerId}
           />
           <Separator className="my-4" />
           <CorrelatedRiskSection

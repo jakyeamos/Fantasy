@@ -438,8 +438,19 @@ export interface CommandAction {
 export interface CommandCenterResponse {
   actions: CommandAction[]
   data_health: FreshnessTag[]
+  refresh_actions: DataRefreshAction[]
   total: number
   computed_at: string
+}
+
+export interface DataRefreshAction {
+  id: string
+  domain: string
+  league_id: string | null
+  label: string
+  description: string
+  method: "POST"
+  endpoint: string
 }
 
 export interface TradeEvaluation {
@@ -490,9 +501,11 @@ export interface WeeklyPlayerSignal {
   matchup_note: string | null
   opponent_allowance_note: string | null
   usage_note: string | null
+  role_note: string | null
   injury_status: string | null
   availability_status: "active" | "monitor" | "out" | "unknown"
   availability_warning: string | null
+  bye_week_warning: string | null
 }
 
 export interface StartSitDecision {

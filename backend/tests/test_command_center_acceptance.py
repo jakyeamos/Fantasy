@@ -84,3 +84,9 @@ def test_command_center_top_five_moves_are_actionable(db, monkeypatch):
         "market",
         "stats",
     }
+    assert response.refresh_actions
+    assert any(action.endpoint == "/actions/recompute" for action in response.refresh_actions)
+    assert any(
+        action.endpoint == "/weekly/league/cmd5/refresh-context"
+        for action in response.refresh_actions
+    )

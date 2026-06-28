@@ -59,10 +59,23 @@ class CommandAction(BaseModel):
     trade_suggestion: TradeSuggestion | None = None
 
 
+class DataRefreshAction(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    id: str
+    domain: str
+    league_id: str | None = None
+    label: str
+    description: str
+    method: Literal["POST"] = "POST"
+    endpoint: str
+
+
 class CommandCenterResponse(BaseModel):
     model_config = ConfigDict(frozen=False)
 
     actions: list[CommandAction] = Field(default_factory=list)
     data_health: list[FreshnessTag] = Field(default_factory=list)
+    refresh_actions: list[DataRefreshAction] = Field(default_factory=list)
     total: int
     computed_at: str

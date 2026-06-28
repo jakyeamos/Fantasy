@@ -44,6 +44,12 @@ export const Route = createFileRoute("/league/$leagueId")({
         : typeof search.rosterId === "string"
           ? Number(search.rosterId) || undefined
           : undefined,
+    focus: search.focus === "weekly" ? "weekly" : undefined,
+    startPlayerId:
+      typeof search.startPlayerId === "string" ? search.startPlayerId : undefined,
+    sitPlayerId:
+      typeof search.sitPlayerId === "string" ? search.sitPlayerId : undefined,
+    position: typeof search.position === "string" ? search.position : undefined,
   }),
   component: LeagueDetailPage,
 })
@@ -460,7 +466,14 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
         ) : null}
 
         {isOverviewRoute && selectedRosterId ? (
-          <WeeklyEdgePanel leagueId={leagueId} rosterId={selectedRosterId} />
+          <WeeklyEdgePanel
+            leagueId={leagueId}
+            rosterId={selectedRosterId}
+            focus={search.focus}
+            startPlayerId={search.startPlayerId}
+            sitPlayerId={search.sitPlayerId}
+            position={search.position}
+          />
         ) : null}
 
         {isOverviewRoute ? (

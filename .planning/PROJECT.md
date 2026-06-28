@@ -31,6 +31,8 @@ The system must tell you — for each of your teams — what you are, what your 
 - Command-center trade package construction now lives in a dedicated trade suggestion builder, and the Trade Lab route hydration/search parsing lives in route helper modules so both source files stay below local size gates.
 - Weekly edge now scores start/sit moves with projection, availability, matchup, and opponent-position environment context; the command center shows data-health freshness, executable weekly/portfolio CTAs, and pre-scored trade packages with top-five action acceptance coverage.
 - Player values now persist `trend_result` into recommendation cards, opportunity-feed trend computation is batched with bounded similar-player enrichment, and the feed exposes degraded-state metadata with a clearer frontend fallback.
+- Browser/route smoke coverage now lives in `frontend/scripts/browserSmoke.mjs` with `pnpm browser:smoke` and `pnpm routes:smoke`, Playwright is a frontend dev dependency, and stale command-center freshness warnings now include executable refresh actions.
+- Weekly-edge command links now highlight their exact start/sit or position-gap target, portfolio links highlight the target exposure row, weekly signals include bye/depth-context notes, opportunity similarity failures degrade to partial feed responses, and test schema setup is split out of oversized `conftest.py`.
 
 ### Active
 
@@ -107,4 +109,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after the trend-result recommendation integration and bounded opportunity-feed stabilization tranche*
+*Last updated: 2026-06-28 after browser smoke tooling, actionable freshness refreshes, deep-link highlighting, weekly bye/depth context, degraded opportunity handling, and test fixture hygiene*

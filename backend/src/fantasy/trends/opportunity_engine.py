@@ -49,6 +49,7 @@ class OpportunityEngine:
         self._trend_engine = trend_engine or TrendEngine(conn)
         self._calendar_service = calendar_service or CalendarService(ContextRepo(conn))
         self._portfolio_repo = PortfolioRepo(conn)
+        self.degraded_reason: str | None = None
 
     def build_feed(self) -> list[OpportunityFeedItem]:
         user_rosters = self._portfolio_repo._portfolio_roster_rows()
@@ -156,10 +157,16 @@ class OpportunityEngine:
             )
         )
         bounded_items = items[:MAX_OPPORTUNITY_FEED_ITEMS]
-        for item in bounded_items[:MAX_SIMILAR_PLAYER_ENRICHMENTS]:
-            item.similar_players = find_similar_players_from_snapshots(
-                item.player_id,
-                snapshots.values(),
+        self.degraded_reason = None
+        try:
+            for item in bounded_items[:MAX_SIMILAR_PLAYER_ENRICHMENTS]:
+                item.similar_players = find_similar_players_from_snapshots(
+                    item.player_id,
+                    snapshots.values(),
+                )
+        except Exception:
+            self.degraded_reason = (
+                "Similar-player context failed, but ranked opportunity actions are still available."
             )
         return bounded_items
 

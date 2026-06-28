@@ -7,6 +7,9 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
+    "browser:install": "playwright install chromium",
+    "browser:smoke": "node scripts/browserSmoke.mjs",
+    "routes:smoke": "node scripts/browserSmoke.mjs",
     "test:render": "node tests/marketGapRender.test.mjs"
   },
   "dependencies": {
@@ -26,6 +29,7 @@
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
     "eslint-plugin-anti-slop": "file:../../eslint-plugin-anti-slop",
+    "playwright": "^1.61.1",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
     "vite": "^8.0.1"

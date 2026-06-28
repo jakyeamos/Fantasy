@@ -5,7 +5,7 @@ from urllib.parse import quote_plus
 
 import duckdb
 
-from fantasy.actions.models import CommandAction, CommandCenterResponse
+from fantasy.actions.models import CommandAction, CommandCenterResponse, DataRefreshAction
 from fantasy.actions.trade_suggestions import TradeSuggestionBuilder
 from fantasy.context.models import FreshnessTag
 from fantasy.context.context_repo import ContextRepo
@@ -64,9 +64,11 @@ class CommandCenterEngine:
             action.model_copy(update={"priority_rank": index + 1})
             for index, action in enumerate(actions[:20])
         ]
+        data_health = self._data_health(user_rosters)
         return CommandCenterResponse(
             actions=ranked,
-            data_health=self._data_health(user_rosters),
+            data_health=data_health,
+            refresh_actions=self._refresh_actions(user_rosters, data_health),
             total=len(actions),
             computed_at=datetime.now(timezone.utc).isoformat(),
         )
@@ -133,6 +135,56 @@ class CommandCenterEngine:
                 )
             )
         return health
+
+    def _refresh_actions(
+        self,
+        rosters: list[dict[str, object]],
+        data_health: list[FreshnessTag],
+    ) -> list[DataRefreshAction]:
+        league_ids = sorted({str(roster["league_id"]) for roster in rosters})
+        if not league_ids:
+            return []
+        stale_domains = {tag.domain for tag in data_health if tag.is_stale}
+        actions: list[DataRefreshAction] = []
+        for league_id in league_ids:
+            if stale_domains.intersection({"injuries", "schedule", "stats", "usage"}):
+                actions.append(
+                    DataRefreshAction(
+                        id=f"weekly-context:{league_id}",
+                        domain="weekly_context",
+                        league_id=league_id,
+                        label=f"Refresh weekly context for {self._league_name(league_id)}",
+                        description=(
+                            "Updates schedule, injury/status, usage, and weekly stat freshness "
+                            "for start/sit and waiver-dependent recommendations."
+                        ),
+                        endpoint=f"/weekly/league/{league_id}/refresh-context",
+                    )
+                )
+            if "market" in stale_domains:
+                actions.append(
+                    DataRefreshAction(
+                        id=f"market:{league_id}",
+                        domain="market",
+                        league_id=league_id,
+                        label=f"Refresh market for {self._league_name(league_id)}",
+                        description="Pulls the current free FantasyCalc ADP baseline for this league format.",
+                        endpoint=f"/ingest/adp-baseline/refresh?league_id={league_id}",
+                    )
+                )
+        if "waivers" in stale_domains:
+            actions.insert(
+                0,
+                DataRefreshAction(
+                    id="waivers:all",
+                    domain="waivers",
+                    league_id=None,
+                    label="Recompute waiver boards",
+                    description="Rebuilds cached add/drop/FAAB recommendations for tracked rosters.",
+                    endpoint="/actions/recompute",
+                ),
+            )
+        return actions[:8]
 
     def _waiver_actions(
         self, rosters: list[dict[str, object]]

@@ -139,6 +139,66 @@ def test_weekly_edge_pushes_out_starter_below_active_bench(db):
     assert starter.projection_points < starter.recent_points
 
 
+def test_weekly_edge_surfaces_bye_and_depth_context(db):
+    db.execute(
+        """
+        INSERT INTO leagues (
+            league_id, name, season, scoring_settings, roster_positions,
+            settings_blob, superflex, tep, ppr
+        )
+        VALUES ('weekly_bye', 'Weekly Bye', '2026', '{}', '["WR"]', '{}', FALSE, FALSE, 1.0)
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO rosters (
+            id, league_id, roster_id, owner_id, owner_display_name,
+            starters, players, reserve, taxi
+        )
+        VALUES (3, 'weekly_bye', 1, 'owner_a', 'Alpha', '["wr_bye"]', '["wr_bye"]', '[]', '[]')
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES (?, 'Bye WR', 'WR', 'BYE', 25, ?)
+        """,
+        [
+            "wr_bye",
+            json.dumps(
+                {
+                    "status": "Active",
+                    "depth_chart_position": "WR",
+                    "depth_chart_order": 2,
+                }
+            ),
+        ],
+    )
+    db.execute(
+        """
+        INSERT INTO player_stats_weekly (
+            player_id, player_name, position, season, week, fantasy_points, targets
+        )
+        VALUES ('wr_bye', 'Bye WR', 'WR', 2026, 1, 11.0, 8.0)
+        """
+    )
+    ensure_weekly_context_schema(db)
+    db.execute(
+        """
+        INSERT INTO team_schedule_weekly (team, season, week, opponent, is_home, game_date, game_type)
+        VALUES ('OTHER', 2026, 3, 'Y', TRUE, '2026-09-20', 'REG')
+        """
+    )
+
+    result = WeeklyEdgeService(db).build("weekly_bye", 1)
+
+    signal = result.player_signals[0]
+    assert signal.matchup_grade == "bye"
+    assert signal.bye_week_warning is not None
+    assert signal.role_note == "Depth context: WR, depth order 2."
+    assert signal.projection_points < signal.recent_points
+
+
 def test_weekly_context_refresh_marks_public_domains(db, monkeypatch):
     db.execute(
         """

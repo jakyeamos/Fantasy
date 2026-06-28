@@ -52,11 +52,13 @@ export function ExposureMatrix({
   leagueColumns,
   isLoading,
   isError,
+  highlightedPlayerId,
 }: {
   rows: ExposureRow[]
   leagueColumns: LeagueColumn[]
   isLoading?: boolean
   isError?: boolean
+  highlightedPlayerId?: string
 }) {
   if (isLoading) {
     return (
@@ -114,7 +116,11 @@ export function ExposureMatrix({
           {sortedRows.map((row, index) => (
             <tr
               key={row.player_id}
-              className={cn(index % 2 === 1 && "bg-muted/30")}
+              className={cn(
+                index % 2 === 1 && "bg-muted/30",
+                highlightedPlayerId === row.player_id &&
+                  "bg-primary/10 outline outline-2 outline-primary/45",
+              )}
             >
               <td className="px-3 py-3 align-top">
                 <div className="flex items-center gap-2">

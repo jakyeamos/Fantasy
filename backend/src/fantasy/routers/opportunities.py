@@ -16,11 +16,12 @@ router = APIRouter(prefix="/opportunities", tags=["opportunities"])
 def get_opportunity_feed(
     conn: duckdb.DuckDBPyConnection = Depends(get_read_db_conn),
 ) -> OpportunityFeedResponse:
-    items = OpportunityEngine(conn).build_feed()
+    engine = OpportunityEngine(conn)
+    items = engine.build_feed()
     return OpportunityFeedResponse(
         items=items,
         total=len(items),
         computed_at=datetime.now(timezone.utc).isoformat(),
-        status="ok",
-        degraded_reason=None,
+        status="degraded" if engine.degraded_reason else "ok",
+        degraded_reason=engine.degraded_reason,
     )

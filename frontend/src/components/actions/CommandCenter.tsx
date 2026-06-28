@@ -1,8 +1,10 @@
+import { useState } from "react"
+
 import { useQuery } from "@tanstack/react-query"
 import { AlertTriangle, ArrowRight, CheckCircle2, RefreshCcw } from "lucide-react"
 
-import { commandCenterOptions, recomputeActions } from "@/api/queries"
-import type { CommandAction, FreshnessTag } from "@/api/types"
+import { commandCenterOptions, postJson, recomputeActions } from "@/api/queries"
+import type { CommandAction, DataRefreshAction, FreshnessTag } from "@/api/types"
 import { Badge } from "@/components/ui/badge"
 import { buttonClasses } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -58,6 +60,48 @@ function DataHealthStrip({ tags }: { tags: FreshnessTag[] }) {
       {stale[0]?.warning ? (
         <span className="text-muted-foreground">{stale[0].warning}</span>
       ) : null}
+    </div>
+  )
+}
+
+function RefreshActionBar({
+  actions,
+  onComplete,
+}: {
+  actions: DataRefreshAction[]
+  onComplete: () => Promise<unknown>
+}) {
+  const [runningId, setRunningId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  if (!actions.length) return null
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 border-b border-border/45 pb-4 text-xs">
+      <span className="font-semibold text-foreground">Refresh stale data</span>
+      {actions.slice(0, 4).map((action) => (
+        <button
+          key={action.id}
+          type="button"
+          className={buttonClasses({ variant: "outline", size: "sm" })}
+          title={action.description}
+          disabled={runningId !== null}
+          onClick={() => {
+            setRunningId(action.id)
+            setError(null)
+            void postJson<unknown>(action.endpoint, {})
+              .then(onComplete)
+              .catch(() => setError(`Could not run ${action.label}.`))
+              .finally(() => setRunningId(null))
+          }}
+        >
+          <RefreshCcw className="size-3.5" />
+          {runningId === action.id ? "Refreshing..." : action.label}
+        </button>
+      ))}
+      {actions.length > 4 ? (
+        <Badge variant="outline">+{actions.length - 4} more</Badge>
+      ) : null}
+      {error ? <span className="text-destructive">{error}</span> : null}
     </div>
   )
 }
@@ -166,6 +210,7 @@ export function CommandCenter() {
 
   const actions = query.data?.actions.slice(0, 5) ?? []
   const dataHealth = query.data?.data_health ?? []
+  const refreshActions = query.data?.refresh_actions ?? []
 
   return (
     <section className="space-y-4">
@@ -192,6 +237,10 @@ export function CommandCenter() {
         </button>
       </div>
       <DataHealthStrip tags={dataHealth} />
+      <RefreshActionBar
+        actions={refreshActions}
+        onComplete={() => query.refetch()}
+      />
 
       {query.isError ? (
         <Card>

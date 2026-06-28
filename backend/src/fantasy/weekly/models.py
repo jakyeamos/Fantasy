@@ -26,9 +26,11 @@ class WeeklyPlayerSignal(BaseModel):
     matchup_note: str | None = None
     opponent_allowance_note: str | None = None
     usage_note: str | None = None
+    role_note: str | None = None
     injury_status: str | None = None
     availability_status: Literal["active", "monitor", "out", "unknown"] = "unknown"
     availability_warning: str | None = None
+    bye_week_warning: str | None = None
 
 
 class StartSitDecision(BaseModel):

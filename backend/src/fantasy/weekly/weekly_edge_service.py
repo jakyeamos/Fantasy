@@ -155,6 +155,7 @@ class WeeklyEdgeService:
             recent_points = float(row[5] or 0.0)
             recent_opportunities = float(row[6] or 0.0)
             usage_note = self._usage_note(recent_points, recent_opportunities)
+            role_note = self._role_note(metadata)
             projection = self._projection_points(
                 recent_points,
                 recent_opportunities,
@@ -178,9 +179,15 @@ class WeeklyEdgeService:
                     matchup_note=matchup_note,
                     opponent_allowance_note=allowance_note,
                     usage_note=usage_note,
+                    role_note=role_note,
                     injury_status=injury_status or None,
                     availability_status=availability,
                     availability_warning=warning,
+                    bye_week_warning=(
+                        "No upcoming game found for this team in the local schedule context."
+                        if matchup_grade == "bye"
+                        else None
+                    ),
                 )
             )
         signals.sort(
@@ -225,7 +232,7 @@ class WeeklyEdgeService:
             """,
             [unique_teams],
         ).fetchall()
-        return {
+        contexts = {
             str(row[0]): {
                 "season": int(row[1]),
                 "week": int(row[2]),
@@ -236,6 +243,27 @@ class WeeklyEdgeService:
             }
             for row in rows
         }
+        missing_teams = [team for team in unique_teams if team not in contexts]
+        if missing_teams:
+            upcoming = self._conn.execute(
+                """
+                SELECT season, week
+                FROM team_schedule_weekly
+                ORDER BY season DESC, week ASC
+                LIMIT 1
+                """
+            ).fetchone()
+            if upcoming is not None:
+                for team in missing_teams:
+                    contexts[team] = {
+                        "season": int(upcoming[0]),
+                        "week": int(upcoming[1]),
+                        "opponent": None,
+                        "is_home": False,
+                        "game_date": None,
+                        "game_type": "BYE",
+                    }
+        return contexts
 
     def _position_environment_contexts(
         self,
@@ -288,8 +316,10 @@ class WeeklyEdgeService:
         context: dict[str, Any] | None,
         matchup_grade: MatchupGrade,
     ) -> str | None:
-        if context is None or context.get("opponent") is None:
+        if context is None:
             return None
+        if context.get("opponent") is None:
+            return f"Week {context['week']} has no scheduled opponent in local schedule data."
         venue = "home" if context.get("is_home") else "away"
         game_date = context.get("game_date")
         date_note = f" on {game_date}" if game_date else ""
@@ -326,6 +356,21 @@ class WeeklyEdgeService:
         if recent_opportunities >= 7:
             return f"Usable recent role: {recent_opportunities:.1f} weighted opportunities with {recent_points:.1f} PPG."
         return f"Thin recent role: {recent_opportunities:.1f} weighted opportunities with {recent_points:.1f} PPG."
+
+    def _role_note(self, metadata: dict[str, Any]) -> str | None:
+        depth_order = metadata.get("depth_chart_order")
+        depth_position = metadata.get("depth_chart_position")
+        role = metadata.get("depth_chart_role") or metadata.get("role")
+        if depth_order is None and depth_position is None and role is None:
+            return None
+        parts: list[str] = []
+        if role:
+            parts.append(str(role))
+        if depth_position:
+            parts.append(str(depth_position))
+        if depth_order is not None:
+            parts.append(f"depth order {depth_order}")
+        return "Depth context: " + ", ".join(parts) + "."
 
     def _availability_warning(self, injury_status: str) -> str | None:
         normalized = injury_status.lower()

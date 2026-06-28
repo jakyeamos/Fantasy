@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from fantasy.rookie_pick.models import DraftPickSelection, RookiePickProfile
 from fantasy.rookie_pick.rookie_pick_repo import RookiePickRepo
+from test_support.schema_sql import SCHEMA_SQL
 
 
 def test_upsert_profile_roundtrip(db) -> None:
@@ -61,7 +60,7 @@ def test_upsert_draft_selection_roundtrip(db) -> None:
     ]
 
 
-def test_schema_tables_exist_in_conftest() -> None:
-    schema_blob = Path(__file__).resolve().parents[1].joinpath("conftest.py").read_text()
+def test_schema_tables_exist_in_test_support() -> None:
+    schema_blob = "\n".join(SCHEMA_SQL)
     assert "draft_pick_selections" in schema_blob
     assert "manager_rookie_pick_profiles" in schema_blob

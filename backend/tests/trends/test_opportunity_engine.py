@@ -336,3 +336,34 @@ def test_feed_bounds_similarity_enrichment(db, monkeypatch):
         item.player_id
         for item in items[: opportunity_engine.MAX_SIMILAR_PLAYER_ENRICHMENTS]
     ]
+
+
+def test_feed_degrades_when_similarity_enrichment_fails(db, monkeypatch):
+    conn = _base_feed_db(db)
+    _seed_player(conn, "player_degraded", "Player Degraded", "WR", 24, 70.0)
+    _seed_trend_history(
+        conn,
+        player_id="player_degraded",
+        current_score=0.88,
+        prior_score=0.45,
+        current_adp=70.0,
+        prior_adp=112.0,
+    )
+
+    def _raise_similarity(_player_id, _snapshots):
+        raise RuntimeError("similarity unavailable")
+
+    monkeypatch.setattr(
+        opportunity_engine,
+        "find_similar_players_from_snapshots",
+        _raise_similarity,
+    )
+
+    engine = OpportunityEngine(
+        conn,
+        calendar_service=_StubCalendarService("early_season"),
+    )
+    items = engine.build_feed()
+
+    assert items
+    assert engine.degraded_reason is not None
