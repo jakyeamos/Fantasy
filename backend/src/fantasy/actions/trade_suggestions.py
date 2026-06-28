@@ -34,9 +34,70 @@ class TradeSuggestionBuilder:
     ) -> str:
         if item.cta is None or item.cta.league_id is None:
             return "/opportunities"
-        params = [f"leagueId={item.cta.league_id}"]
-        if item.cta.user_roster_id is not None:
-            params.append(f"userRosterId={item.cta.user_roster_id}")
+        if item.cta.user_roster_id is None:
+            return "/opportunities"
+        return self.destination_for_suggestion(
+            item.cta.league_id,
+            item.cta.user_roster_id,
+            suggestion,
+        )
+
+    def build_manager_suggestion(
+        self,
+        *,
+        league_id: str,
+        user_roster_id: int,
+        target_roster_id: int,
+        confidence: Literal["HIGH", "MEDIUM", "LOW"],
+        manager_pitch_angle: str,
+    ) -> TradeSuggestion | None:
+        target_assets = self._roster_player_assets(league_id, target_roster_id)
+        if not target_assets:
+            return None
+        target = target_assets[0]
+        send_assets = self._select_send_assets(
+            league_id,
+            user_roster_id,
+            target["player_id"],
+            target["score"],
+        )
+        if not send_assets:
+            return None
+        receive_assets = [target]
+        balancing = self._select_balancing_receive_asset(
+            league_id,
+            target_roster_id,
+            target["player_id"],
+            sum(asset["score"] for asset in send_assets) - target["score"],
+        )
+        if balancing is not None:
+            receive_assets.append(balancing)
+        suggestion = TradeSuggestion(
+            league_id=league_id,
+            target_player_id=target["player_id"],
+            target_player_name=target["name"],
+            target_manager_roster_id=target_roster_id,
+            send_assets=[asset["label"] for asset in send_assets],
+            receive_assets=[asset["label"] for asset in receive_assets],
+            send_player_ids=[asset["player_id"] for asset in send_assets],
+            receive_player_ids=[asset["player_id"] for asset in receive_assets],
+            fairness_band=self._fairness_band(
+                sum(asset["score"] for asset in send_assets),
+                sum(asset["score"] for asset in receive_assets),
+                confidence,
+            ),
+            acceptance_confidence=confidence,
+            manager_pitch_angle=manager_pitch_angle,
+        )
+        return self._with_evaluation(suggestion, user_roster_id)
+
+    def destination_for_suggestion(
+        self,
+        league_id: str,
+        user_roster_id: int,
+        suggestion: TradeSuggestion,
+    ) -> str:
+        params = [f"leagueId={league_id}", f"userRosterId={user_roster_id}"]
         if suggestion.target_manager_roster_id is not None:
             params.append(f"counterpartyRosterId={suggestion.target_manager_roster_id}")
         send_asset = self._query_asset(suggestion.send_player_ids[:1])
@@ -295,6 +356,7 @@ class TradeSuggestionBuilder:
         position_text = str(position)
         return {
             "player_id": str(player_id),
+            "name": str(name),
             "label": f"{name} ({position_text})",
             "position": position_text,
             "score": max(1.0, min(100.0, score)),

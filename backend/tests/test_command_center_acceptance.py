@@ -58,9 +58,10 @@ def test_command_center_top_five_moves_are_actionable(db, monkeypatch):
         lambda league_id: [_action("trade", "trade", "this_week", "HIGH", 2)],
     )
     monkeypatch.setattr(
-        engine,
-        "_manager_actions",
-        lambda _: [_action("manager", "manager", "this_week", "MEDIUM", 4)],
+        "fantasy.actions.command_center.build_manager_actions",
+        lambda _conn, _rosters, _league_name: [
+            _action("manager", "manager", "this_week", "MEDIUM", 4)
+        ],
     )
     monkeypatch.setattr(
         engine,
@@ -506,6 +507,114 @@ def test_command_center_connects_buy_window_to_lineup_gap(db, monkeypatch):
     assert trade_action.trade_suggestion is not None
     assert "sendPlayerId=send_wr" in trade_action.cta_destination
     assert "receivePlayerId=target_wr" in trade_action.cta_destination
+
+
+def test_command_center_manager_action_prefills_trade_offer(db):
+    db.execute(
+        """
+        INSERT INTO leagues (
+            league_id, name, season, scoring_settings, roster_positions,
+            settings_blob, superflex, tep, ppr
+        )
+        VALUES ('cmd_manager_offer', 'Manager Offer', '2026', '{}', '[]', '{}', FALSE, FALSE, 1.0)
+        """
+    )
+    db.executemany(
+        """
+        INSERT INTO rosters (
+            id, league_id, roster_id, owner_id, owner_display_name,
+            starters, players, reserve, taxi
+        )
+        VALUES (?, 'cmd_manager_offer', ?, ?, ?, '[]', ?, '[]', '[]')
+        """,
+        [
+            (1, 1, "user", "User", json.dumps(["send_wr", "bench_rb"])),
+            (2, 2, "opp", "Exploit Manager", json.dumps(["target_wr", "small_te"])),
+        ],
+    )
+    db.executemany(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES (?, ?, ?, 'MGR', 25, '{"status":"Active"}')
+        """,
+        [
+            ("send_wr", "Send WR", "WR"),
+            ("bench_rb", "Bench RB", "RB"),
+            ("target_wr", "Target WR", "WR"),
+            ("small_te", "Small TE", "TE"),
+        ],
+    )
+    db.executemany(
+        """
+        INSERT INTO player_values (
+            id, league_id, roster_id, player_id,
+            comp_current_production, comp_short_term, comp_role_stability,
+            comp_age_curve, comp_insulation, comp_market_liquidity,
+            comp_positional_scarcity, comp_fragility, comp_ceiling, comp_floor,
+            comp_rerollability, comp_contract, lens_production, lens_market,
+            lens_insulation, lens_team_fit, lens_direction
+        )
+        VALUES (
+            ?, 'cmd_manager_offer', ?, ?, ?, 0.5, 0.5, 0.5, 0.5, ?, 0.5,
+            0.5, ?, 0.5, 0.5, 0.5, ?, ?, 0.5, 0.5, 0.5
+        )
+        """,
+        [
+            (1, 1, "send_wr", 0.62, 0.64, 0.63, 0.62, 0.63),
+            (2, 1, "bench_rb", 0.35, 0.35, 0.35, 0.35, 0.35),
+            (3, 2, "target_wr", 0.70, 0.70, 0.70, 0.70, 0.70),
+            (4, 2, "small_te", 0.20, 0.20, 0.20, 0.20, 0.20),
+        ],
+    )
+    db.execute(
+        """
+        INSERT INTO manager_profiles (
+            id, league_id, roster_id, evidence_count, low_confidence,
+            exploitability_score, exploitation_primary, exploitation_secondary,
+            exploitation_evidence, roster_summary, aggregate_trade_stats, trade_history
+        )
+        VALUES (
+            1, 'cmd_manager_offer', 2, 8, FALSE, 82.0,
+            'veteran_appetite', NULL, '{"pattern":"accepted production"}',
+            '{}', '{"total_trades":8}', '[]'
+        )
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO manager_pitch_angles (
+            id, league_id, roster_id, rank, deal_archetype, send_description,
+            avoid_description, reasoning
+        )
+        VALUES (
+            1, 'cmd_manager_offer', 2, 1, 'Need solver',
+            'usable weekly points', 'fragile futures',
+            'They have accepted production-first offers when chasing weekly points.'
+        )
+        """
+    )
+
+    response = CommandCenterEngine(db).build("cmd_manager_offer")
+
+    action = next(
+        item for item in response.actions if item.id == "manager:cmd_manager_offer:2"
+    )
+    assert action.category == "manager"
+    assert action.confidence == "HIGH"
+    assert action.cta_label == "Open Trade Lab"
+    assert action.trade_suggestion is not None
+    assert action.trade_suggestion.send_player_ids == ["send_wr"]
+    assert action.trade_suggestion.receive_player_ids[0] == "target_wr"
+    assert action.trade_suggestion.acceptance_confidence == "HIGH"
+    assert "usable weekly points" in action.trade_suggestion.manager_pitch_angle
+    assert "Offer Send WR (WR)" in action.recommended_action
+    assert "Target WR (WR)" in action.recommended_action
+    assert "Evidence count: 8" in action.evidence
+    assert "Send: Send WR (WR)" in action.evidence
+    assert "Receive: Target WR (WR)" in action.evidence
+    assert "counterpartyRosterId=2" in action.cta_destination
+    assert "sendPlayerId=send_wr" in action.cta_destination
+    assert "receivePlayerId=target_wr" in action.cta_destination
 
 
 def test_command_center_escalates_injured_portfolio_exposure(db):

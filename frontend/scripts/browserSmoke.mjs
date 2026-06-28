@@ -13,22 +13,32 @@ function route(path, expected) {
   return { path, expected }
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 async function discoverLeague(request) {
-  try {
-    const response = await request.get(`${appUrl}/api/dashboard/summary`, {
-      timeout: 30_000,
-    })
-    if (!response.ok()) return null
-    const leagues = await response.json()
-    const first = Array.isArray(leagues) ? leagues[0] : null
-    if (!first?.league_id) return null
-    return {
-      leagueId: String(first.league_id),
-      rosterId: first.user_roster_id ? Number(first.user_roster_id) : null,
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      const response = await request.get(`${appUrl}/api/dashboard/summary`, {
+        timeout: 30_000,
+      })
+      if (response.ok()) {
+        const leagues = await response.json()
+        const first = Array.isArray(leagues) ? leagues[0] : null
+        if (first?.league_id) {
+          return {
+            leagueId: String(first.league_id),
+            rosterId: first.user_roster_id ? Number(first.user_roster_id) : null,
+          }
+        }
+      }
+    } catch {
+      // Retry while local dev refresh finishes warming the DuckDB-backed summary.
     }
-  } catch {
-    return null
+    await sleep(1_000)
   }
+  return null
 }
 
 function buildRoutes(league) {

@@ -6,6 +6,7 @@ from urllib.parse import quote_plus
 import duckdb
 
 from fantasy.actions.models import CommandAction, CommandCenterResponse, DataRefreshAction
+from fantasy.actions.manager_actions import build_manager_actions
 from fantasy.actions.portfolio_risk import portfolio_player_risk
 from fantasy.actions.rookie_actions import build_rookie_actions
 from fantasy.actions.trade_suggestions import TradeSuggestionBuilder
@@ -14,7 +15,6 @@ from fantasy.context.models import FreshnessTag
 from fantasy.context.context_repo import ContextRepo
 from fantasy.context.freshness_service import FreshnessService
 from fantasy.portfolio.portfolio_repo import PortfolioRepo
-from fantasy.profiling.profiling_repo import ProfilingRepo
 from fantasy.trends.models import OpportunityFeedItem
 from fantasy.trends.opportunity_engine import OpportunityEngine
 from fantasy.waiver.waiver_engine import WaiverEngine
@@ -52,7 +52,9 @@ class CommandCenterEngine:
         actions.extend(self._waiver_actions(user_rosters))
         actions.extend(self._weekly_actions(user_rosters))
         actions.extend(self._opportunity_actions(league_id))
-        actions.extend(self._manager_actions(user_rosters))
+        actions.extend(
+            build_manager_actions(self._conn, user_rosters, self._league_name)
+        )
         actions.extend(build_rookie_actions(self._conn, user_rosters))
         actions.extend(self._portfolio_actions())
 
@@ -491,55 +493,6 @@ class CommandCenterEngine:
             item.cta.user_roster_id,
         )
         return self._matching_lineup_gap(edge.lineup_gaps, item.position)
-
-    def _manager_actions(
-        self, rosters: list[dict[str, object]]
-    ) -> list[CommandAction]:
-        actions: list[CommandAction] = []
-        for roster in rosters:
-            league_id = str(roster["league_id"])
-            user_roster_id = int(roster["roster_id"])
-            summaries = ProfilingRepo(self._conn).list_manager_summaries(league_id)
-            strong = [
-                summary
-                for summary in summaries
-                if summary.roster_id != user_roster_id
-                and not summary.low_confidence
-                and summary.evidence_count >= 3
-                and summary.top_pitch_angle is not None
-            ]
-            if not strong:
-                continue
-            summary = strong[0]
-            angle = summary.top_pitch_angle
-            if angle is None:
-                continue
-            actions.append(
-                CommandAction(
-                    id=f"manager:{league_id}:{summary.roster_id}",
-                    league_id=league_id,
-                    roster_id=user_roster_id,
-                    category="manager",
-                    priority_rank=len(actions) + 1,
-                    urgency="this_week",
-                    confidence="HIGH" if summary.evidence_count >= 5 else "MEDIUM",
-                    headline=f"Pitch {summary.manager_name} in {self._league_name(league_id)}",
-                    recommended_action=(
-                        f"Open with {angle.send_description}; avoid {angle.avoid_description}."
-                    ),
-                    why_now=angle.reasoning,
-                    risk_if_wrong=(
-                        "Manager tendency samples can age quickly if recent trades changed their build."
-                    ),
-                    evidence=[
-                        f"Evidence count: {summary.evidence_count}",
-                        f"Exploitability: {round(summary.exploitability_score)}",
-                    ],
-                    cta_label="Open Managers",
-                    cta_destination=f"/league/{league_id}/managers",
-                )
-            )
-        return actions
 
     def _portfolio_actions(self) -> list[CommandAction]:
         actions: list[CommandAction] = []
