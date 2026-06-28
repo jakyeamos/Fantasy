@@ -89,6 +89,8 @@ def _rookie_action(
         confidence=_confidence(result),
         headline=f"{league_name}: {result.trade_verdict.label} at {result.pick_slot_display}",
         recommended_action=_recommended_action(result),
+        acceptable_price=_acceptable_price(result),
+        timing="On the clock if drafting now; otherwise line up the deal before your pick.",
         why_now=_why_now(result),
         risk_if_wrong=(
             "Wrong if the room takes a different tier before your slot or fresh "
@@ -121,6 +123,15 @@ def _recommended_action(result: DraftRoomResult) -> str:
     if result.trade_back_line:
         return f"Shop {result.pick_slot_display}; {result.trade_back_line}"
     return f"Shop {result.pick_slot_display}; {result.trade_verdict.reasoning}"
+
+
+def _acceptable_price(result: DraftRoomResult) -> str:
+    best = result.best_in_abstract
+    if result.trade_back_line:
+        return result.trade_back_line
+    if best is not None:
+        return f"Use the pick on {best.full_name}; only trade out for a clear tier-overpay."
+    return "Trade back unless the room lets a higher-tier player fall."
 
 
 def _why_now(result: DraftRoomResult) -> str:

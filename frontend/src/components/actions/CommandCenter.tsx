@@ -126,6 +126,14 @@ function CommandCard({ action }: { action: CommandAction }) {
           <p className="text-sm font-semibold leading-6">{action.recommended_action}</p>
           <div className="space-y-2 text-sm leading-6 text-muted-foreground">
             <p>
+              <span className="font-semibold text-foreground">Acceptable price:</span>{" "}
+              {action.acceptable_price}
+            </p>
+            <p>
+              <span className="font-semibold text-foreground">Timing:</span>{" "}
+              {action.timing}
+            </p>
+            <p>
               <span className="font-semibold text-foreground">Why now:</span>{" "}
               {action.why_now}
             </p>

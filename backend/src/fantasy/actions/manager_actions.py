@@ -93,6 +93,10 @@ def _action(
         confidence=confidence,
         headline=f"Pitch {summary.manager_name} in {league_name}",
         recommended_action=f"Offer {send} for {receive}; lead with {pitch}",
+        acceptable_price=(
+            f"Stay in the {suggestion.fairness_band} band: send {send} for {receive}."
+        ),
+        timing="This week while the manager tendency sample is still actionable.",
         why_now=(
             f"{summary.manager_name} has a strong enough trade sample to make this "
             "a pitchable manager-specific window."

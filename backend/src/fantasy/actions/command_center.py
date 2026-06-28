@@ -5,7 +5,12 @@ from urllib.parse import quote_plus
 
 import duckdb
 
-from fantasy.actions.models import CommandAction, CommandCenterResponse, DataRefreshAction
+from fantasy.actions.models import (
+    CommandAction,
+    CommandCenterResponse,
+    DataRefreshAction,
+    TradeSuggestion,
+)
 from fantasy.actions.manager_actions import build_manager_actions
 from fantasy.actions.portfolio_risk import portfolio_player_risk
 from fantasy.actions.ranking import action_sort_key
@@ -233,6 +238,12 @@ class CommandCenterEngine:
                     confidence=rec.confidence,
                     headline=f"{self._league_name(league_id)}: add {rec.player_name}",
                     recommended_action=f"Claim {rec.player_name} for {bid}.{drop}",
+                    acceptable_price=bid,
+                    timing=(
+                        "Before the waiver run."
+                        if rec.recommendation_label != "free_agent_only"
+                        else "Add before the next roster churn window."
+                    ),
                     why_now=why_now,
                     risk_if_wrong=rec.drop_reason
                     or "The player is only a depth upgrade and may not beat your bench alternative.",
@@ -286,6 +297,8 @@ class CommandCenterEngine:
                         confidence=decision.confidence,
                         headline=f"{self._league_name(league_id)}: start {decision.start_player_name}",
                         recommended_action=decision.recommendation,
+                        acceptable_price="No asset cost; swap the lineup slot.",
+                        timing="Before lineups lock.",
                         why_now=decision.why_now,
                         risk_if_wrong=decision.risk_if_wrong,
                         evidence=self._weekly_start_sit_evidence(
@@ -324,6 +337,11 @@ class CommandCenterEngine:
                         confidence=gap.confidence,
                         headline=f"{self._league_name(league_id)}: fix {gap.position}",
                         recommended_action=gap.recommended_action,
+                        acceptable_price=(
+                            "Use a waiver patch or fair trade only; do not overpay past "
+                            f"a {gap.gap_to_title_target:.1f}-point title gap."
+                        ),
+                        timing="This week while the lineup gap is still active.",
                         why_now=gap.why_now,
                         risk_if_wrong="The gap can close if recent usage or injury data is stale.",
                         evidence=[
@@ -449,6 +467,14 @@ class CommandCenterEngine:
             confidence=item.trend_confidence,
             headline=f"{verb} window: {item.player_name}",
             recommended_action=f"{verb} {item.player_name}; use the market gap as the price anchor.",
+            acceptable_price=self._opportunity_price_anchor(item, trade_suggestion),
+            timing=(
+                "Today while this solves a lineup gap."
+                if item.weekly_fit is not None
+                else "This week while the market gap is still actionable."
+                if item.suggested_action in {"buy", "sell"}
+                else "Monitor until price or role moves."
+            ),
             why_now=why_now,
             risk_if_wrong=risk,
             evidence=evidence,
@@ -506,6 +532,16 @@ class CommandCenterEngine:
                         else row.hedge_rec
                         or f"Review {row.full_name} across {row.league_count} leagues and decide sell, hold, or hedge."
                     ),
+                    acceptable_price=(
+                        "Shop or hedge one share; avoid liquidating every exposure below market."
+                        if injury_risk is not None
+                        else "Hold conviction unless one league offers a market-level hedge."
+                    ),
+                    timing=(
+                        "Today before injury/news exposure compounds."
+                        if injury_risk is not None and injury_risk.urgency == "today"
+                        else "This week during portfolio review."
+                    ),
                     why_now=(
                         injury_risk.why_now
                         if injury_risk is not None
@@ -530,3 +566,19 @@ class CommandCenterEngine:
                 )
             )
         return actions
+
+    def _opportunity_price_anchor(
+        self,
+        item: OpportunityFeedItem,
+        trade_suggestion: TradeSuggestion | None,
+    ) -> str:
+        if trade_suggestion is not None:
+            send = " + ".join(trade_suggestion.send_assets) or "your sell-side asset"
+            receive = " + ".join(trade_suggestion.receive_assets) or item.player_name
+            return f"Stay near {trade_suggestion.fairness_band}: send {send} for {receive}."
+        gap = abs(round(item.adp_gap))
+        if item.suggested_action == "buy":
+            return f"Buy only if the ask preserves most of the {gap}-slot market discount."
+        if item.suggested_action == "sell":
+            return f"Shop for a return that captures the {gap}-slot market premium."
+        return f"No buy/sell price yet; monitor the {gap}-slot market gap."

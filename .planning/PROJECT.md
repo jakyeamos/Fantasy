@@ -43,6 +43,7 @@ The system must tell you — for each of your teams — what you are, what your 
 - Command-center ranking now prefers ready execution inside equal urgency/confidence buckets, so prefilled manager offers and concrete next-click actions are not crowded out by generic market-monitor cards.
 - Opportunity Feed scoring now boosts buy windows that solve active lineup gaps and dampens that weekly-fit boost when usage/stats/schedule/injury freshness is stale, adding plain-language lineup-gap and stale-data notes to the action rationale.
 - Opportunity Feed items now expose structured weekly lineup-fit evidence, render lineup-gap and stale-weekly-data badges on cards, and include a route filter for opportunities that solve current lineup gaps.
+- Command-center actions now require and render explicit acceptable-price and timing fields, so Top 5 cards consistently show action, price, timing, risk, evidence, stale-data warning, and next click.
 
 ### Active
 
@@ -119,4 +120,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after Opportunity Feed surfaced structured weekly lineup-fit evidence and filtering*
+*Last updated: 2026-06-28 after Command Center Top 5 cards gained explicit price and timing fields*

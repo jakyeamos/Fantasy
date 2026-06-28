@@ -50,6 +50,8 @@ class CommandAction(BaseModel):
     confidence: CommandConfidence
     headline: str
     recommended_action: str
+    acceptable_price: str
+    timing: str
     why_now: str
     risk_if_wrong: str
     evidence: list[str] = Field(default_factory=list)

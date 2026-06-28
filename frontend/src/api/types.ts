@@ -426,6 +426,8 @@ export interface CommandAction {
   confidence: ConfidenceLabel
   headline: string
   recommended_action: string
+  acceptable_price: string
+  timing: string
   why_now: string
   risk_if_wrong: string
   evidence: string[]

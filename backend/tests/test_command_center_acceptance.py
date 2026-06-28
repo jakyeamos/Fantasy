@@ -29,6 +29,8 @@ def _action(
         confidence=confidence,
         headline=f"{category.title()} move {rank}",
         recommended_action="Send the offer at a fair price before waivers process.",
+        acceptable_price="Fair price only; do not add premium assets.",
+        timing="Before the next waiver or lineup lock window.",
         why_now="The market window is open today.",
         risk_if_wrong="The role signal can reverse after injury news.",
         evidence=["Price: fair", "Risk: monitored", "CTA: ready"],
@@ -80,6 +82,8 @@ def test_command_center_top_five_moves_are_actionable(db, monkeypatch):
     assert top_five[0].urgency == "today"
     for action in top_five:
         assert action.recommended_action
+        assert action.acceptable_price
+        assert action.timing
         assert action.why_now
         assert action.risk_if_wrong
         assert action.evidence

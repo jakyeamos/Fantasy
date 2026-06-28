@@ -27,6 +27,8 @@ def build_weekly_risk_action(
         confidence=_confidence(signal, edge.stale_domains),
         headline=f"{league_name}: {verb} {signal.player_name}",
         recommended_action=_recommended_action(signal),
+        acceptable_price=_acceptable_price(signal),
+        timing="Before lineups lock.",
         why_now=_why_now(signal),
         risk_if_wrong=_risk_if_wrong(signal),
         evidence=_evidence(signal),
@@ -85,6 +87,14 @@ def _recommended_action(signal: WeeklyPlayerSignal) -> str:
     if signal.availability_status == "out":
         return f"Replace {signal.player_name}; do not leave an unavailable starter locked in."
     return f"Check {signal.player_name}'s active status before lineups lock."
+
+
+def _acceptable_price(signal: WeeklyPlayerSignal) -> str:
+    if signal.bye_week_warning is not None:
+        return "No trade premium; use a bench pivot, waiver patch, or short rental."
+    if signal.availability_status == "out":
+        return "No asset premium; replace the unavailable starter with your best active option."
+    return "No asset cost yet; pay only if fresh status confirms the lineup risk."
 
 
 def _why_now(signal: WeeklyPlayerSignal) -> str:
