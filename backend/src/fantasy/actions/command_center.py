@@ -458,12 +458,18 @@ class CommandCenterEngine:
         owned_player_ids = self._owned_player_ids_by_league(user_rosters)
         actions: list[CommandAction] = []
         seen_action_ids: set[str] = set()
+        seen_player_signals: set[tuple[str, str]] = set()
         for item in response.items[:6]:
             if item.signal_type in SELL_EDGE_SIGNALS and not self._user_owns_edge_player(
                 item,
                 owned_player_ids,
             ):
                 continue
+            if item.player_id is not None:
+                player_signal_key = (item.signal_type, item.player_id)
+                if player_signal_key in seen_player_signals:
+                    continue
+                seen_player_signals.add(player_signal_key)
             action_id = f"edge:{item.id}"
             if action_id in seen_action_ids:
                 continue

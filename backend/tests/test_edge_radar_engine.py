@@ -644,3 +644,70 @@ def test_command_center_deduplicates_edge_radar_actions_by_id(db, monkeypatch):
         if action.id == "edge:buy_low:edge_league:buy_low"
     ]
     assert edge_action_ids == ["edge:buy_low:edge_league:buy_low"]
+
+
+def test_command_center_deduplicates_edge_radar_actions_by_player_signal(
+    db,
+    monkeypatch,
+):
+    engine = CommandCenterEngine(db)
+    monkeypatch.setattr(
+        engine,
+        "_user_rosters",
+        lambda league_id: [
+            {"league_id": "league_a", "roster_id": 1, "players": []},
+            {"league_id": "league_b", "roster_id": 1, "players": []},
+        ],
+    )
+    shared_kwargs = {
+        "signal_type": "buy_low",
+        "roster_id": 1,
+        "player_id": "stafford",
+        "player_name": "Matthew Stafford",
+        "position": "QB",
+        "action_label": "Buy low",
+        "market_delta": 0.44,
+        "market_price": 0.56,
+        "model_value": 1.0,
+        "conviction_score": 44.0,
+        "confidence": "HIGH",
+        "acceptable_price": "Keep at least 0.44 normalized points of discount.",
+        "timing_window": "This week before market reprices.",
+        "source_evidence": ["Market delta: +0.44"],
+        "risks": ["The public market may be right."],
+        "cta_label": "Open Trade Lab",
+    }
+    first_item = EdgeRadarItem(
+        id="buy_low:league_a:stafford",
+        league_id="league_a",
+        cta_destination="/trades?leagueId=league_a&receivePlayerId=stafford",
+        **shared_kwargs,
+    )
+    second_item = EdgeRadarItem(
+        id="buy_low:league_b:stafford",
+        league_id="league_b",
+        cta_destination="/trades?leagueId=league_b&receivePlayerId=stafford",
+        **shared_kwargs,
+    )
+
+    class FakeEdgeRadarEngine:
+        def __init__(self, _conn):
+            pass
+
+        def build(self, league_id, limit):
+            return type("EdgeResponse", (), {"items": [first_item, second_item]})()
+
+    monkeypatch.setattr(
+        "fantasy.actions.command_center.EdgeRadarEngine",
+        FakeEdgeRadarEngine,
+    )
+
+    response = engine.build()
+
+    stafford_actions = [
+        action
+        for action in response.actions
+        if action.headline == "Buy low: Matthew Stafford"
+    ]
+    assert len(stafford_actions) == 1
+    assert stafford_actions[0].league_id == "league_a"
