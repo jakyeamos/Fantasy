@@ -8,6 +8,7 @@ import duckdb
 from fantasy.actions.models import CommandAction, CommandCenterResponse, DataRefreshAction
 from fantasy.actions.manager_actions import build_manager_actions
 from fantasy.actions.portfolio_risk import portfolio_player_risk
+from fantasy.actions.ranking import action_sort_key
 from fantasy.actions.rookie_actions import build_rookie_actions
 from fantasy.actions.trade_suggestions import TradeSuggestionBuilder
 from fantasy.actions.weekly_risk import build_weekly_risk_action
@@ -23,18 +24,6 @@ from fantasy.weekly.models import LineupGapDecision, StartSitDecision, WeeklyPla
 from fantasy.weekly.weekly_edge_service import WeeklyEdgeService
 
 WEEKLY_DOMAINS = ["injuries", "usage", "schedule", "waivers", "market", "stats"]
-
-URGENCY_WEIGHT = {"today": 0, "this_week": 1, "watch": 2, "low": 3}
-CONFIDENCE_WEIGHT = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
-CATEGORY_WEIGHT = {
-    "waiver": 0,
-    "lineup": 1,
-    "trade": 2,
-    "market": 3,
-    "rookie_pick": 4,
-    "portfolio": 5,
-    "manager": 6,
-}
 
 
 class CommandCenterEngine:
@@ -58,15 +47,7 @@ class CommandCenterEngine:
         actions.extend(build_rookie_actions(self._conn, user_rosters))
         actions.extend(self._portfolio_actions())
 
-        actions.sort(
-            key=lambda action: (
-                URGENCY_WEIGHT[action.urgency],
-                CONFIDENCE_WEIGHT[action.confidence],
-                CATEGORY_WEIGHT[action.category],
-                action.priority_rank,
-                action.headline.lower(),
-            )
-        )
+        actions.sort(key=action_sort_key)
         ranked = [
             action.model_copy(update={"priority_rank": index + 1})
             for index, action in enumerate(actions[:20])

@@ -40,6 +40,7 @@ The system must tell you — for each of your teams — what you are, what your 
 - Command-center weekly risk actions now surface bye/no-opponent starters even when no bench pivot exists, with replacement guidance, schedule freshness warnings, usage/role evidence, and direct Weekly Edge CTAs.
 - Command-center manager exploit actions now require stronger evidence and build concrete Trade Lab packages with real send/receive assets, manager pitch framing, fairness evidence, and prefilled trade CTAs.
 - Browser smoke discovery now retries dashboard summary during dev refresh warmup so route sweeps consistently include league, waiver, manager, and rookie-board routes when local league data is present.
+- Command-center ranking now prefers ready execution inside equal urgency/confidence buckets, so prefilled manager offers and concrete next-click actions are not crowded out by generic market-monitor cards.
 
 ### Active
 
@@ -116,4 +117,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after manager exploit actions and browser smoke league-route discovery were tightened*
+*Last updated: 2026-06-28 after command-center ranking began preferring executable top-five actions*

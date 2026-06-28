@@ -101,6 +101,41 @@ def test_command_center_top_five_moves_are_actionable(db, monkeypatch):
     )
 
 
+def test_command_center_top_five_prefers_executable_manager_offer(db, monkeypatch):
+    engine = CommandCenterEngine(db)
+    rosters = [{"league_id": "cmd_rank", "roster_id": 1}]
+    market_noise = [
+        _action(f"market:{index}", "market", "this_week", "MEDIUM", index)
+        for index in range(1, 6)
+    ]
+    for action in market_noise:
+        action.recommended_action = "Monitor this market gap before acting."
+        action.cta_destination = "/opportunities"
+    manager_offer = _action("manager:cmd_rank:2", "manager", "this_week", "MEDIUM", 99)
+    manager_offer.recommended_action = "Offer Send WR for Target WR."
+    manager_offer.cta_label = "Open Trade Lab"
+    manager_offer.cta_destination = (
+        "/trades?leagueId=cmd_rank&userRosterId=1&counterpartyRosterId=2"
+        "&sendPlayerId=send_wr&receivePlayerId=target_wr"
+    )
+
+    monkeypatch.setattr(engine, "_user_rosters", lambda league_id: rosters)
+    monkeypatch.setattr(engine, "_waiver_actions", lambda _: [])
+    monkeypatch.setattr(engine, "_weekly_actions", lambda _: [])
+    monkeypatch.setattr(engine, "_opportunity_actions", lambda league_id: market_noise)
+    monkeypatch.setattr(
+        "fantasy.actions.command_center.build_manager_actions",
+        lambda _conn, _rosters, _league_name: [manager_offer],
+    )
+    monkeypatch.setattr(engine, "_portfolio_actions", lambda: [])
+
+    response = engine.build("cmd_rank")
+
+    top_five_ids = [action.id for action in response.actions[:5]]
+    assert "manager:cmd_rank:2" in top_five_ids
+    assert "market:5" not in top_five_ids
+
+
 def test_command_center_turns_weekly_availability_into_top_move(db):
     db.execute(
         """
