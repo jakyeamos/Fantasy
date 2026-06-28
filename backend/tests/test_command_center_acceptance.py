@@ -6,6 +6,7 @@ from fantasy.actions.command_center import CommandCenterEngine
 from fantasy.actions.models import CommandAction
 from fantasy.lineup.lineup_repo import LineupRepo
 from fantasy.lineup.models import LineupResult, LineupSlotScore
+from fantasy.trends.models import OpportunityCta, OpportunityFeedItem
 from fantasy.waiver.models import WaiverRecommendation, WaiverRecommendationsResponse
 from fantasy.waiver.waiver_repo import WaiverRepo
 
@@ -279,3 +280,142 @@ def test_command_center_connects_waiver_add_to_lineup_gap(db):
         evidence == "Weekly lineup gap: WR is 14.0 below the title target"
         for evidence in waiver_action.evidence
     )
+
+
+def test_command_center_connects_buy_window_to_lineup_gap(db, monkeypatch):
+    db.execute(
+        """
+        INSERT INTO leagues (
+            league_id, name, season, scoring_settings, roster_positions,
+            settings_blob, superflex, tep, ppr
+        )
+        VALUES ('cmd_trade_gap', 'Trade Gap', '2026', '{}', '["WR","BN"]', '{}', FALSE, FALSE, 1.0)
+        """
+    )
+    db.executemany(
+        """
+        INSERT INTO rosters (
+            id, league_id, roster_id, owner_id, owner_display_name,
+            starters, players, reserve, taxi
+        )
+        VALUES (?, 'cmd_trade_gap', ?, ?, ?, ?, ?, '[]', '[]')
+        """,
+        [
+            (1, 1, "owner_a", "Alpha", '["weak_wr"]', json.dumps(["weak_wr", "send_wr"])),
+            (2, 2, "owner_b", "Beta", '["target_wr"]', json.dumps(["target_wr"])),
+        ],
+    )
+    db.executemany(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES (?, ?, 'WR', 'TG', 25, '{"status":"Active"}')
+        """,
+        [
+            ("weak_wr", "Thin Starter",),
+            ("send_wr", "Send WR",),
+            ("target_wr", "Target WR",),
+        ],
+    )
+    db.executemany(
+        """
+        INSERT INTO player_values (
+            id, league_id, roster_id, player_id,
+            comp_current_production, comp_short_term, comp_role_stability,
+            comp_age_curve, comp_insulation, comp_market_liquidity,
+            comp_positional_scarcity, comp_fragility, comp_ceiling, comp_floor,
+            comp_rerollability, comp_contract, lens_production, lens_market,
+            lens_insulation, lens_team_fit, lens_direction
+        )
+        VALUES (?, 'cmd_trade_gap', ?, ?, ?, 0.5, 0.5, 0.5, 0.5, ?, 0.5, 0.5, ?, 0.5, 0.5, 0.5, ?, ?, 0.5, 0.5, 0.5)
+        """,
+        [
+            (1, 1, "weak_wr", 0.40, 0.40, 0.40, 0.40, 0.40),
+            (2, 1, "send_wr", 0.56, 0.56, 0.56, 0.56, 0.56),
+            (3, 2, "target_wr", 0.68, 0.68, 0.68, 0.68, 0.68),
+        ],
+    )
+    LineupRepo(db).save_lineup_result(
+        LineupResult(
+            league_id="cmd_trade_gap",
+            roster_id=1,
+            slot_scores=[
+                LineupSlotScore(
+                    position="WR",
+                    player_id="weak_wr",
+                    player_name="Thin Starter",
+                    starter_value=43.0,
+                    replacement_level=35.0,
+                    score=0.35,
+                    playoff_target=49.0,
+                    title_target=56.0,
+                    elite_target=63.0,
+                    upgrade_leverage_score=0.9,
+                    gap_to_playoff_target=6.0,
+                    gap_to_title_target=13.0,
+                    gap_to_elite_target=20.0,
+                    below_playoff_target=True,
+                    below_title_target=True,
+                    below_elite_target=True,
+                    weak_relative_to_contender=True,
+                    benchmark_used=True,
+                    benchmark_sample_size=12,
+                )
+            ],
+            total_lineup_score=43.0,
+            overall_playoff_target=49.0,
+            overall_title_target=56.0,
+            overall_elite_target=63.0,
+            overall_gap_to_playoff_target=6.0,
+            overall_gap_to_title_target=13.0,
+            overall_gap_to_elite_target=20.0,
+            title_window_label="Fading Window",
+            title_window_composite=0.45,
+            ceiling_score=0.4,
+            stability_score=0.3,
+            depth_score=0.2,
+        )
+    )
+
+    class FakeOpportunityEngine:
+        def __init__(self, _conn):
+            pass
+
+        def build_feed(self):
+            return [
+                OpportunityFeedItem(
+                    player_id="target_wr",
+                    player_name="Target WR",
+                    position="WR",
+                    trend_label="will_rise",
+                    trend_confidence="HIGH",
+                    adp_gap=-24.0,
+                    suggested_action="buy",
+                    availability="opponent_roster",
+                    impact_score=88.0,
+                    why_summary="Target WR is underpriced before usage catches up.",
+                    cta=OpportunityCta(
+                        label="Build offer",
+                        destination="trade_evaluator",
+                        league_id="cmd_trade_gap",
+                        user_roster_id=1,
+                        manager_roster_id=2,
+                    ),
+                )
+            ]
+
+    monkeypatch.setattr("fantasy.actions.command_center.OpportunityEngine", FakeOpportunityEngine)
+
+    response = CommandCenterEngine(db).build("cmd_trade_gap")
+
+    trade_action = next(action for action in response.actions if action.id == "market:target_wr")
+    assert trade_action.category == "trade"
+    assert trade_action.urgency == "today"
+    assert "solves a current WR lineup gap" in trade_action.why_now
+    assert "usage" in trade_action.stale_domains
+    assert any(
+        evidence == "Weekly lineup gap: WR is 13.0 below the title target"
+        for evidence in trade_action.evidence
+    )
+    assert trade_action.trade_suggestion is not None
+    assert "sendPlayerId=send_wr" in trade_action.cta_destination
+    assert "receivePlayerId=target_wr" in trade_action.cta_destination

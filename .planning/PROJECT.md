@@ -34,6 +34,7 @@ The system must tell you — for each of your teams — what you are, what your 
 - Browser/route smoke coverage now lives in `frontend/scripts/browserSmoke.mjs` with `pnpm browser:smoke` and `pnpm routes:smoke`, Playwright is a frontend dev dependency, and stale command-center freshness warnings now include executable refresh actions.
 - Weekly-edge command links now highlight their exact start/sit or position-gap target, portfolio links highlight the target exposure row, weekly signals include bye/depth-context notes, opportunity similarity failures degrade to partial feed responses, and test schema setup is split out of oversized `conftest.py`.
 - Command-center weekly actions now expose sit-player availability, projection, stale-domain, usage, matchup, and role evidence; cached waiver actions now inspect weekly lineup gaps so immediate starter adds that patch a title-lineup hole are promoted to today with explicit lineup-gap evidence.
+- Buy-window command actions now inspect the user's weekly lineup gaps, so trade recommendations that solve a current starter hole include the gap evidence, stale weekly domains, and still deep-link into a prefilled Trade Lab package.
 
 ### Active
 
@@ -110,4 +111,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after weekly context began driving command-center evidence and waiver urgency*
+*Last updated: 2026-06-28 after weekly context began driving command-center waiver and trade urgency*

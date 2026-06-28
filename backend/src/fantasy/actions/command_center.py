@@ -396,6 +396,7 @@ class CommandCenterEngine:
         if item.trend_confidence == "LOW" and item.availability == "available":
             return None
 
+        matching_gap = self._opportunity_lineup_gap(item)
         cta_destination = "/opportunities"
         if item.cta is not None:
             if item.cta.destination == "trade_evaluator" and item.cta.league_id:
@@ -418,6 +419,24 @@ class CommandCenterEngine:
             item.conflict_explanation
             or "The market gap may be noisy if league mates do not value this player near public ADP."
         )
+        why_now = item.why_summary
+        evidence = [
+            f"Market gap: {round(item.adp_gap)} startup slots",
+            f"Context: {item.availability.replace('_', ' ')}",
+        ]
+        stale_domains: list[str] = []
+        if matching_gap is not None:
+            why_now = (
+                f"{item.why_summary} It solves a current {matching_gap.position} lineup gap: "
+                f"{matching_gap.current_player_name} is "
+                f"{matching_gap.gap_to_title_target:.1f} below the title target."
+            )
+            evidence.append(
+                "Weekly lineup gap: "
+                f"{matching_gap.position} is {matching_gap.gap_to_title_target:.1f} "
+                "below the title target"
+            )
+            stale_domains = sorted(matching_gap.stale_domains)
         trade_suggestion = (
             self._trade_suggestions.build(item)
             if item.suggested_action in {"buy", "sell"}
@@ -435,16 +454,31 @@ class CommandCenterEngine:
             confidence=item.trend_confidence,
             headline=f"{verb} window: {item.player_name}",
             recommended_action=f"{verb} {item.player_name}; use the market gap as the price anchor.",
-            why_now=item.why_summary,
+            why_now=why_now,
             risk_if_wrong=risk,
-            evidence=[
-                f"Market gap: {round(item.adp_gap)} startup slots",
-                f"Context: {item.availability.replace('_', ' ')}",
-            ],
+            evidence=evidence,
             cta_label=item.cta.label if item.cta else "Open Opportunities",
             cta_destination=cta_destination,
+            stale_domains=stale_domains,
             trade_suggestion=trade_suggestion,
         )
+
+    def _opportunity_lineup_gap(
+        self,
+        item: OpportunityFeedItem,
+    ) -> LineupGapDecision | None:
+        if (
+            item.suggested_action != "buy"
+            or item.cta is None
+            or item.cta.league_id is None
+            or item.cta.user_roster_id is None
+        ):
+            return None
+        edge = WeeklyEdgeService(self._conn).build(
+            item.cta.league_id,
+            item.cta.user_roster_id,
+        )
+        return self._matching_lineup_gap(edge.lineup_gaps, item.position)
 
     def _manager_actions(
         self, rosters: list[dict[str, object]]
