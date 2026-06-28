@@ -12,10 +12,10 @@
 - Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable. (no file evidence)
 - Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable. (no file evidence)
 - Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable. (no file evidence)
-- Pre-CR block [error]: Pre-CR blocked the run: coverage result was unavailable. (no file evidence)
 - AIOS warn [warning]: AIOS warning only: 951 nonblank lines exceeds production source size limit 500; split by responsibility or document an exception (frontend/src/routes/trades.tsx)
 - Pre-CR warn [warning]: Pre-CR warning only: coverage result was unavailable. (no file evidence)
 - AIOS warn [warning]: AIOS warning only: 949 nonblank lines exceeds production source size limit 600; split by responsibility or document an exception (backend/src/fantasy/lineup/hygiene_engine.py)
+- AIOS warn [warning]: AIOS warning only: 656 nonblank lines exceeds production source size limit 600; split by responsibility or document an exception (backend/src/fantasy/actions/command_center.py)
 
 ## Repeated failure patterns
 

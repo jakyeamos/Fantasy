@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: implementing
-stopped_at: Frontend UI tokenization completed
-last_updated: "2026-06-28T16:20:38-04:00"
+stopped_at: Edge Radar discovery layer completed
+last_updated: "2026-06-28T17:02:51-04:00"
 progress:
   total_phases: 21
   completed_phases: 16
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Tell me what my team is, what my best path is, who to trade with, what kind of deal to make, and whether the prospect or pick decision I'm considering is actually sharp in this format and league.
-**Current focus:** Frontend UI tokenization — semantic color, surface, shadow, type-size, tracking, and season-state styling is centralized in CSS/Tailwind theme tokens plus shared UI token class recipes.
+**Current focus:** Edge Radar discovery layer — backend-only normalized market-delta intelligence feeding Command Center actions, with no new primary frontend route.
 
 ## Current Position
 
 Phase: Baseline stabilization
-Plan: Tokenize frontend UI styling
+Plan: Edge Radar discovery layer
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Plan: Tokenize frontend UI styling
 
 - Phase 21 added: player value trends and market inefficiency trade suggestions
 - Phase 21 executed end to end: trend engine, opportunity feed route, opportunity feed UI, and dashboard entry points
+- Edge Radar inserted as a backend discovery/intelligence layer after Phase 21 to rank opportunities by delta from public market and feed existing decision surfaces instead of creating another primary UX destination
 
 ### Decisions
 
@@ -95,6 +96,9 @@ Recent decisions affecting current work:
 - [Trade Evaluator]: Multi-team trades now return `third_party_evaluations` with sidecar market fairness scores. Reroutes and package builder are no longer suppressed for multi-team requests when the primary counterparty path is otherwise evaluable.
 - [Backend Verification]: `uv run pytest` from `backend/` now loads `pytest-asyncio` via the uv dev dependency group and passes 476 tests after baseline direction confidence/transition-contender calibration and DuckDB `player_trends` upsert timestamp repair.
 - [Frontend Tokens]: Shared semantic UI tokens now cover success, warning, attention, info, strategy, destructive, season badges, shadows, label text sizes, and label tracking. Feature components consume `frontend/src/lib/ui-tokens.ts` instead of direct Tailwind palette/arbitrary color classes.
+- [Edge Radar]: EdgeRadarEngine computes buy_low, buy_high, sell_high, sell_low, and waiver_pickup discoveries from player value vs market price deltas and cached waiver boards; CommandCenterEngine consumes the top discoveries as existing CommandAction rows.
+- [Edge Radar]: Similarity evidence is first-class on player discoveries: same/similar position profiles are scored by age, value profile, team, and metadata-backed offensive system/head coach/offensive coordinator when present, then summarized with public weekly fantasy outcomes.
+- [Backend Verification]: `uv run pytest` from `backend/` passed 501 tests after Edge Radar discovery-layer integration.
 
 ### Pending Todos
 
@@ -105,9 +109,10 @@ Recent decisions affecting current work:
 - [Phase 8]: Research is complete, but external dependencies (`scikit-learn`, `nflreadpy`, `scipy`) and the ETL/model pipeline are still the highest execution-risk area.
 - [Schema]: Dual schema management remains for tests/runtime compatibility (`startup_tasks.py` plus `conftest.py`), but the normal local launcher now runs Alembic before backend boot. Direct `uvicorn` usage still requires a manual `alembic upgrade heads`.
 - [Code Quality]: Silent exception swallowing in `pick_engine._load_class_strength_signal`, `trade_engine._build_pick_proxy`, and `ingest_service._backfill_roster_players` — all use bare `except Exception: pass/return 0.0` with no logging. Failures are invisible in production.
+- [Code Quality]: `command_center.py` is over the local changed-line readiness size gate (656 nonblank lines after Edge Radar adapter wiring). The adapter is small, but the file should be split by action lane before further Command Center expansion.
 
 ## Session Continuity
 
-Last session: 2026-06-28T16:20:38-04:00
-Stopped at: Frontend UI tokenization completed and verified with `pnpm build`
+Last session: 2026-06-28T17:02:51-04:00
+Stopped at: Edge Radar discovery layer completed and verified with `uv run pytest`
 Resume file: .planning/STATE.md

@@ -12,6 +12,7 @@ The system must tell you — for each of your teams — what you are, what your 
 
 ### Validated
 
+- Edge Radar now exists as an internal backend discovery layer that ranks buy low, buy high, sell high, sell low, and waiver pickup signals by normalized model-vs-market delta, enriches player signals with similar-player outcome evidence from age/team/system/coach metadata when available, and feeds discoveries into Command Center actions instead of adding a competing frontend destination.
 - League-page refresh now runs an incremental Sleeper ingest instead of freezing the current cached state, so manual refreshes rebuild analytics and write a fresh snapshot before the UI reloads.
 - Multi-team trade evaluator reroutes and package builder outputs now use third-party sidecar evaluations to explain offers for every participant in the deal, not only the primary counterparty.
 - Snapshot comparison membership is derived from `rosters.players`, so adds and departures still surface when player valuation rows lag behind roster ingestion.
