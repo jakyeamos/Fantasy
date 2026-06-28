@@ -428,6 +428,107 @@ def test_edge_radar_uses_team_context_source_for_system_similarity(db):
     )
 
 
+def test_edge_radar_similarity_uses_dense_role_market_and_outcome_comps(db):
+    _seed_league(db)
+    dense_profile = {
+        "target_share": 0.28,
+        "air_yard_share": 0.34,
+        "route_participation": 0.88,
+        "snap_share": 0.79,
+        "red_zone_touches": 5,
+        "yards_per_route_run": 2.35,
+        "explosive_play_rate": 0.13,
+        "first_read_target_share": 0.31,
+        "slot_rate": 0.52,
+        "goal_line_share": 0.09,
+        "pass_rate_over_expectation": 0.04,
+        "scoring_environment": 0.74,
+        "breakout_age": 21.2,
+        "yoy_role_growth": 0.16,
+        "trade_value_movement": 0.03,
+        "roster_rate": 0.88,
+        "six_week_value_delta": 0.18,
+    }
+    _seed_player(
+        db,
+        player_id="target_wr",
+        player_name="Target WR",
+        position="WR",
+        model_value=0.82,
+        market_value=0.50,
+        adp=90,
+        age=24,
+        team="SEA",
+        metadata=dense_profile,
+    )
+    _seed_player(
+        db,
+        player_id="dense_comp",
+        player_name="Dense Comp",
+        position="WR",
+        model_value=0.80,
+        market_value=0.52,
+        adp=92,
+        age=24,
+        team="MIA",
+        metadata={
+            **dense_profile,
+            "target_share": 0.27,
+            "route_participation": 0.86,
+            "trade_value_movement": 0.04,
+            "six_week_value_delta": 0.22,
+        },
+    )
+    _seed_player(
+        db,
+        player_id="shallow_comp",
+        player_name="Shallow Comp",
+        position="WR",
+        model_value=0.80,
+        market_value=0.52,
+        adp=92,
+        age=24,
+        team="SEA",
+        metadata={
+            "target_share": 0.12,
+            "route_participation": 0.45,
+            "yards_per_route_run": 0.85,
+            "first_read_target_share": 0.08,
+            "roster_rate": 0.35,
+            "six_week_value_delta": -0.09,
+        },
+    )
+    db.execute(
+        """
+        INSERT INTO player_stats_weekly (
+            player_id, player_name, position, season, week, fantasy_points, targets
+        )
+        VALUES
+            ('dense_comp', 'Dense Comp', 'WR', 2026, 1, 18.0, 9.0),
+            ('dense_comp', 'Dense Comp', 'WR', 2026, 2, 20.0, 10.0),
+            ('dense_comp', 'Dense Comp', 'WR', 2026, 6, 16.0, 8.0),
+            ('dense_comp', 'Dense Comp', 'WR', 2027, 1, 17.0, 8.0),
+            ('shallow_comp', 'Shallow Comp', 'WR', 2026, 1, 6.0, 3.0),
+            ('shallow_comp', 'Shallow Comp', 'WR', 2026, 2, 7.0, 3.0)
+        """
+    )
+
+    item = next(
+        candidate
+        for candidate in EdgeRadarEngine(db).build().items
+        if candidate.player_id == "target_wr"
+    )
+
+    assert item.similar_player_outcomes[0].player_id == "dense_comp"
+    assert "similar usage" in item.similar_player_outcomes[0].context
+    assert "similar role quality" in item.similar_player_outcomes[0].context
+    assert "similar market behavior" in item.similar_player_outcomes[0].context
+    assert "similar career stage" in item.similar_player_outcomes[0].context
+    assert "next 4 weeks 19.0 fantasy points" in item.similar_player_outcomes[0].outcome_summary
+    assert "next season 17.0 fantasy points" in item.similar_player_outcomes[0].outcome_summary
+    assert any("Outcome comps:" in evidence for evidence in item.source_evidence)
+
+
 def test_command_center_consumes_edge_radar_discoveries_as_actions(db):
     _seed_league(db)
     _seed_player(

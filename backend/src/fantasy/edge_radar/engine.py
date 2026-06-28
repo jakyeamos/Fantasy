@@ -11,8 +11,14 @@ from fantasy.edge_radar.models import (
     EdgeRadarItem,
     EdgeRadarResponse,
     EdgeSignalType,
-    SimilarPlayerOutcome,
     SourceHealth,
+)
+from fantasy.edge_radar.similarity import (
+    clamp01,
+    merge_context_metadata,
+    similar_player_outcomes,
+    team_context_from_row,
+    value_gain_evidence,
 )
 from fantasy.portfolio.portfolio_repo import PortfolioRepo
 
@@ -22,7 +28,7 @@ SELL_HIGH_MARKET_PRICE = 0.55
 
 
 def _clamp01(value: float) -> float:
-    return max(0.0, min(1.0, value))
+    return clamp01(value)
 
 
 def _loads(raw: str | None, fallback: Any) -> Any:
@@ -32,17 +38,6 @@ def _loads(raw: str | None, fallback: Any) -> Any:
         return json.loads(raw)
     except json.JSONDecodeError:
         return fallback
-
-
-def _merge_context_metadata(
-    metadata: dict[str, Any],
-    context: dict[str, str | None],
-) -> dict[str, Any]:
-    merged = dict(metadata)
-    for key, value in context.items():
-        if value and not merged.get(key):
-            merged[key] = value
-    return merged
 
 
 def _team_context_evidence(metadata: dict[str, Any]) -> list[str]:
@@ -160,11 +155,12 @@ class EdgeRadarEngine:
                 market_price=market_price,
                 owned_by_user=owner_roster_id == user_roster_id,
             )
-            metadata = _merge_context_metadata(
+            metadata = merge_context_metadata(
                 _loads(row[6], {}),
-                self._team_context_from_row(row, 14),
+                team_context_from_row(row, 14),
             )
-            comps = self._similar_player_outcomes(
+            comps = similar_player_outcomes(
+                self._conn,
                 league_id=row_league_id,
                 season=int(row[13]) if row[13] is not None else None,
                 player_id=player_id,
@@ -216,7 +212,10 @@ class EdgeRadarEngine:
                         f"Startup ADP: {float(row[9] or 250.0):.1f}",
                     ]
                     + _team_context_evidence(metadata)
-                    + similarity_evidence,
+                    + similarity_evidence
+                    + value_gain_evidence(
+                        [comp.outcome_summary for comp in comps]
+                    ),
                     similarity_score=comps[0].similarity_score if comps else 0.0,
                     similar_player_outcomes=comps,
                     risks=self._risks(signal_type),
@@ -237,224 +236,6 @@ class EdgeRadarEngine:
                 )
             )
         return items
-
-    def _similar_player_outcomes(
-        self,
-        *,
-        league_id: str,
-        season: int | None,
-        player_id: str,
-        position: str,
-        team: str,
-        age: int | None,
-        metadata: dict[str, Any],
-        model_value: float,
-        market_price: float,
-        role_stability: float,
-        ceiling: float,
-        floor: float,
-    ) -> list[SimilarPlayerOutcome]:
-        rows = self._conn.execute(
-            """
-            SELECT p.player_id,
-                   COALESCE(p.full_name, p.player_id),
-                   COALESCE(p.position, 'UNKNOWN'),
-                   COALESCE(p.team, ''),
-                   p.age,
-                   p.metadata_blob,
-                   COALESCE(
-                       pv.lens_production,
-                       pv.lens_direction,
-                       pv.comp_current_production,
-                       0.5
-                   ),
-                   COALESCE(pv.lens_market, 0.5),
-                   COALESCE(pv.comp_role_stability, 0.5),
-                   COALESCE(pv.comp_ceiling, 0.5),
-                   COALESCE(pv.comp_floor, 0.5),
-                   AVG(ps.fantasy_points) AS avg_points,
-                   COUNT(ps.player_id) AS stat_games,
-                   tc.head_coach,
-                   tc.offensive_coordinator,
-                   tc.play_caller,
-                   tc.offensive_system,
-                   tc.pace_label,
-                   tc.pass_rate_label
-            FROM players p
-            JOIN player_values pv ON pv.player_id = p.player_id
-            LEFT JOIN player_stats_weekly ps ON ps.player_id = p.player_id
-            LEFT JOIN team_context_by_season tc
-              ON tc.team = p.team
-             AND (? IS NOT NULL AND tc.season = ?)
-            WHERE p.player_id != ?
-              AND COALESCE(p.position, 'UNKNOWN') = ?
-              AND pv.league_id = ?
-            GROUP BY p.player_id, p.full_name, p.position, p.team, p.age, p.metadata_blob,
-                     pv.lens_production, pv.lens_direction, pv.comp_current_production,
-                     pv.lens_market, pv.comp_role_stability, pv.comp_ceiling, pv.comp_floor,
-                     tc.head_coach, tc.offensive_coordinator, tc.play_caller,
-                     tc.offensive_system, tc.pace_label, tc.pass_rate_label
-            LIMIT 80
-            """,
-            [season, season, player_id, position, league_id],
-        ).fetchall()
-        outcomes: list[SimilarPlayerOutcome] = []
-        for row in rows:
-            comp_metadata = _merge_context_metadata(
-                _loads(row[5], {}),
-                self._team_context_from_row(row, 13),
-            )
-            score = self._similarity_score(
-                team=team,
-                age=age,
-                metadata=metadata,
-                model_value=model_value,
-                market_price=market_price,
-                role_stability=role_stability,
-                ceiling=ceiling,
-                floor=floor,
-                comp_team=str(row[3] or ""),
-                comp_age=int(row[4]) if row[4] is not None else None,
-                comp_metadata=comp_metadata,
-                comp_model_value=_clamp01(float(row[6] or 0.5)),
-                comp_market_price=_clamp01(float(row[7] or 0.5)),
-                comp_role_stability=_clamp01(float(row[8] or 0.5)),
-                comp_ceiling=_clamp01(float(row[9] or 0.5)),
-                comp_floor=_clamp01(float(row[10] or 0.5)),
-            )
-            if score < 0.45:
-                continue
-            outcomes.append(
-                SimilarPlayerOutcome(
-                    player_id=str(row[0]),
-                    player_name=str(row[1]),
-                    similarity_score=round(score, 2),
-                    context=self._similarity_context(
-                        team=team,
-                        metadata=metadata,
-                        comp_team=str(row[3] or ""),
-                        comp_metadata=comp_metadata,
-                        comp_age=int(row[4]) if row[4] is not None else None,
-                    ),
-                    outcome_summary=self._outcome_summary(
-                        avg_points=float(row[11]) if row[11] is not None else None,
-                        stat_games=int(row[12] or 0),
-                        model_value=_clamp01(float(row[6] or 0.5)),
-                        market_price=_clamp01(float(row[7] or 0.5)),
-                    ),
-                )
-            )
-        outcomes.sort(key=lambda outcome: (-outcome.similarity_score, outcome.player_name))
-        return outcomes[:3]
-
-    def _team_context_from_row(
-        self,
-        row: tuple[Any, ...],
-        start_index: int,
-    ) -> dict[str, str | None]:
-        keys = (
-            "head_coach",
-            "offensive_coordinator",
-            "play_caller",
-            "offensive_system",
-            "pace_label",
-            "pass_rate_label",
-        )
-        return {
-            key: (
-                str(row[start_index + offset])
-                if row[start_index + offset] is not None
-                else None
-            )
-            for offset, key in enumerate(keys)
-        }
-
-    def _similarity_score(
-        self,
-        *,
-        team: str,
-        age: int | None,
-        metadata: dict[str, Any],
-        model_value: float,
-        market_price: float,
-        role_stability: float,
-        ceiling: float,
-        floor: float,
-        comp_team: str,
-        comp_age: int | None,
-        comp_metadata: dict[str, Any],
-        comp_model_value: float,
-        comp_market_price: float,
-        comp_role_stability: float,
-        comp_ceiling: float,
-        comp_floor: float,
-    ) -> float:
-        score = 0.35
-        if age is not None and comp_age is not None:
-            score += max(0.0, 0.20 - abs(age - comp_age) * 0.04)
-        profile_distance = (
-            abs(model_value - comp_model_value)
-            + abs(market_price - comp_market_price)
-            + abs(role_stability - comp_role_stability)
-            + abs(ceiling - comp_ceiling)
-            + abs(floor - comp_floor)
-        ) / 5.0
-        score += max(0.0, 0.25 - (profile_distance * 0.5))
-        if team and team == comp_team:
-            score += 0.08
-        for key in ("offensive_system", "head_coach", "offensive_coordinator"):
-            if metadata.get(key) and metadata.get(key) == comp_metadata.get(key):
-                score += 0.04
-        return _clamp01(score)
-
-    def _similarity_context(
-        self,
-        *,
-        team: str,
-        metadata: dict[str, Any],
-        comp_team: str,
-        comp_metadata: dict[str, Any],
-        comp_age: int | None,
-    ) -> str:
-        parts: list[str] = []
-        if comp_age is not None:
-            parts.append(f"age {comp_age}")
-        if team and team == comp_team:
-            parts.append("same NFL team")
-        if metadata.get("offensive_system") and metadata.get(
-            "offensive_system"
-        ) == comp_metadata.get("offensive_system"):
-            parts.append("same offensive system")
-        if metadata.get("head_coach") and metadata.get("head_coach") == comp_metadata.get(
-            "head_coach"
-        ):
-            parts.append("same head coach")
-        if metadata.get("offensive_coordinator") and metadata.get(
-            "offensive_coordinator"
-        ) == comp_metadata.get("offensive_coordinator"):
-            parts.append("same offensive coordinator")
-        if not parts:
-            parts.append("similar value and role profile")
-        return ", ".join(parts)
-
-    def _outcome_summary(
-        self,
-        *,
-        avg_points: float | None,
-        stat_games: int,
-        model_value: float,
-        market_price: float,
-    ) -> str:
-        if avg_points is not None and stat_games > 0:
-            return (
-                f"averaged {avg_points:.1f} fantasy points across "
-                f"{stat_games} public stat games"
-            )
-        delta = model_value - market_price
-        return (
-            f"carried a {delta:+.2f} model-vs-market profile without "
-            "public weekly outcome data"
-        )
 
     def _waiver_items(self, league_id: str | None) -> list[EdgeRadarItem]:
         rows = self._conn.execute(
