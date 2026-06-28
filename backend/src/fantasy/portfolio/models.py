@@ -16,6 +16,8 @@ class ExposureRow(BaseModel):
     owned_in_leagues: list[str] = Field(default_factory=list)
     league_count: int
     hedge_rec: str | None = None
+    urgency: Literal["sell", "hold", "hedge", "monitor"] = "monitor"
+    urgency_reason: str | None = None
 
 
 class CorrelatedRiskPlayer(BaseModel):

@@ -23,6 +23,7 @@ import {
   Popout,
 } from "@/components/DirectionReadPopover"
 import { LineupStrengthCard } from "@/components/lineup/LineupStrengthCard"
+import { WeeklyEdgePanel } from "@/components/weekly/WeeklyEdgePanel"
 import { RisersFallersList } from "@/components/RisersFallersList"
 import { SnapshotStatus } from "@/components/SnapshotStatus"
 import { SnapshotComparisonSheet } from "@/components/SnapshotComparisonSheet"
@@ -139,6 +140,7 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
   }
 
   const league = query.data
+  const selectedRosterId = requestedRosterId ?? league.user_roster_id ?? null
   const selectionContext = {
     leagueId,
     requestedRosterId,
@@ -451,11 +453,15 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
           </CardContent>
         </Card>
 
-        {isOverviewRoute && league.user_roster_id ? (
+        {isOverviewRoute && selectedRosterId ? (
           <LineupStrengthCard
             leagueId={leagueId}
-            rosterId={league.user_roster_id}
+            rosterId={selectedRosterId}
           />
+        ) : null}
+
+        {isOverviewRoute && selectedRosterId ? (
+          <WeeklyEdgePanel leagueId={leagueId} rosterId={selectedRosterId} />
         ) : null}
 
         {isOverviewRoute ? (

@@ -35,6 +35,11 @@ def get_freshness(
     repo = ContextRepo(conn)
     domains = [
         "injuries",
+        "usage",
+        "schedule",
+        "waivers",
+        "market",
+        "stats",
         "depth_chart",
         "free_agency",
         "combine",

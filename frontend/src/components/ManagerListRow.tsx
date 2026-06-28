@@ -12,6 +12,12 @@ export function ManagerListRow({
   leagueId: string
   summary: ManagerSummary
 }) {
+  const confidenceLabel = summary.low_confidence
+    ? "Weak sample"
+    : summary.evidence_count >= 5
+      ? "High evidence"
+      : "Medium evidence"
+
   return (
     <Link
       to="/league/$leagueId/managers/$managerId"
@@ -36,11 +42,7 @@ export function ManagerListRow({
                 <Badge variant="default">Picks Buyer</Badge>
               ) : null}
             </div>
-            <div
-              className={`rounded-lg border px-3 py-2 text-xs ${
-                summary.low_confidence ? "opacity-75 text-muted-foreground" : "text-muted-foreground"
-              }`}
-            >
+            <div className="rounded-lg border px-3 py-2 text-xs text-muted-foreground">
               <span className="terminal-label">Exploitability</span>{" "}
               <span
                 className={
@@ -52,15 +54,23 @@ export function ManagerListRow({
                 {summary.exploitability_score.toFixed(0)}
               </span>{" "}
               | {summary.evidence_count} trades
+              <Badge
+                className="ml-2"
+                variant={summary.low_confidence ? "outline" : "secondary"}
+              >
+                {confidenceLabel}
+              </Badge>
             </div>
           </div>
           <div className="rounded-lg border border-border/35 bg-card/45 p-3 text-xs text-muted-foreground">
             {summary.top_pitch_angle ? (
               <>
                 <span className="font-label text-[10px] text-primary">
-                  {formatModelLabel(summary.top_pitch_angle.deal_archetype)}
+                  Best pitch now: {formatModelLabel(summary.top_pitch_angle.deal_archetype)}
                 </span>{" "}
-                {summary.top_pitch_angle.reasoning}
+                {summary.low_confidence
+                  ? "Sample is thin, so use this only as a starting hypothesis."
+                  : summary.top_pitch_angle.reasoning}
               </>
             ) : (
               "Insufficient trade history for pitch angle."

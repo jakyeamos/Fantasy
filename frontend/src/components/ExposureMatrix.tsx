@@ -33,9 +33,17 @@ function ConcentrationBadge({ count }: { count: number }) {
 }
 
 function sortExposureRows(rows: ExposureRow[]) {
-  const rank = (row: ExposureRow) => (row.league_count >= 3 ? 0 : row.league_count === 2 ? 1 : 2)
+  const urgencyRank: Record<ExposureRow["urgency"], number> = {
+    sell: 0,
+    hedge: 1,
+    monitor: 2,
+    hold: 3,
+  }
   return [...rows].sort(
-    (a, b) => rank(a) - rank(b) || a.full_name.localeCompare(b.full_name),
+    (a, b) =>
+      urgencyRank[a.urgency] - urgencyRank[b.urgency] ||
+      b.league_count - a.league_count ||
+      a.full_name.localeCompare(b.full_name),
   )
 }
 
@@ -126,9 +134,17 @@ export function ExposureMatrix({
               <td className="px-3 py-3 align-top">
                 <div className="space-y-1">
                   <ConcentrationBadge count={row.league_count} />
+                  <Badge variant={row.urgency === "sell" ? "default" : row.urgency === "hedge" ? "secondary" : "outline"}>
+                    {row.urgency}
+                  </Badge>
                   {row.hedge_rec ? (
                     <p className="text-xs italic text-muted-foreground">
                       {row.hedge_rec}
+                    </p>
+                  ) : null}
+                  {row.urgency_reason ? (
+                    <p className="text-xs text-muted-foreground">
+                      {row.urgency_reason}
                     </p>
                   ) : null}
                 </div>

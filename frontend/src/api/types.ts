@@ -432,6 +432,7 @@ export interface CommandAction {
   cta_label: string
   cta_destination: string
   stale_domains: string[]
+  trade_suggestion?: TradeSuggestion | null
 }
 
 export interface CommandCenterResponse {
@@ -466,6 +467,55 @@ export interface TradeSuggestion {
   fairness_band: "underpay" | "fair" | "overpay" | "unknown"
   acceptance_confidence: ConfidenceLabel
   manager_pitch_angle: string
+}
+
+export interface WeeklyPlayerSignal {
+  player_id: string
+  player_name: string
+  position: string
+  team: string | null
+  roster_slot: "starter" | "bench"
+  recent_points: number
+  recent_opportunities: number
+  injury_status: string | null
+  availability_warning: string | null
+}
+
+export interface StartSitDecision {
+  start_player_id: string
+  start_player_name: string
+  sit_player_id: string
+  sit_player_name: string
+  position: string
+  edge_points: number
+  confidence: ConfidenceLabel
+  recommendation: string
+  why_now: string
+  risk_if_wrong: string
+  stale_domains: string[]
+}
+
+export interface LineupGapDecision {
+  position: string
+  current_player_id: string
+  current_player_name: string
+  gap_to_title_target: number
+  gap_to_playoff_target: number
+  recommended_action: string
+  urgency: "today" | "this_week" | "watch" | "low"
+  confidence: ConfidenceLabel
+  why_now: string
+  stale_domains: string[]
+}
+
+export interface WeeklyEdgeResponse {
+  league_id: string
+  roster_id: number
+  computed_at: string
+  player_signals: WeeklyPlayerSignal[]
+  start_sit: StartSitDecision[]
+  lineup_gaps: LineupGapDecision[]
+  stale_domains: string[]
 }
 
 export interface PlayerSearchResult {
@@ -656,6 +706,8 @@ export interface ExposureRow {
   owned_in_leagues: string[]
   league_count: number
   hedge_rec: string | null
+  urgency: "sell" | "hold" | "hedge" | "monitor"
+  urgency_reason: string | null
 }
 
 export interface CorrelatedRiskPlayer {

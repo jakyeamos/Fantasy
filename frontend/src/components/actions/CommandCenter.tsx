@@ -73,6 +73,23 @@ function CommandCard({ action }: { action: CommandAction }) {
               Refresh {action.stale_domains.join(", ")} before locking this in.
             </div>
           ) : null}
+          {action.trade_suggestion ? (
+            <div className="space-y-2 rounded border border-border/45 bg-background/35 p-3 text-xs text-muted-foreground">
+              <p className="font-semibold text-foreground">Suggested package</p>
+              <p>
+                <span className="font-semibold text-foreground">Send:</span>{" "}
+                {action.trade_suggestion.send_assets.join(" + ")}
+              </p>
+              <p>
+                <span className="font-semibold text-foreground">Receive:</span>{" "}
+                {action.trade_suggestion.receive_assets.join(" + ")}
+              </p>
+              <p>
+                <span className="font-semibold text-foreground">Pitch:</span>{" "}
+                {action.trade_suggestion.manager_pitch_angle}
+              </p>
+            </div>
+          ) : null}
         </div>
         <a href={action.cta_destination} className={buttonClasses({ variant: "outline" })}>
           {action.cta_label}
@@ -169,4 +186,3 @@ export function CommandCenter() {
     </section>
   )
 }
-

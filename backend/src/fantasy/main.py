@@ -32,6 +32,7 @@ from fantasy.routers import (
     trade,
     trust,
     waiver,
+    weekly,
 )
 from fantasy.startup_tasks import ensure_runtime_schema, maybe_run_dev_refresh
 
@@ -110,6 +111,7 @@ def create_app() -> FastAPI:
     app.include_router(portfolio.router)
     app.include_router(trust.router)
     app.include_router(waiver.router)
+    app.include_router(weekly.router)
     app.include_router(opportunities.router)
     app.include_router(startup.router)
     return app

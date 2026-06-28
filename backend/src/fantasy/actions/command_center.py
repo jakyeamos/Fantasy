@@ -5,7 +5,7 @@ from urllib.parse import quote_plus
 
 import duckdb
 
-from fantasy.actions.models import CommandAction, CommandCenterResponse
+from fantasy.actions.models import CommandAction, CommandCenterResponse, TradeSuggestion
 from fantasy.context.context_repo import ContextRepo
 from fantasy.context.freshness_service import FreshnessService
 from fantasy.portfolio.portfolio_repo import PortfolioRepo
@@ -14,6 +14,7 @@ from fantasy.trends.models import OpportunityFeedItem
 from fantasy.trends.opportunity_engine import OpportunityEngine
 from fantasy.waiver.waiver_engine import WaiverEngine
 from fantasy.waiver.waiver_repo import WaiverRepo
+from fantasy.weekly.weekly_edge_service import WeeklyEdgeService
 
 WEEKLY_DOMAINS = ["injuries", "usage", "schedule", "waivers", "market", "stats"]
 
@@ -42,6 +43,7 @@ class CommandCenterEngine:
         user_rosters = self._user_rosters(league_id)
 
         actions.extend(self._waiver_actions(user_rosters))
+        actions.extend(self._weekly_actions(user_rosters))
         actions.extend(self._opportunity_actions(league_id))
         actions.extend(self._manager_actions(user_rosters))
         actions.extend(self._portfolio_actions())
@@ -146,6 +148,65 @@ class CommandCenterEngine:
             )
         return actions
 
+    def _weekly_actions(
+        self, rosters: list[dict[str, object]]
+    ) -> list[CommandAction]:
+        actions: list[CommandAction] = []
+        for roster in rosters:
+            league_id = str(roster["league_id"])
+            roster_id = int(roster["roster_id"])
+            edge = WeeklyEdgeService(self._conn).build(league_id, roster_id)
+            if edge.start_sit:
+                decision = edge.start_sit[0]
+                actions.append(
+                    CommandAction(
+                        id=f"weekly:start-sit:{league_id}:{roster_id}:{decision.start_player_id}:{decision.sit_player_id}",
+                        league_id=league_id,
+                        roster_id=roster_id,
+                        category="lineup",
+                        priority_rank=len(actions) + 1,
+                        urgency="today",
+                        confidence=decision.confidence,
+                        headline=f"{self._league_name(league_id)}: start {decision.start_player_name}",
+                        recommended_action=decision.recommendation,
+                        why_now=decision.why_now,
+                        risk_if_wrong=decision.risk_if_wrong,
+                        evidence=[
+                            f"Position: {decision.position}",
+                            f"Projected edge proxy: {decision.edge_points:.1f}",
+                        ],
+                        cta_label="Open Weekly Edge",
+                        cta_destination=f"/league/{league_id}?rosterId={roster_id}",
+                        stale_domains=decision.stale_domains,
+                    )
+                )
+                continue
+            if edge.lineup_gaps:
+                gap = edge.lineup_gaps[0]
+                actions.append(
+                    CommandAction(
+                        id=f"weekly:lineup-gap:{league_id}:{roster_id}:{gap.position}",
+                        league_id=league_id,
+                        roster_id=roster_id,
+                        category="lineup",
+                        priority_rank=len(actions) + 1,
+                        urgency=gap.urgency,
+                        confidence=gap.confidence,
+                        headline=f"{self._league_name(league_id)}: fix {gap.position}",
+                        recommended_action=gap.recommended_action,
+                        why_now=gap.why_now,
+                        risk_if_wrong="The gap can close if recent usage or injury data is stale.",
+                        evidence=[
+                            f"Current starter: {gap.current_player_name}",
+                            f"Title gap: {gap.gap_to_title_target:.1f}",
+                        ],
+                        cta_label="Open Weekly Edge",
+                        cta_destination=f"/league/{league_id}?rosterId={roster_id}",
+                        stale_domains=gap.stale_domains,
+                    )
+                )
+        return actions
+
     def _opportunity_actions(self, league_id: str | None) -> list[CommandAction]:
         actions: list[CommandAction] = []
         items = OpportunityEngine(self._conn).build_feed()
@@ -201,6 +262,48 @@ class CommandCenterEngine:
             ],
             cta_label=item.cta.label if item.cta else "Open Opportunities",
             cta_destination=cta_destination,
+            trade_suggestion=(
+                self._trade_suggestion(item)
+                if item.suggested_action in {"buy", "sell"}
+                else None
+            ),
+        )
+
+    def _trade_suggestion(self, item: OpportunityFeedItem) -> TradeSuggestion | None:
+        if item.cta is None or item.cta.league_id is None:
+            return None
+        if item.suggested_action == "buy":
+            return TradeSuggestion(
+                league_id=item.cta.league_id,
+                target_player_id=item.player_id,
+                target_player_name=item.player_name,
+                target_manager_roster_id=item.cta.manager_roster_id,
+                send_assets=[
+                    "one liquid starter below the target tier",
+                    "future 2nd or equivalent small sweetener",
+                ],
+                receive_assets=[item.player_name],
+                fairness_band="fair" if item.trend_confidence == "HIGH" else "underpay",
+                acceptance_confidence=item.trend_confidence,
+                manager_pitch_angle=(
+                    "Frame it as roster flexibility for them, not as a model discount for you."
+                ),
+            )
+        return TradeSuggestion(
+            league_id=item.cta.league_id,
+            target_player_id=item.player_id,
+            target_player_name=item.player_name,
+            target_manager_roster_id=item.cta.manager_roster_id,
+            send_assets=[item.player_name],
+            receive_assets=[
+                "younger same-position tier-down",
+                "future pick or insulated throw-in",
+            ],
+            fairness_band="fair",
+            acceptance_confidence=item.trend_confidence,
+            manager_pitch_angle=(
+                "Sell the weekly certainty and make the return liquid enough to pivot again."
+            ),
         )
 
     def _manager_actions(
@@ -269,10 +372,12 @@ class CommandCenterEngine:
                     confidence="MEDIUM",
                     headline=f"Portfolio exposure: {row.full_name}",
                     recommended_action=(
-                        f"Review {row.full_name} across {row.league_count} leagues and decide sell, hold, or hedge."
+                        row.hedge_rec
+                        or f"Review {row.full_name} across {row.league_count} leagues and decide sell, hold, or hedge."
                     ),
                     why_now=(
-                        "Repeated exposure turns one injury, role loss, or market correction into a portfolio-level hit."
+                        row.urgency_reason
+                        or "Repeated exposure turns one injury, role loss, or market correction into a portfolio-level hit."
                     ),
                     risk_if_wrong=(
                         "Selling too much exposure can remove a correct conviction from multiple title paths."

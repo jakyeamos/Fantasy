@@ -206,11 +206,47 @@ class PortfolioRepo:
                 team=payload["team"],
                 owned_in_leagues=sorted(set(payload["owned_in_leagues"])),
                 league_count=len(set(payload["owned_in_leagues"])),
+                hedge_rec=self._hedge_recommendation(
+                    len(set(payload["owned_in_leagues"])),
+                    str(payload["full_name"]),
+                ),
+                urgency=self._exposure_urgency(len(set(payload["owned_in_leagues"]))),
+                urgency_reason=self._exposure_urgency_reason(
+                    len(set(payload["owned_in_leagues"])),
+                    str(payload["full_name"]),
+                ),
             )
             for payload in exposure.values()
         ]
         results.sort(key=lambda row: (-row.league_count, row.full_name.lower(), row.player_id))
         return results
+
+    def _exposure_urgency(self, league_count: int) -> str:
+        if league_count >= 4:
+            return "sell"
+        if league_count == 3:
+            return "hedge"
+        if league_count == 2:
+            return "monitor"
+        return "hold"
+
+    def _hedge_recommendation(self, league_count: int, player_name: str) -> str | None:
+        if league_count >= 4:
+            return f"Shop one {player_name} share for liquid value or a tier-down plus pick."
+        if league_count == 3:
+            return f"Hedge one {player_name} share if market value is still healthy."
+        if league_count == 2:
+            return f"Monitor {player_name}; no forced hedge unless injury/news risk rises."
+        return None
+
+    def _exposure_urgency_reason(self, league_count: int, player_name: str) -> str | None:
+        if league_count >= 4:
+            return f"{player_name} is a portfolio-level concentration risk."
+        if league_count == 3:
+            return f"{player_name} can swing multiple league outcomes at once."
+        if league_count == 2:
+            return "Repeated exposure is visible but not urgent."
+        return None
 
     def load_correlated_risk_rows(
         self, owner_id: str | None = None

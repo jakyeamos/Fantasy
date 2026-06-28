@@ -17,6 +17,20 @@ CommandUrgency = Literal["today", "this_week", "watch", "low"]
 CommandConfidence = Literal["HIGH", "MEDIUM", "LOW"]
 
 
+class TradeSuggestion(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    league_id: str
+    target_player_id: str | None = None
+    target_player_name: str | None = None
+    target_manager_roster_id: int | None = None
+    send_assets: list[str] = Field(default_factory=list)
+    receive_assets: list[str] = Field(default_factory=list)
+    fairness_band: Literal["underpay", "fair", "overpay", "unknown"] = "unknown"
+    acceptance_confidence: CommandConfidence
+    manager_pitch_angle: str
+
+
 class CommandAction(BaseModel):
     model_config = ConfigDict(frozen=False)
 
@@ -35,6 +49,7 @@ class CommandAction(BaseModel):
     cta_label: str
     cta_destination: str
     stale_domains: list[str] = Field(default_factory=list)
+    trade_suggestion: TradeSuggestion | None = None
 
 
 class CommandCenterResponse(BaseModel):
@@ -43,4 +58,3 @@ class CommandCenterResponse(BaseModel):
     actions: list[CommandAction] = Field(default_factory=list)
     total: int
     computed_at: str
-

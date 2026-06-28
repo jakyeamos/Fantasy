@@ -19,6 +19,15 @@ export function DossierOverviewTab({
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/40 bg-card/45 px-3 py-2 text-sm text-muted-foreground">
+            <span className="font-semibold text-foreground">Evidence:</span>
+            <Badge variant={profile.low_confidence ? "outline" : "secondary"}>
+              {profile.low_confidence ? "Weak sample" : "Actionable sample"}
+            </Badge>
+            <span>{profile.evidence_count} trades</span>
+            <span>Exploitability {profile.exploitability_score.toFixed(0)}</span>
+          </div>
+
           {profile.recent_urgency_state ? (
             <div className="flex items-center gap-2">
               <p className="terminal-label">Urgency State</p>

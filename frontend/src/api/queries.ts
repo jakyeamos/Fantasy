@@ -38,6 +38,7 @@ import type {
   StartupContext,
   TaxiConfigResponse,
   WaiverRecommendationsResponse,
+  WeeklyEdgeResponse,
 } from "@/api/types"
 
 export async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -425,6 +426,15 @@ export function waiverRecommendationsOptions(leagueId: string, rosterId: number)
     queryKey: ["waiver-recommendations", leagueId, rosterId],
     queryFn: () =>
       getJson<WaiverRecommendationsResponse>(`/waiver/${leagueId}/${rosterId}/recommendations`),
+    staleTime: 60 * 1000,
+    enabled: leagueId.trim().length > 0 && rosterId > 0,
+  })
+}
+
+export function weeklyEdgeOptions(leagueId: string, rosterId: number) {
+  return queryOptions({
+    queryKey: ["weekly", "edge", leagueId, rosterId],
+    queryFn: () => getJson<WeeklyEdgeResponse>(`/weekly/league/${leagueId}/${rosterId}/edge`),
     staleTime: 60 * 1000,
     enabled: leagueId.trim().length > 0 && rosterId > 0,
   })
