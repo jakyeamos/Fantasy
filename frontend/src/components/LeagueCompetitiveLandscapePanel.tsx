@@ -7,6 +7,7 @@ import type {
 } from "@/api/types"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { badgeToneClasses, surfaceToneClasses } from "@/lib/ui-tokens"
 import { cn, formatModelLabel } from "@/lib/utils"
 
 type LeagueCompetitiveLandscapePanelProps = {
@@ -39,10 +40,10 @@ function compactRankings(entries: PowerRankingEntry[]) {
 
 function verdictBadge(prediction: MatchupPrediction) {
   if (prediction.verdict === "favored") {
-    return "border-emerald-500/25 bg-emerald-500/10 text-emerald-700"
+    return badgeToneClasses.success
   }
   if (prediction.verdict === "underdog") {
-    return "border-amber-500/25 bg-amber-500/10 text-amber-700"
+    return badgeToneClasses.warning
   }
   return "border-border/60 bg-transparent text-muted-foreground"
 }
@@ -158,7 +159,7 @@ function RankingBoard({
             </div>
             <div className="text-right">
               <p className="font-mono text-sm font-semibold">{scoreOutOf100(entry.score)}</p>
-              <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              <p className="text-label-xs uppercase tracking-label-tight text-muted-foreground">
                 score
               </p>
             </div>
@@ -214,7 +215,7 @@ export function LeagueCompetitiveLandscapePanel({
                     <p className="font-mono text-2xl font-semibold">
                       {scoreOutOf100(metric.score)}
                     </p>
-                    <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                    <p className="text-label-xs uppercase tracking-label-tight text-muted-foreground">
                       score
                     </p>
                   </div>
@@ -303,7 +304,7 @@ export function LeagueCompetitiveLandscapePanel({
                       <p className="font-mono text-xl font-semibold">
                         {Math.round(prediction.win_probability * 100)}%
                       </p>
-                      <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                      <p className="text-label-xs uppercase tracking-label-tight text-muted-foreground">
                         win odds
                       </p>
                     </div>
@@ -329,9 +330,9 @@ export function LeagueCompetitiveLandscapePanel({
                   key={item.title}
                   className={cn(
                     "rounded-lg border p-3",
-                    item.tone === "urgent" && "border-amber-500/25 bg-amber-500/10",
-                    item.tone === "setup" && "border-sky-500/25 bg-sky-500/10",
-                    item.tone === "anchor" && "border-emerald-500/25 bg-emerald-500/10",
+                    item.tone === "urgent" && surfaceToneClasses.warning,
+                    item.tone === "setup" && surfaceToneClasses.info,
+                    item.tone === "anchor" && surfaceToneClasses.success,
                   )}
                 >
                   <p className="text-sm font-semibold">{item.title}</p>

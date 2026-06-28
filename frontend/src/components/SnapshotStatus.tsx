@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import type { LeagueRefreshPipelineResponse } from "@/api/types"
 import { Button } from "@/components/ui/button"
+import { textToneClasses } from "@/lib/ui-tokens"
 
 type SnapshotStatusProps = {
   leagueId?: string
@@ -91,12 +92,12 @@ export function SnapshotStatus({
         ) : null}
       </div>
       {mutation.isSuccess ? (
-        <span className="block max-w-3xl text-green-700 dark:text-green-400">
+        <span className={`block max-w-3xl ${textToneClasses.success}`}>
           Refresh complete. {formatRefreshSummary(mutation.data)}
         </span>
       ) : null}
       {mutation.isError ? (
-        <span className="block max-w-3xl text-red-600 dark:text-red-400">
+        <span className={`block max-w-3xl ${textToneClasses.destructive}`}>
           Refresh failed. {formatRefreshError(mutation.error)}
         </span>
       ) : null}

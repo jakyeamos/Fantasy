@@ -1,4 +1,5 @@
 import type { DimensionScore } from "@/api/types"
+import { textToneClasses } from "@/lib/ui-tokens"
 
 export function DimensionScoreRow({
   label,
@@ -9,10 +10,10 @@ export function DimensionScoreRow({
 }) {
   const scoreColor =
     score.score >= 80
-      ? "text-green-600 dark:text-green-400"
+      ? textToneClasses.success
       : score.score >= 50
         ? "text-foreground"
-        : "text-red-600 dark:text-red-400"
+        : textToneClasses.destructive
 
   return (
     <div className="space-y-2 border-t border-border/45 py-4 first:border-t-0">

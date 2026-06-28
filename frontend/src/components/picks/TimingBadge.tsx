@@ -1,4 +1,5 @@
 import type { TimingLabel } from "@/api/types"
+import { badgeToneClasses } from "@/lib/ui-tokens"
 import { cn } from "@/lib/utils"
 
 const LABELS: Record<TimingLabel, string> = {
@@ -8,11 +9,9 @@ const LABELS: Record<TimingLabel, string> = {
 }
 
 const CLASSES: Record<TimingLabel, string> = {
-  sell_now: "bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200",
-  hold_until_rookie_fever:
-    "bg-blue-50 text-blue-700 dark:bg-blue-950/20 dark:text-blue-300",
-  use_on_the_clock:
-    "bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-300",
+  sell_now: badgeToneClasses.warning,
+  hold_until_rookie_fever: badgeToneClasses.info,
+  use_on_the_clock: badgeToneClasses.success,
 }
 
 export function TimingBadge({

@@ -1,6 +1,7 @@
 import type { WaiverRecommendation } from "@/api/types"
 import { WaiverPlayerRow } from "@/components/waivers/WaiverPlayerRow"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { surfaceToneClasses, textToneClasses } from "@/lib/ui-tokens"
 
 type WaiverPlayerListProps = {
   recommendations: WaiverRecommendation[]
@@ -37,7 +38,7 @@ export function WaiverPlayerList({
       </CardHeader>
       <CardContent>
         {dataFreshnessWarning ? (
-          <div className="mb-4 rounded border border-orange-400/30 bg-orange-400/10 px-3 py-2 text-sm text-orange-400">
+          <div className={`mb-4 rounded border px-3 py-2 text-sm ${surfaceToneClasses.attention} ${textToneClasses.attention}`}>
             Waiver data may be stale. Re-run ingest for accurate FAAB budgets.
           </div>
         ) : null}

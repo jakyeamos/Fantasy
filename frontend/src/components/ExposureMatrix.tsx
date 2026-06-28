@@ -3,6 +3,7 @@ import { Check } from "lucide-react"
 import type { ExposureRow } from "@/api/types"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { badgeToneClasses, textToneClasses } from "@/lib/ui-tokens"
 import { cn } from "@/lib/utils"
 
 interface LeagueColumn {
@@ -13,14 +14,14 @@ interface LeagueColumn {
 function ConcentrationBadge({ count }: { count: number }) {
   if (count >= 3) {
     return (
-      <Badge className="bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400">
+      <Badge className={badgeToneClasses.destructive}>
         {count} leagues
       </Badge>
     )
   }
   if (count === 2) {
     return (
-      <Badge className="bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-300">
+      <Badge className={badgeToneClasses.warning}>
         2 leagues
       </Badge>
     )
@@ -133,7 +134,7 @@ export function ExposureMatrix({
               {leagueColumns.map((column) => (
                 <td key={column.leagueId} className="px-3 py-3 text-center align-top">
                   {row.owned_in_leagues.includes(column.leagueId) ? (
-                    <Check className="mx-auto size-4 text-green-700 dark:text-green-300" />
+                    <Check className={`mx-auto size-4 ${textToneClasses.success}`} />
                   ) : null}
                 </td>
               ))}

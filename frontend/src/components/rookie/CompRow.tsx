@@ -1,17 +1,18 @@
 import type { HistoricalComp } from "@/api/types"
 import { Badge } from "@/components/ui/badge"
+import { badgeToneClasses } from "@/lib/ui-tokens"
 import { cn } from "@/lib/utils"
 
 const ROLE_STYLES: Record<HistoricalComp["role"], string> = {
-  ceiling: "border-green-500 text-green-700 dark:text-green-300",
+  ceiling: badgeToneClasses.success,
   median: "text-muted-foreground",
-  floor: "border-red-400 text-red-600 dark:text-red-400",
+  floor: badgeToneClasses.destructive,
 }
 
 const OUTCOME_STYLES: Record<HistoricalComp["outcome_bucket"], string> = {
-  hit: "bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-300",
-  mediocre: "bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-300",
-  bust: "bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400",
+  hit: badgeToneClasses.success,
+  mediocre: badgeToneClasses.warning,
+  bust: badgeToneClasses.destructive,
 }
 
 export function CompRow({ comp }: { comp: HistoricalComp }) {

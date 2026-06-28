@@ -13,7 +13,7 @@ export function ConfidenceIndicator({
   confidence: TrendConfidence
 }) {
   return (
-    <Badge variant="outline" className="text-[10px] text-muted-foreground">
+    <Badge variant="outline" className="text-label-xs text-muted-foreground">
       {confidenceCopy[confidence]}
     </Badge>
   )

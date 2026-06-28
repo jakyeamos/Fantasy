@@ -298,12 +298,12 @@ function RootLayout() {
                 onClick={item.action}
                 className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left ${
                   item.active
-                    ? "border-primary/30 bg-primary/10 text-primary shadow-[0_0_24px_-16px_rgba(123,208,255,0.85)]"
+                    ? "border-primary/30 bg-primary/10 text-primary shadow-primary-active"
                     : "border-transparent text-muted-foreground hover:border-border/60 hover:bg-card/55 hover:text-foreground"
                 } ${item.disabled ? "cursor-not-allowed opacity-45" : ""}`}
               >
                 <item.icon className="size-4" />
-                <span className="font-label text-[11px] uppercase tracking-[0.16em]">
+                <span className="font-label text-label-sm uppercase tracking-label">
                   {item.label}
                 </span>
               </button>
@@ -453,7 +453,7 @@ function RootLayout() {
                       } ${item.disabled ? "cursor-not-allowed opacity-45" : ""}`}
                     >
                       <item.icon className="size-4" />
-                      <span className="font-label text-[11px] uppercase tracking-[0.16em]">
+                      <span className="font-label text-label-sm uppercase tracking-label">
                         {item.label}
                       </span>
                     </button>
@@ -469,7 +469,7 @@ function RootLayout() {
             </div>
           </main>
 
-          <footer className="glass-panel border-t border-border/40 px-5 py-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground lg:px-8">
+          <footer className="glass-panel border-t border-border/40 px-5 py-3 text-label-xs uppercase tracking-label-wide text-muted-foreground lg:px-8">
             <div className="mx-auto flex max-w-[1600px] flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3">
                 <span className="font-mono">Terminal status: operational</span>

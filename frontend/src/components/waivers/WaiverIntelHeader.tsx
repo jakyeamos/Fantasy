@@ -27,7 +27,7 @@ export function WaiverIntelHeader({ directionLabel, waiver }: WaiverIntelHeaderP
       <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="terminal-label text-primary/85">Waiver Wire</p>
-          <CardTitle className="mt-2 text-[28px] font-extrabold tracking-tight">
+          <CardTitle className="mt-2 text-display-card font-extrabold tracking-tight">
             {budgetLabel}
           </CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">Remaining FAAB</p>

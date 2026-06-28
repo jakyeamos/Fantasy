@@ -1,4 +1,5 @@
 import type { SubFlag } from "@/api/types"
+import { textToneClasses } from "@/lib/ui-tokens"
 import { cn } from "@/lib/utils"
 
 export function SubFlagsPanel({
@@ -25,9 +26,9 @@ export function SubFlagsPanel({
           <span
             className={cn(
               "text-sm",
-              flag.direction === "positive" && "text-green-700 dark:text-green-300",
-              flag.direction === "negative" && "text-red-600 dark:text-red-400",
-              flag.direction === "neutral" && "text-muted-foreground",
+              flag.direction === "positive" && textToneClasses.success,
+              flag.direction === "negative" && textToneClasses.destructive,
+              flag.direction === "neutral" && textToneClasses.neutral,
             )}
           >
             {flag.magnitude_str}

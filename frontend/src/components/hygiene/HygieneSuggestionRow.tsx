@@ -4,6 +4,7 @@ import type { HygieneSuggestion } from "@/api/types"
 import { MarketGapBadge } from "@/components/recommendations/MarketGapBadge"
 import { Badge } from "@/components/ui/badge"
 import { buttonClasses } from "@/components/ui/button"
+import { badgeToneClasses } from "@/lib/ui-tokens"
 
 type HygieneSuggestionRowProps = {
   suggestion: HygieneSuggestion
@@ -24,16 +25,16 @@ const actionBadgeCopy: Record<HygieneSuggestion["action_type"], string> = {
 }
 
 const actionBadgeClass: Record<HygieneSuggestion["action_type"], string> = {
-  consolidate: "border-sky-500/25 bg-sky-500/10 text-sky-700",
-  cut: "border-destructive/25 bg-destructive/10 text-destructive",
+  consolidate: badgeToneClasses.info,
+  cut: badgeToneClasses.destructive,
   stash: "",
   taxi: "",
-  hold: "border-emerald-500/25 bg-emerald-500/10 text-emerald-700",
-  shop: "border-amber-500/25 bg-amber-500/10 text-amber-700",
-  package: "border-sky-500/25 bg-sky-500/10 text-sky-700",
-  handcuff_speculative: "border-violet-500/25 bg-violet-500/10 text-violet-700",
-  reroll_into_pick: "border-orange-500/25 bg-orange-500/10 text-orange-700",
-  throw_in_now: "border-orange-500/25 bg-orange-500/10 text-orange-700",
+  hold: badgeToneClasses.success,
+  shop: badgeToneClasses.warning,
+  package: badgeToneClasses.info,
+  handcuff_speculative: badgeToneClasses.strategy,
+  reroll_into_pick: badgeToneClasses.attention,
+  throw_in_now: badgeToneClasses.attention,
 }
 
 export function HygieneSuggestionRow({ suggestion, leagueId }: HygieneSuggestionRowProps) {
@@ -71,7 +72,7 @@ export function HygieneSuggestionRow({ suggestion, leagueId }: HygieneSuggestion
       {suggestion.player_context_flags.length > 0 ? (
         <div className="flex flex-wrap gap-2 pt-1">
           {suggestion.player_context_flags.map((flag) => (
-            <Badge key={flag} variant="outline" className="text-[11px]">
+            <Badge key={flag} variant="outline" className="text-label-sm">
               {flag.replaceAll("_", " ")}
             </Badge>
           ))}

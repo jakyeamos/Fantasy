@@ -1,3 +1,5 @@
+import { surfaceToneClasses, textToneClasses } from "@/lib/ui-tokens"
+
 export function ConflictExplanationPanel({
   explanation,
 }: {
@@ -8,8 +10,8 @@ export function ConflictExplanationPanel({
   }
 
   return (
-    <div className="mt-3 rounded-xl border border-amber-400/30 bg-amber-400/8 p-4">
-      <p className="terminal-label mb-2 text-amber-600 dark:text-amber-300">
+    <div className={`mt-3 rounded-xl border p-4 ${surfaceToneClasses.warning}`}>
+      <p className={`terminal-label mb-2 ${textToneClasses.warning}`}>
         SIGNAL CONFLICT
       </p>
       <p className="text-sm text-foreground">{explanation}</p>

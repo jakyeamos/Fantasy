@@ -1,5 +1,6 @@
 import type { RiserFallerEntry } from "@/api/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { textToneClasses } from "@/lib/ui-tokens"
 
 function Column({
   title,
@@ -36,7 +37,7 @@ function Column({
                   <p className="text-sm font-semibold text-foreground">{item.player_name}</p>
                   <span
                     className={`font-mono text-xs ${
-                      positive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                      positive ? textToneClasses.success : textToneClasses.destructive
                     }`}
                   >
                     {item.delta > 0 ? "+" : ""}

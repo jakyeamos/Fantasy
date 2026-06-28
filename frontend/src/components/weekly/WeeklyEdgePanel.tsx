@@ -5,6 +5,7 @@ import { weeklyEdgeOptions } from "@/api/queries"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { surfaceToneClasses, textToneClasses } from "@/lib/ui-tokens"
 import { cn } from "@/lib/utils"
 
 function confidenceVariant(confidence: "HIGH" | "MEDIUM" | "LOW") {
@@ -86,7 +87,7 @@ export function WeeklyEdgePanel({
           </div>
         ) : null}
         {query.data.stale_domains.length ? (
-          <div className="flex flex-wrap items-center gap-2 rounded border border-orange-400/30 bg-orange-400/10 px-3 py-2 text-xs text-orange-300">
+          <div className={`flex flex-wrap items-center gap-2 rounded border px-3 py-2 text-xs ${surfaceToneClasses.attention} ${textToneClasses.attention}`}>
             <AlertTriangle className="size-3.5" />
             Refresh {query.data.stale_domains.join(", ")} before treating this as final.
           </div>
@@ -126,7 +127,7 @@ export function WeeklyEdgePanel({
               </p>
             ) : null}
             {topStartSignal?.bye_week_warning ? (
-              <p className="mt-2 text-xs text-orange-300">
+              <p className={`mt-2 text-xs ${textToneClasses.attention}`}>
                 {topStartSignal.bye_week_warning}
               </p>
             ) : null}

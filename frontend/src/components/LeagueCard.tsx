@@ -87,7 +87,7 @@ export function LeagueCard(props: DashboardLeagueSummary) {
             </div>
           ) : null}
           <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-4">
-            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+            <p className="font-mono text-label-sm uppercase tracking-label text-muted-foreground">
               {formatSnapshot(props.last_snapshot_at)}
             </p>
             <span className="terminal-label text-primary/75">Full Analysis</span>

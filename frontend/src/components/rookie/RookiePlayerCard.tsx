@@ -8,18 +8,19 @@ import { OverUndervalueFlag } from "@/components/rookie/OverUndervalueFlag"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { badgeToneClasses } from "@/lib/ui-tokens"
 import { cn } from "@/lib/utils"
 
 const RISK_BORDER: Record<RookiePlayer["risk_band"], string> = {
-  Low: "border-l-green-500",
-  Moderate: "border-l-amber-400",
-  High: "border-l-red-400",
+  Low: "border-l-success-border",
+  Moderate: "border-l-warning-border",
+  High: "border-l-destructive-border",
 }
 
 const RISK_BADGE: Record<RookiePlayer["risk_band"], string> = {
-  Low: "bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-300",
-  Moderate: "bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-300",
-  High: "bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400",
+  Low: badgeToneClasses.success,
+  Moderate: badgeToneClasses.warning,
+  High: badgeToneClasses.destructive,
 }
 
 export function RookiePlayerCard({

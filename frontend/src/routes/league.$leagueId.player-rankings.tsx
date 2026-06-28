@@ -158,7 +158,7 @@ function PlayerRankingsPage() {
                   key={item}
                   type="button"
                   className={cn(
-                    "rounded-lg border px-3 py-2 font-label text-xs font-bold uppercase tracking-[0.12em]",
+                    "rounded-lg border px-3 py-2 font-label text-xs font-bold uppercase tracking-label-compact",
                     position === item
                       ? "border-primary/50 bg-primary/14 text-primary"
                       : "border-border/60 bg-card/60 text-muted-foreground hover:text-foreground",
@@ -187,7 +187,7 @@ function PlayerRankingsPage() {
 
       <Card>
         <CardContent className="p-0">
-          <div className="hidden grid-cols-[56px_minmax(180px,1.45fr)_88px_minmax(150px,1fr)_76px_88px] gap-3 border-b border-border/50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground lg:grid">
+          <div className="hidden grid-cols-[56px_minmax(180px,1.45fr)_88px_minmax(150px,1fr)_76px_88px] gap-3 border-b border-border/50 px-4 py-3 text-xs font-semibold uppercase tracking-label-tight text-muted-foreground lg:grid">
             <span>Rank</span>
             <span>Player</span>
             <span>Value</span>
@@ -254,7 +254,7 @@ function PlayerRankingsPage() {
                       className={buttonClasses({
                         variant: "ghost",
                         size: "sm",
-                        className: "h-7 px-2 text-[9px]",
+                        className: "h-7 px-2 text-label-2xs",
                       })}
                     >
                       <ArrowRightLeft className="size-3" />

@@ -6,6 +6,7 @@ import { RecommendationCardList } from "@/components/recommendations/Recommendat
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { badgeToneClasses, surfaceToneClasses, textToneClasses } from "@/lib/ui-tokens"
 
 type LineupStrengthCardProps = {
   leagueId: string
@@ -55,19 +56,19 @@ function tierStatus(row: LineupSlotScore) {
   if (row.starter_value >= row.elite_target) {
     return {
       label: "Elite tier",
-      className: "border-emerald-500/25 bg-emerald-500/10 text-emerald-700",
+      className: badgeToneClasses.success,
     }
   }
   if (row.starter_value >= row.title_target) {
     return {
       label: "Title tier",
-      className: "border-sky-500/25 bg-sky-500/10 text-sky-700",
+      className: badgeToneClasses.info,
     }
   }
   if (row.starter_value >= row.playoff_target) {
     return {
       label: "Playoff tier",
-      className: "border-indigo-500/25 bg-indigo-500/10 text-indigo-700",
+      className: badgeToneClasses.strategy,
     }
   }
   return null
@@ -189,17 +190,17 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
             <Badge variant="outline">title {data.overall_title_target.toFixed(2)}</Badge>
             <Badge variant="outline">elite {data.overall_elite_target.toFixed(2)}</Badge>
             {data.overall_gap_to_title_target > 0 ? (
-              <Badge className="border-sky-500/25 bg-sky-500/10 text-sky-700">
+              <Badge className={badgeToneClasses.info}>
                 Title gap {data.overall_gap_to_title_target.toFixed(2)}
               </Badge>
             ) : null}
             {benchmarkSourceLabel(data.overall_benchmark_source) ? (
-              <Badge variant="outline" className="text-[11px]">
+              <Badge variant="outline" className="text-label-sm">
                 {benchmarkSourceLabel(data.overall_benchmark_source)}
               </Badge>
             ) : null}
             {hasEliteInsulation ? (
-              <Badge className="border-emerald-500/25 bg-emerald-500/10 text-emerald-700">
+              <Badge className={badgeToneClasses.success}>
                 Elite insulation
               </Badge>
             ) : null}
@@ -213,8 +214,8 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
           ) : null}
         </div>
         {data.upgrade_leverage_point ? (
-          <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
-            <p className="text-sm font-medium text-amber-700">
+          <div className={`mb-4 rounded-lg border px-3 py-2 ${surfaceToneClasses.warning}`}>
+            <p className={`text-sm font-medium ${textToneClasses.warning}`}>
               Best upgrade leverage: {data.upgrade_leverage_point}
             </p>
             <p className="text-xs text-muted-foreground">
@@ -254,7 +255,7 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
                     <span>tier targets unavailable</span>
                   )}
                   {data.contender_benchmark_used && benchmarkSourceLabel(row.benchmark_source) ? (
-                    <Badge variant="outline" className="text-[11px]">
+                    <Badge variant="outline" className="text-label-sm">
                       {benchmarkSourceLabel(row.benchmark_source)}
                     </Badge>
                   ) : null}
@@ -266,7 +267,7 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
                     <Badge variant="secondary">Below playoff target</Badge>
                   ) : null}
                   {row.below_title_target ? (
-                    <Badge className="border-amber-500/25 bg-amber-500/10 text-amber-700">
+                    <Badge className={badgeToneClasses.warning}>
                       Below title target
                     </Badge>
                   ) : null}
@@ -274,7 +275,7 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
                     <Badge variant="outline">Below elite target</Badge>
                   ) : null}
 	                  {hasVisibleGap(row.gap_to_title_target) ? (
-	                    <Badge className="border-sky-500/25 bg-sky-500/10 text-sky-700">
+	                    <Badge className={badgeToneClasses.info}>
 	                      Title gap {row.gap_to_title_target.toFixed(2)}
 	                    </Badge>
 	                  ) : null}
@@ -287,7 +288,7 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
                 {row.player_context_flags.length > 0 ? (
                   <div className="flex flex-wrap gap-2 pt-1">
                     {row.player_context_flags.map((flag) => (
-                      <Badge key={flag} variant="outline" className="text-[11px]">
+                      <Badge key={flag} variant="outline" className="text-label-sm">
                         {flag.replaceAll("_", " ")}
                       </Badge>
                     ))}

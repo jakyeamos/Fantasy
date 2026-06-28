@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { buttonClasses } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { surfaceToneClasses, textToneClasses } from "@/lib/ui-tokens"
 
 const categoryLabel: Record<CommandAction["category"], string> = {
   waiver: "Waiver",
@@ -45,9 +46,9 @@ function DataHealthStrip({ tags }: { tags: FreshnessTag[] }) {
     <div className="flex flex-wrap items-center gap-2 border-b border-border/45 pb-4 text-xs">
       <div className="flex items-center gap-2 pr-2 font-semibold text-foreground">
         {stale.length ? (
-          <AlertTriangle className="size-4 text-orange-300" />
+          <AlertTriangle className={`size-4 ${textToneClasses.attention}`} />
         ) : (
-          <CheckCircle2 className="size-4 text-emerald-300" />
+          <CheckCircle2 className={`size-4 ${textToneClasses.success}`} />
         )}
         Data health
       </div>
@@ -143,7 +144,7 @@ function CommandCard({ action }: { action: CommandAction }) {
             </div>
           ) : null}
           {action.stale_domains.length ? (
-            <div className="flex items-center gap-2 rounded border border-orange-400/30 bg-orange-400/10 px-3 py-2 text-xs text-orange-300">
+            <div className={`flex items-center gap-2 rounded border px-3 py-2 text-xs ${surfaceToneClasses.attention} ${textToneClasses.attention}`}>
               <AlertTriangle className="size-3.5 shrink-0" />
               Refresh {action.stale_domains.join(", ")} before locking this in.
             </div>

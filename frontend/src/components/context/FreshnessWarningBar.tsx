@@ -1,4 +1,5 @@
 import type { FreshnessTag } from "@/api/types"
+import { surfaceToneClasses, textToneClasses } from "@/lib/ui-tokens"
 
 export function FreshnessWarningBar({ tags }: { tags: FreshnessTag[] }) {
   const staleTags = tags.filter((tag) => tag.is_stale && tag.warning)
@@ -11,7 +12,7 @@ export function FreshnessWarningBar({ tags }: { tags: FreshnessTag[] }) {
       {staleTags.map((tag) => (
         <div
           key={tag.domain}
-          className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-200"
+          className={`rounded border px-3 py-2 text-xs ${surfaceToneClasses.warning} ${textToneClasses.warning}`}
         >
           <span className="font-medium">Data freshness: </span>
           {tag.warning}

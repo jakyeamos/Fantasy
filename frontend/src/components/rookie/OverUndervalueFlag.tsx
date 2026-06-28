@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp } from "lucide-react"
 
 import type { SubFlag } from "@/api/types"
 import { SubFlagsPanel } from "@/components/rookie/SubFlagsPanel"
+import { textToneClasses } from "@/lib/ui-tokens"
 import { cn } from "@/lib/utils"
 
 export function OverUndervalueFlag({
@@ -29,8 +30,8 @@ export function OverUndervalueFlag({
         <p
           className={cn(
             "text-sm",
-            direction === "overvalued" && "text-red-600 dark:text-red-400",
-            direction === "undervalued" && "text-green-700 dark:text-green-300",
+            direction === "overvalued" && textToneClasses.destructive,
+            direction === "undervalued" && textToneClasses.success,
             (lowConfidence || !direction || magnitude == null) && "text-muted-foreground",
           )}
         >

@@ -65,7 +65,7 @@ export function ManagerListRow({
           <div className="rounded-lg border border-border/35 bg-card/45 p-3 text-xs text-muted-foreground">
             {summary.top_pitch_angle ? (
               <>
-                <span className="font-label text-[10px] text-primary">
+                <span className="font-label text-label-xs text-primary">
                   Best pitch now: {formatModelLabel(summary.top_pitch_angle.deal_archetype)}
                 </span>{" "}
                 {summary.low_confidence

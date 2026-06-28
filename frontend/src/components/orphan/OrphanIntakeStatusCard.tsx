@@ -17,7 +17,7 @@ export function OrphanIntakeStatusCard({ intake }: OrphanIntakeStatusCardProps) 
     <Card>
       <CardHeader>
         <p className="terminal-label text-primary/85">Orphan Intake</p>
-        <CardTitle className="mt-2 text-[28px] font-extrabold tracking-tight">
+        <CardTitle className="mt-2 text-display-card font-extrabold tracking-tight">
           {intake.composite_label}
         </CardTitle>
       </CardHeader>

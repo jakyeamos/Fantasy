@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react"
 
 import type { WaiverRecommendation } from "@/api/types"
 import { Badge } from "@/components/ui/badge"
+import { textToneClasses } from "@/lib/ui-tokens"
 import { cn } from "@/lib/utils"
 
 type WaiverPlayerRowProps = {
@@ -80,7 +81,7 @@ export function WaiverPlayerRow({ recommendation }: WaiverPlayerRowProps) {
           <p>{recommendation.rationale}</p>
           {recommendation.drop_reason ? <p>{recommendation.drop_reason}</p> : null}
           {recommendation.data_freshness_warning ? (
-            <p className="text-orange-300">
+            <p className={textToneClasses.attention}>
               Waiver budgets or roster state may be stale; refresh before bidding.
             </p>
           ) : null}

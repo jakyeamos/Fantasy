@@ -1,6 +1,7 @@
 import { Minus, TrendingDown, TrendingUp } from "lucide-react"
 
 import type { SupportingFactor } from "@/api/types"
+import { textToneClasses } from "@/lib/ui-tokens"
 import { cn } from "@/lib/utils"
 
 const iconByDirection = {
@@ -10,9 +11,9 @@ const iconByDirection = {
 }
 
 const directionClass = {
-  positive: "text-emerald-600",
-  negative: "text-amber-700",
-  neutral: "text-muted-foreground",
+  positive: textToneClasses.success,
+  negative: textToneClasses.warning,
+  neutral: textToneClasses.neutral,
 }
 
 export function SupportingFactorRow({ factor }: { factor: SupportingFactor }) {
@@ -23,7 +24,7 @@ export function SupportingFactorRow({ factor }: { factor: SupportingFactor }) {
       <div className="flex items-center gap-2">
         <Icon className={cn("h-4 w-4", directionClass[factor.direction])} />
         <span className="text-sm font-medium">{factor.factor_name}</span>
-        <span className="font-mono text-[11px] uppercase text-muted-foreground">
+        <span className="font-mono text-label-sm uppercase text-muted-foreground">
           {factor.magnitude}
         </span>
       </div>

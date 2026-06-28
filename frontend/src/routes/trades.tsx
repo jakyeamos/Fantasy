@@ -38,6 +38,7 @@ import {
   toThirdPartyTrade,
   type ThirdPartyTradeDraft,
 } from "@/lib/tradeRouteHelpers"
+import { textToneClasses } from "@/lib/ui-tokens"
 import { validateTradeSearch } from "@/lib/tradeSearchParams"
 import { useTradePrefill } from "@/lib/useTradePrefill"
 
@@ -500,7 +501,7 @@ function TradeEvaluatorPage() {
           </div>
 
           {evaluationMutation.isError ? (
-            <p className="text-sm text-red-600">
+            <p className={`text-sm ${textToneClasses.destructive}`}>
               Trade evaluation failed. Check the selected league and rosters, then try again.
             </p>
           ) : null}

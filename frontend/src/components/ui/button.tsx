@@ -7,7 +7,7 @@ type ButtonSize = "default" | "sm" | "lg"
 
 const variantClasses: Record<ButtonVariant, string> = {
   default:
-    "border border-primary/45 bg-primary text-primary-foreground shadow-[0_0_24px_-12px_rgba(123,208,255,0.85)] hover:bg-primary/90",
+    "border border-primary/45 bg-primary text-primary-foreground shadow-primary-glow hover:bg-primary/90",
   secondary:
     "border border-secondary/40 bg-secondary/80 text-secondary-foreground hover:bg-secondary",
   outline:
@@ -17,9 +17,9 @@ const variantClasses: Record<ButtonVariant, string> = {
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
-  default: "h-11 px-4 py-2 text-[11px]",
-  sm: "h-8 px-3 py-2 text-[10px]",
-  lg: "h-12 px-5 py-3 text-[12px]",
+  default: "h-11 px-4 py-2 text-label-sm",
+  sm: "h-8 px-3 py-2 text-label-xs",
+  lg: "h-12 px-5 py-3 text-label-md",
 }
 
 export interface ButtonProps
@@ -38,7 +38,7 @@ export function buttonClasses({
   size?: ButtonSize
 }) {
   return cn(
-    "font-label inline-flex items-center justify-center gap-2 rounded-md uppercase tracking-[0.16em] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 disabled:pointer-events-none disabled:opacity-50",
+    "font-label inline-flex items-center justify-center gap-2 rounded-md uppercase tracking-label shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 disabled:pointer-events-none disabled:opacity-50",
     variantClasses[variant],
     sizeClasses[size],
     className,

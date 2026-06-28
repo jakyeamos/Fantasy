@@ -1,5 +1,6 @@
 import type { TradeHistoryEntry } from "@/api/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { textToneClasses } from "@/lib/ui-tokens"
 
 function formatDate(value: string | null) {
   if (!value) return "Unknown"
@@ -30,7 +31,7 @@ export function DossierTradeHistoryTab({
         ) : (
           <div className="overflow-x-auto rounded-xl border border-border/40">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-card/45 text-xs uppercase tracking-[0.16em] text-muted-foreground">
+              <thead className="bg-card/45 text-xs uppercase tracking-label text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Assets Sent</th>
@@ -53,8 +54,8 @@ export function DossierTradeHistoryTab({
                     <td
                       className={`px-4 py-4 text-right font-mono text-xs ${
                         trade.value_delta >= 0
-                          ? "text-green-600 dark:text-green-400"
-                          : "text-red-600 dark:text-red-400"
+                          ? textToneClasses.success
+                          : textToneClasses.destructive
                       }`}
                     >
                       {trade.value_delta > 0 ? "+" : ""}

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { snapshotDiffOptions } from "@/api/queries"
 import type { DiffRow } from "@/api/types"
 import { Skeleton } from "@/components/ui/skeleton"
+import { textToneClasses } from "@/lib/ui-tokens"
 import { cn } from "@/lib/utils"
 
 function sortDiffRows(rows: DiffRow[]) {
@@ -20,9 +21,9 @@ function sortDiffRows(rows: DiffRow[]) {
 function rowColor(row: DiffRow) {
   if (row.field_type === "direction_label") return "text-foreground"
   if (row.field_type === "departed") return "italic text-muted-foreground"
-  if (row.field_type === "added") return "text-green-700 dark:text-green-300"
-  if ((row.delta ?? 0) > 0) return "text-green-700 dark:text-green-300"
-  if ((row.delta ?? 0) < 0) return "text-red-600 dark:text-red-400"
+  if (row.field_type === "added") return textToneClasses.success
+  if ((row.delta ?? 0) > 0) return textToneClasses.success
+  if ((row.delta ?? 0) < 0) return textToneClasses.destructive
   return "text-muted-foreground"
 }
 
