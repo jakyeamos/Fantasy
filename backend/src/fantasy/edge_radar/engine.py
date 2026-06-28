@@ -65,7 +65,7 @@ class EdgeRadarEngine:
         limit: int = 50,
     ) -> EdgeRadarResponse:
         source_health = self._source_health()
-        items = self._player_delta_items(league_id)
+        items = self._player_delta_items(league_id, limit=max(1, limit))
         items.extend(self._waiver_items(league_id))
         if signal_type is not None:
             items = [item for item in items if item.signal_type == signal_type]
@@ -95,7 +95,11 @@ class EdgeRadarEngine:
             ),
         )
 
-    def _player_delta_items(self, league_id: str | None) -> list[EdgeRadarItem]:
+    def _player_delta_items(
+        self,
+        league_id: str | None,
+        limit: int,
+    ) -> list[EdgeRadarItem]:
         rows = self._conn.execute(
             """
             SELECT pv.league_id,
@@ -139,7 +143,7 @@ class EdgeRadarEngine:
             str(row["league_id"]): int(row["roster_id"])
             for row in self._portfolio_repo._portfolio_roster_rows()
         }
-        items: list[EdgeRadarItem] = []
+        candidates: list[dict[str, Any]] = []
         for row in rows:
             player_id = str(row[1])
             model_value = _clamp01(float(row[7] or 0.5))
@@ -155,24 +159,72 @@ class EdgeRadarEngine:
                 market_price=market_price,
                 owned_by_user=owner_roster_id == user_roster_id,
             )
+            player_name = str(row[2])
+            conviction_score = self._conviction_score(
+                market_delta=market_delta,
+                market_price=market_price,
+                owner_roster_id=owner_roster_id,
+                user_roster_id=user_roster_id,
+            )
             metadata = merge_context_metadata(
                 _loads(row[6], {}),
                 team_context_from_row(row, 14),
             )
+            candidate_id = f"{signal_type}:{row_league_id}:{player_id}"
+            candidates.append(
+                {
+                    "id": candidate_id,
+                    "signal_type": signal_type,
+                    "league_id": row_league_id,
+                    "roster_id": user_roster_id,
+                    "owner_roster_id": owner_roster_id,
+                    "player_id": player_id,
+                    "player_name": player_name,
+                    "position": str(row[3]),
+                    "team": str(row[4] or ""),
+                    "age": int(row[5]) if row[5] is not None else None,
+                    "metadata": metadata,
+                    "model_value": model_value,
+                    "market_price": market_price,
+                    "market_delta": market_delta,
+                    "startup_adp": float(row[9] or 250.0),
+                    "role_stability": _clamp01(float(row[10] or 0.5)),
+                    "ceiling": _clamp01(float(row[11] or 0.5)),
+                    "floor": _clamp01(float(row[12] or 0.5)),
+                    "season": int(row[13]) if row[13] is not None else None,
+                    "conviction_score": conviction_score,
+                }
+            )
+
+        candidates.sort(
+            key=lambda candidate: (
+                -abs(float(candidate["market_delta"])),
+                -float(candidate["conviction_score"]),
+                str(candidate["player_name"]).lower(),
+                str(candidate["id"]),
+            )
+        )
+
+        items: list[EdgeRadarItem] = []
+        for candidate in candidates[:limit]:
+            signal_type = candidate["signal_type"]
+            metadata = candidate["metadata"]
+            model_value = float(candidate["model_value"])
+            market_price = float(candidate["market_price"])
             comps = similar_player_outcomes(
                 self._conn,
-                league_id=row_league_id,
-                season=int(row[13]) if row[13] is not None else None,
-                player_id=player_id,
-                position=str(row[3]),
-                team=str(row[4] or ""),
-                age=int(row[5]) if row[5] is not None else None,
+                league_id=str(candidate["league_id"]),
+                season=candidate["season"],
+                player_id=str(candidate["player_id"]),
+                position=str(candidate["position"]),
+                team=str(candidate["team"]),
+                age=candidate["age"],
                 metadata=metadata,
                 model_value=model_value,
                 market_price=market_price,
-                role_stability=_clamp01(float(row[10] or 0.5)),
-                ceiling=_clamp01(float(row[11] or 0.5)),
-                floor=_clamp01(float(row[12] or 0.5)),
+                role_stability=float(candidate["role_stability"]),
+                ceiling=float(candidate["ceiling"]),
+                floor=float(candidate["floor"]),
             )
             similarity_evidence = (
                 [
@@ -185,31 +237,29 @@ class EdgeRadarEngine:
             )
             items.append(
                 EdgeRadarItem(
-                    id=f"{signal_type}:{row_league_id}:{player_id}",
+                    id=str(candidate["id"]),
                     signal_type=signal_type,
-                    league_id=row_league_id,
-                    roster_id=user_roster_id,
-                    player_id=player_id,
-                    player_name=str(row[2]),
-                    position=str(row[3]),
+                    league_id=str(candidate["league_id"]),
+                    roster_id=candidate["roster_id"],
+                    player_id=str(candidate["player_id"]),
+                    player_name=str(candidate["player_name"]),
+                    position=str(candidate["position"]),
                     action_label=self._action_label(signal_type),
-                    market_delta=market_delta,
+                    market_delta=float(candidate["market_delta"]),
                     market_price=round(market_price, 2),
                     model_value=round(model_value, 2),
-                    conviction_score=self._conviction_score(
-                        market_delta=market_delta,
-                        market_price=market_price,
-                        owner_roster_id=owner_roster_id,
-                        user_roster_id=user_roster_id,
+                    conviction_score=float(candidate["conviction_score"]),
+                    confidence=self._confidence(abs(float(candidate["market_delta"]))),
+                    acceptable_price=self._acceptable_price(
+                        signal_type,
+                        float(candidate["market_delta"]),
                     ),
-                    confidence=self._confidence(abs(market_delta)),
-                    acceptable_price=self._acceptable_price(signal_type, market_delta),
                     timing_window=self._timing_window(signal_type),
                     source_evidence=[
-                        f"Market delta: {market_delta:+.2f}",
+                        f"Market delta: {float(candidate['market_delta']):+.2f}",
                         f"Model value: {model_value:.2f}",
                         f"Market price: {market_price:.2f}",
-                        f"Startup ADP: {float(row[9] or 250.0):.1f}",
+                        f"Startup ADP: {float(candidate['startup_adp']):.1f}",
                     ]
                     + _team_context_evidence(metadata)
                     + similarity_evidence
@@ -226,12 +276,12 @@ class EdgeRadarEngine:
                     ),
                     cta_destination=self._trade_destination(
                         signal_type=signal_type,
-                        league_id=row_league_id,
-                        user_roster_id=user_roster_id,
-                        owner_roster_id=owner_roster_id,
-                        player_id=player_id,
-                        player_name=str(row[2]),
-                        position=str(row[3]),
+                        league_id=str(candidate["league_id"]),
+                        user_roster_id=candidate["roster_id"],
+                        owner_roster_id=candidate["owner_roster_id"],
+                        player_id=str(candidate["player_id"]),
+                        player_name=str(candidate["player_name"]),
+                        position=str(candidate["position"]),
                     ),
                 )
             )

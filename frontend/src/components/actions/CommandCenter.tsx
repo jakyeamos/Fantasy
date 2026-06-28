@@ -38,91 +38,101 @@ function formatFreshnessLabel(tag: FreshnessTag): string {
   return tag.domain.replaceAll("_", " ")
 }
 
-function DataHealthStrip({ tags }: { tags: FreshnessTag[] }) {
-  if (!tags.length) return null
-  const stale = tags.filter((tag) => tag.is_stale)
+function CommandSummary({
+  dataHealth,
+  moveCoverage,
+}: {
+  dataHealth: FreshnessTag[]
+  moveCoverage: MoveCoverage[]
+}) {
+  const staleDomains = dataHealth.filter((tag) => tag.is_stale)
+  const readyLanes = moveCoverage.filter((lane) => lane.status === "ready")
+  const primaryReadyLanes = readyLanes.slice(0, 3)
+
+  if (!dataHealth.length && !moveCoverage.length) return null
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-border/45 pb-4 text-xs">
-      <div className="flex items-center gap-2 pr-2 font-semibold text-foreground">
-        {stale.length ? (
-          <AlertTriangle className={`size-4 ${textToneClasses.attention}`} />
-        ) : (
-          <CheckCircle2 className={`size-4 ${textToneClasses.success}`} />
-        )}
-        Data health
-      </div>
-      {tags.map((tag) => (
-        <Badge key={tag.domain} variant={tag.is_stale ? "outline" : "secondary"}>
-          {formatFreshnessLabel(tag)}
-          {tag.is_stale ? " stale" : " fresh"}
-        </Badge>
-      ))}
-      {stale[0]?.warning ? (
-        <span className="text-muted-foreground">{stale[0].warning}</span>
+    <div className="flex flex-wrap items-center gap-2 rounded border border-border/45 bg-card/35 px-3 py-2 text-xs">
+      {dataHealth.length ? (
+        <div className="flex items-center gap-2 pr-2 font-semibold text-foreground">
+          {staleDomains.length ? (
+            <AlertTriangle className={`size-4 ${textToneClasses.attention}`} />
+          ) : (
+            <CheckCircle2 className={`size-4 ${textToneClasses.success}`} />
+          )}
+          {staleDomains.length
+            ? `${staleDomains.length} stale data lanes`
+            : "Data fresh"}
+        </div>
       ) : null}
-    </div>
-  )
-}
-
-function MoveCoverageStrip({ coverage }: { coverage: MoveCoverage[] }) {
-  if (!coverage.length) return null
-
-  return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-border/45 pb-4 text-xs">
-      <span className="font-semibold text-foreground">Edge lanes</span>
-      {coverage.map((item) => (
-        <Badge
-          key={item.lane}
-          variant={item.status === "ready" ? "secondary" : "outline"}
-          title={item.reason}
-        >
-          {item.label}
-          {item.status === "ready" ? ` ${item.action_count}` : " missing"}
+      {primaryReadyLanes.map((lane) => (
+        <Badge key={lane.lane} variant="secondary" title={lane.reason}>
+          {lane.label} {lane.action_count}
+        </Badge>
+      ))}
+      {readyLanes.length > primaryReadyLanes.length ? (
+        <Badge variant="outline">+{readyLanes.length - primaryReadyLanes.length} lanes</Badge>
+      ) : null}
+      {staleDomains.slice(0, 3).map((tag) => (
+        <Badge key={tag.domain} variant="outline">
+          {formatFreshnessLabel(tag)} stale
         </Badge>
       ))}
     </div>
   )
 }
 
-function RefreshActionBar({
+function RefreshAllButton({
   actions,
   onComplete,
 }: {
   actions: DataRefreshAction[]
   onComplete: () => Promise<unknown>
 }) {
-  const [runningId, setRunningId] = useState<string | null>(null)
+  const [isRunning, setIsRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  if (!actions.length) return null
+  const hasRefreshActions = actions.length > 0
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-border/45 pb-4 text-xs">
-      <span className="font-semibold text-foreground">Refresh stale data</span>
-      {actions.slice(0, 4).map((action) => (
-        <button
-          key={action.id}
-          type="button"
-          className={buttonClasses({ variant: "outline", size: "sm" })}
-          title={action.description}
-          disabled={runningId !== null}
-          onClick={() => {
-            setRunningId(action.id)
-            setError(null)
-            void postJson<unknown>(action.endpoint, {})
-              .then(onComplete)
-              .catch(() => setError(`Could not run ${action.label}.`))
-              .finally(() => setRunningId(null))
-          }}
-        >
-          <RefreshCcw className="size-3.5" />
-          {runningId === action.id ? "Refreshing..." : action.label}
-        </button>
-      ))}
-      {actions.length > 4 ? (
-        <Badge variant="outline">+{actions.length - 4} more</Badge>
+    <div className="flex flex-wrap items-center gap-3">
+      <button
+        type="button"
+        className={buttonClasses({ variant: "outline" })}
+        disabled={isRunning}
+        title={
+          hasRefreshActions
+            ? actions.map((action) => action.label).join(", ")
+            : "Recompute command-center actions."
+        }
+        onClick={() => {
+          setIsRunning(true)
+          setError(null)
+          const run = hasRefreshActions
+            ? actions.reduce(
+                (chain, action) =>
+                  chain.then(() => postJson<unknown>(action.endpoint, {})),
+                Promise.resolve<unknown>(undefined),
+              )
+            : recomputeActions()
+          void run
+            .then(onComplete)
+            .catch(() => setError("Refresh failed. Check the local server logs."))
+            .finally(() => setIsRunning(false))
+        }}
+      >
+        <RefreshCcw className={`size-3.5 ${isRunning ? "animate-spin" : ""}`} />
+        {isRunning
+          ? "Refreshing..."
+          : hasRefreshActions
+            ? "Refresh stale data"
+            : "Recompute moves"}
+      </button>
+      {hasRefreshActions ? (
+        <span className="text-xs text-muted-foreground">
+          {actions.length} queued refreshes
+        </span>
       ) : null}
-      {error ? <span className="text-destructive">{error}</span> : null}
+      {error ? <span className="text-xs text-destructive">{error}</span> : null}
     </div>
   )
 }
@@ -244,33 +254,24 @@ export function CommandCenter() {
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border/45 pb-4">
-        <div className="space-y-2">
-          <p className="terminal-label text-primary/85">Private Edge Command Center</p>
-          <h2 className="font-headline text-4xl font-extrabold tracking-tight">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="max-w-3xl space-y-2">
+          <p className="terminal-label text-primary/85">Command Center</p>
+          <h2 className="font-headline text-3xl font-extrabold tracking-tight">
             Top moves today
           </h2>
-          <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-            Ranked cross-league actions with the claim, drop, price, pitch, risk,
-            and next click made explicit.
+          <p className="text-sm leading-6 text-muted-foreground">
+            The highest-priority action queue across leagues.
           </p>
         </div>
-        <button
-          type="button"
-          className={buttonClasses({ variant: "outline" })}
-          onClick={() => {
-            void recomputeActions().then(() => query.refetch())
-          }}
-        >
-          <RefreshCcw className="size-3.5" />
-          Recompute
-        </button>
+        <RefreshAllButton
+          actions={refreshActions}
+          onComplete={() => query.refetch()}
+        />
       </div>
-      <DataHealthStrip tags={dataHealth} />
-      <MoveCoverageStrip coverage={moveCoverage} />
-      <RefreshActionBar
-        actions={refreshActions}
-        onComplete={() => query.refetch()}
+      <CommandSummary
+        dataHealth={dataHealth}
+        moveCoverage={moveCoverage}
       />
 
       {query.isError ? (

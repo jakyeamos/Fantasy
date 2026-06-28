@@ -166,6 +166,36 @@ def test_edge_radar_ranks_by_market_delta_before_modifiers(db):
     assert response.items[3].action_label == "Buy high"
 
 
+def test_edge_radar_bounds_similarity_work_to_ranked_limit(db, monkeypatch):
+    _seed_league(db)
+    for index, delta in enumerate([0.40, 0.30, 0.20], start=1):
+        _seed_player(
+            db,
+            player_id=f"buy_{index}",
+            player_name=f"Buy {index}",
+            position="WR",
+            model_value=0.50 + delta,
+            market_value=0.50,
+            adp=80 + index,
+        )
+    call_count = 0
+
+    def fake_similar_player_outcomes(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        return []
+
+    monkeypatch.setattr(
+        "fantasy.edge_radar.engine.similar_player_outcomes",
+        fake_similar_player_outcomes,
+    )
+
+    response = EdgeRadarEngine(db).build(limit=1)
+
+    assert [item.player_id for item in response.items] == ["buy_1"]
+    assert call_count == 1
+
+
 def test_edge_radar_reports_source_health_and_degraded_state(db):
     _seed_league(db)
     _seed_player(
