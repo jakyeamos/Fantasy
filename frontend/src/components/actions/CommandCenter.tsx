@@ -1,9 +1,14 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { useQuery } from "@tanstack/react-query"
 import { AlertTriangle, ArrowRight, ChevronDown, RefreshCcw } from "lucide-react"
 
-import { commandCenterOptions, postJson, recomputeActions } from "@/api/queries"
+import {
+  dashboardSummaryOptions,
+  leagueActionsOptions,
+  postJson,
+  recomputeActions,
+} from "@/api/queries"
 import type { CommandAction, DataRefreshAction, FreshnessTag } from "@/api/types"
 import { Badge } from "@/components/ui/badge"
 import { buttonClasses } from "@/components/ui/button"
@@ -222,9 +227,22 @@ function CommandCard({ action }: { action: CommandAction }) {
 }
 
 export function CommandCenter() {
-  const query = useQuery(commandCenterOptions)
+  const leaguesQuery = useQuery(dashboardSummaryOptions)
+  const leagues = leaguesQuery.data ?? []
+  const [selectedLeagueId, setSelectedLeagueId] = useState("")
+  const activeLeagueId = selectedLeagueId || leagues[0]?.league_id || ""
+  const selectedLeague = leagues.find((league) => league.league_id === activeLeagueId)
+  const query = useQuery(leagueActionsOptions(activeLeagueId))
 
-  if (query.isLoading) {
+  useEffect(() => {
+    if (!leagues.length) return
+    if (selectedLeagueId && leagues.some((league) => league.league_id === selectedLeagueId)) {
+      return
+    }
+    setSelectedLeagueId(leagues[0].league_id)
+  }, [leagues, selectedLeagueId])
+
+  if (leaguesQuery.isLoading || (activeLeagueId && query.isLoading)) {
     return (
       <section className="space-y-4">
         <div className="space-y-2">
@@ -246,6 +264,10 @@ export function CommandCenter() {
     )
   }
 
+  if (!activeLeagueId) {
+    return null
+  }
+
   const actions = query.data?.actions.slice(0, 5) ?? []
   const dataHealth = query.data?.data_health ?? []
   const refreshActions = query.data?.refresh_actions ?? []
@@ -259,17 +281,33 @@ export function CommandCenter() {
             Top moves today
           </h2>
           <p className="text-sm leading-6 text-muted-foreground">
-            The highest-priority action queue across leagues.
+            The highest-priority action queue for {selectedLeague?.league_name ?? "this league"}.
           </p>
         </div>
-        <RefreshAllButton
-          actions={refreshActions}
-          onComplete={() => query.refetch()}
-        />
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <label className="flex flex-col gap-1">
+            <span className="terminal-label text-muted-foreground">League</span>
+            <select
+              value={activeLeagueId}
+              className="h-11 min-w-48 rounded-lg border border-border/60 bg-card/75 px-3 font-label text-xs font-bold uppercase tracking-label-tight text-foreground"
+              onChange={(event) => setSelectedLeagueId(event.target.value)}
+            >
+              {leagues.map((league) => (
+                <option key={league.league_id} value={league.league_id}>
+                  {league.league_name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <RefreshAllButton
+            actions={refreshActions}
+            onComplete={() => query.refetch()}
+          />
+        </div>
       </div>
       <CommandSummary dataHealth={dataHealth} />
 
-      {query.isError ? (
+      {leaguesQuery.isError || query.isError ? (
         <Card>
           <CardContent className="space-y-2 p-6">
             <p className="font-headline text-2xl font-bold tracking-tight">
@@ -291,7 +329,7 @@ export function CommandCenter() {
         <Card>
           <CardContent className="space-y-2 p-6">
             <p className="font-headline text-2xl font-bold tracking-tight">
-              No Ranked Moves Yet
+              No Ranked Moves for {selectedLeague?.league_name ?? "This League"}
             </p>
             <p className="text-sm leading-6 text-muted-foreground">
               Run recompute after a fresh ingest to warm waiver, market, manager,
