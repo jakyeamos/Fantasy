@@ -16,6 +16,7 @@ from fantasy.routers import (
     corrections,
     dashboard,
     draft_room,
+    edge_radar,
     health,
     ingest,
     intelligence,
@@ -113,6 +114,7 @@ def create_app() -> FastAPI:
     app.include_router(waiver.router)
     app.include_router(weekly.router)
     app.include_router(opportunities.router)
+    app.include_router(edge_radar.router)
     app.include_router(startup.router)
     return app
 

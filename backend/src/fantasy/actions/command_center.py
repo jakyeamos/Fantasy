@@ -8,6 +8,7 @@ import duckdb
 from fantasy.actions.models import (
     CommandAction,
     CommandCenterResponse,
+    CommandUrgency,
     DataRefreshAction,
     MoveCoverage,
     TradeSuggestion,
@@ -21,6 +22,8 @@ from fantasy.actions.weekly_risk import build_weekly_risk_action
 from fantasy.context.models import FreshnessTag
 from fantasy.context.context_repo import ContextRepo
 from fantasy.context.freshness_service import FreshnessService
+from fantasy.edge_radar.engine import EdgeRadarEngine
+from fantasy.edge_radar.models import EdgeRadarItem
 from fantasy.portfolio.portfolio_repo import PortfolioRepo
 from fantasy.trends.models import OpportunityFeedItem
 from fantasy.trends.opportunity_engine import OpportunityEngine
@@ -54,6 +57,7 @@ class CommandCenterEngine:
 
         actions.extend(self._waiver_actions(user_rosters))
         actions.extend(self._weekly_actions(user_rosters))
+        actions.extend(self._edge_radar_actions(league_id))
         actions.extend(self._opportunity_actions(league_id))
         actions.extend(
             build_manager_actions(self._conn, user_rosters, self._league_name)
@@ -443,6 +447,65 @@ class CommandCenterEngine:
             if action is not None:
                 actions.append(action)
         return actions
+
+    def _edge_radar_actions(self, league_id: str | None) -> list[CommandAction]:
+        response = EdgeRadarEngine(self._conn).build(league_id=league_id, limit=8)
+        actions: list[CommandAction] = []
+        for item in response.items[:6]:
+            if item.signal_type == "waiver_pickup":
+                category = "waiver"
+            elif item.signal_type == "draft_diamond":
+                category = "rookie_pick"
+            elif item.signal_type in {"portfolio_hedge"}:
+                category = "portfolio"
+            elif item.signal_type == "manager_exploit":
+                category = "manager"
+            elif item.signal_type in {"buy_low", "buy_high", "sell_high", "sell_low"}:
+                category = "trade"
+            else:
+                category = "market"
+            actions.append(
+                CommandAction(
+                    id=f"edge:{item.id}",
+                    league_id=item.league_id,
+                    roster_id=item.roster_id,
+                    category=category,
+                    priority_rank=int(max(1, round(item.conviction_score))),
+                    urgency=self._edge_urgency(item),
+                    confidence=item.confidence,
+                    headline=f"{item.action_label}: {item.player_name}",
+                    recommended_action=(
+                        f"{item.action_label} {item.player_name}; market delta is "
+                        f"{item.market_delta:+.2f}."
+                    ),
+                    acceptable_price=item.acceptable_price,
+                    timing=item.timing_window,
+                    why_now=(
+                        "Edge Radar ranks this by model/context value versus current market price."
+                    ),
+                    risk_if_wrong=item.risks[0]
+                    if item.risks
+                    else "Market delta may be noisy if source freshness is stale.",
+                    evidence=item.source_evidence[:4],
+                    cta_label=item.cta_label,
+                    cta_destination=item.cta_destination,
+                    stale_domains=[],
+                )
+            )
+        return actions
+
+    def _edge_urgency(self, item: EdgeRadarItem) -> CommandUrgency:
+        if abs(item.market_delta) >= 0.25:
+            return "today"
+        if item.signal_type in {
+            "buy_low",
+            "buy_high",
+            "sell_high",
+            "sell_low",
+            "waiver_pickup",
+        }:
+            return "this_week"
+        return "watch"
 
     def _opportunity_action(self, item: OpportunityFeedItem) -> CommandAction | None:
         if item.trend_confidence == "LOW" and item.availability == "available":
