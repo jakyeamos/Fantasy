@@ -49,6 +49,11 @@ export function WeeklyEdgePanel({
 
   const topStartSit = query.data.start_sit[0] ?? null
   const topGap = query.data.lineup_gaps[0] ?? null
+  const topStartSignal = topStartSit
+    ? query.data.player_signals.find(
+        (signal) => signal.player_id === topStartSit.start_player_id,
+      )
+    : null
 
   return (
     <Card className="border-primary/25">
@@ -80,6 +85,11 @@ export function WeeklyEdgePanel({
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {topStartSit.why_now}
             </p>
+            {topStartSit.stale_domains.length ? null : topStartSignal?.usage_note ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {topStartSignal.usage_note}
+              </p>
+            ) : null}
             <p className="mt-2 text-xs text-muted-foreground">
               Wrong if: {topStartSit.risk_if_wrong}
             </p>
@@ -123,4 +133,3 @@ export function WeeklyEdgePanel({
     </Card>
   )
 }
-

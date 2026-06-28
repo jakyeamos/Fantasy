@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
+from typing import Any, Literal
 from urllib.parse import quote_plus
 
 import duckdb
@@ -12,6 +14,7 @@ from fantasy.portfolio.portfolio_repo import PortfolioRepo
 from fantasy.profiling.profiling_repo import ProfilingRepo
 from fantasy.trends.models import OpportunityFeedItem
 from fantasy.trends.opportunity_engine import OpportunityEngine
+from fantasy.trade.trade_repo import TradeRepo
 from fantasy.waiver.waiver_engine import WaiverEngine
 from fantasy.waiver.waiver_repo import WaiverRepo
 from fantasy.weekly.weekly_edge_service import WeeklyEdgeService
@@ -244,6 +247,13 @@ class CommandCenterEngine:
             item.conflict_explanation
             or "The market gap may be noisy if league mates do not value this player near public ADP."
         )
+        trade_suggestion = (
+            self._trade_suggestion(item)
+            if item.suggested_action in {"buy", "sell"}
+            else None
+        )
+        if trade_suggestion is not None:
+            cta_destination = self._trade_destination(item, trade_suggestion)
         return CommandAction(
             id=f"market:{item.player_id}",
             league_id=item.cta.league_id if item.cta else None,
@@ -262,48 +272,334 @@ class CommandCenterEngine:
             ],
             cta_label=item.cta.label if item.cta else "Open Opportunities",
             cta_destination=cta_destination,
-            trade_suggestion=(
-                self._trade_suggestion(item)
-                if item.suggested_action in {"buy", "sell"}
-                else None
-            ),
+            trade_suggestion=trade_suggestion,
         )
 
     def _trade_suggestion(self, item: OpportunityFeedItem) -> TradeSuggestion | None:
-        if item.cta is None or item.cta.league_id is None:
+        if item.cta is None or item.cta.league_id is None or item.cta.user_roster_id is None:
             return None
+        league_id = item.cta.league_id
+        user_roster_id = item.cta.user_roster_id
+        target_roster_id = item.cta.manager_roster_id or item.cta.target_player_roster_id
         if item.suggested_action == "buy":
+            target = self._player_asset(league_id, item.player_id, target_roster_id)
+            send_assets = self._select_send_assets(
+                league_id,
+                user_roster_id,
+                item.player_id,
+                target["score"] if target else None,
+            )
+            if target is None or not send_assets:
+                return None
+            receive_assets = [target]
+            balancing = self._select_balancing_receive_asset(
+                league_id,
+                target_roster_id,
+                item.player_id,
+                sum(asset["score"] for asset in send_assets) - target["score"],
+            )
+            if balancing is not None:
+                receive_assets.append(balancing)
             return TradeSuggestion(
-                league_id=item.cta.league_id,
+                league_id=league_id,
                 target_player_id=item.player_id,
                 target_player_name=item.player_name,
-                target_manager_roster_id=item.cta.manager_roster_id,
-                send_assets=[
-                    "one liquid starter below the target tier",
-                    "future 2nd or equivalent small sweetener",
-                ],
-                receive_assets=[item.player_name],
-                fairness_band="fair" if item.trend_confidence == "HIGH" else "underpay",
-                acceptance_confidence=item.trend_confidence,
-                manager_pitch_angle=(
-                    "Frame it as roster flexibility for them, not as a model discount for you."
+                target_manager_roster_id=target_roster_id,
+                send_assets=[asset["label"] for asset in send_assets],
+                receive_assets=[asset["label"] for asset in receive_assets],
+                send_player_ids=[asset["player_id"] for asset in send_assets],
+                receive_player_ids=[asset["player_id"] for asset in receive_assets],
+                fairness_band=self._fairness_band(
+                    sum(asset["score"] for asset in send_assets),
+                    sum(asset["score"] for asset in receive_assets),
+                    item.trend_confidence,
                 ),
+                acceptance_confidence=item.trend_confidence,
+                manager_pitch_angle=self._manager_pitch_angle(league_id, target_roster_id)
+                or "Frame it as roster flexibility for them, not as a model discount for you.",
             )
+        sell_target = self._player_asset(league_id, item.player_id, user_roster_id)
+        if sell_target is None:
+            return None
+        receive_assets = self._select_receive_targets(
+            league_id,
+            user_roster_id,
+            target_roster_id,
+            item.position,
+            sell_target["score"],
+        )
+        if not receive_assets:
+            return None
         return TradeSuggestion(
-            league_id=item.cta.league_id,
+            league_id=league_id,
             target_player_id=item.player_id,
             target_player_name=item.player_name,
-            target_manager_roster_id=item.cta.manager_roster_id,
-            send_assets=[item.player_name],
-            receive_assets=[
-                "younger same-position tier-down",
-                "future pick or insulated throw-in",
-            ],
-            fairness_band="fair",
-            acceptance_confidence=item.trend_confidence,
-            manager_pitch_angle=(
-                "Sell the weekly certainty and make the return liquid enough to pivot again."
+            target_manager_roster_id=target_roster_id,
+            send_assets=[sell_target["label"]],
+            receive_assets=[asset["label"] for asset in receive_assets],
+            send_player_ids=[sell_target["player_id"]],
+            receive_player_ids=[asset["player_id"] for asset in receive_assets],
+            fairness_band=self._fairness_band(
+                sell_target["score"],
+                sum(asset["score"] for asset in receive_assets),
+                item.trend_confidence,
             ),
+            acceptance_confidence=item.trend_confidence,
+            manager_pitch_angle=self._manager_pitch_angle(league_id, target_roster_id)
+            or "Sell the weekly certainty and make the return liquid enough to pivot again.",
+        )
+
+    def _trade_destination(
+        self,
+        item: OpportunityFeedItem,
+        suggestion: TradeSuggestion,
+    ) -> str:
+        if item.cta is None or item.cta.league_id is None:
+            return "/opportunities"
+        params = [f"leagueId={item.cta.league_id}"]
+        if item.cta.user_roster_id is not None:
+            params.append(f"userRosterId={item.cta.user_roster_id}")
+        if suggestion.target_manager_roster_id is not None:
+            params.append(f"counterpartyRosterId={suggestion.target_manager_roster_id}")
+        send_asset = self._query_asset(item.cta.league_id, suggestion.send_player_ids[:1])
+        receive_asset = self._query_asset(item.cta.league_id, suggestion.receive_player_ids[:1])
+        if send_asset is not None:
+            params.extend(
+                [
+                    f"sendPlayerId={send_asset['player_id']}",
+                    f"sendPlayerName={quote_plus(send_asset['name'])}",
+                    f"sendPlayerPosition={quote_plus(send_asset['position'])}",
+                ]
+            )
+        if receive_asset is not None:
+            params.extend(
+                [
+                    f"receivePlayerId={receive_asset['player_id']}",
+                    f"receivePlayerName={quote_plus(receive_asset['name'])}",
+                    f"receivePlayerPosition={quote_plus(receive_asset['position'])}",
+                ]
+            )
+            params.append(f"targetPlayerId={receive_asset['player_id']}")
+            params.append(f"targetPlayerName={quote_plus(receive_asset['name'])}")
+            params.append(f"targetPlayerPosition={quote_plus(receive_asset['position'])}")
+        return f"/trades?{'&'.join(params)}"
+
+    def _query_asset(
+        self,
+        league_id: str,
+        player_ids: list[str],
+    ) -> dict[str, str] | None:
+        if not player_ids:
+            return None
+        row = self._conn.execute(
+            """
+            SELECT player_id, COALESCE(full_name, player_id), COALESCE(position, 'UNKNOWN')
+            FROM players
+            WHERE player_id = ?
+            LIMIT 1
+            """,
+            [player_ids[0]],
+        ).fetchone()
+        if row is None:
+            return None
+        return {
+            "player_id": str(row[0]),
+            "name": str(row[1]),
+            "position": str(row[2]),
+        }
+
+    def _player_asset(
+        self,
+        league_id: str,
+        player_id: str,
+        roster_id: int | None,
+    ) -> dict[str, Any] | None:
+        if roster_id is not None:
+            assets = self._roster_player_assets(league_id, roster_id)
+            for asset in assets:
+                if asset["player_id"] == player_id:
+                    return asset
+        row = self._conn.execute(
+            """
+            SELECT p.player_id, COALESCE(p.full_name, p.player_id), COALESCE(p.position, 'UNKNOWN'),
+                   COALESCE(pv.lens_market, pv.lens_production, pv.comp_current_production, 0.5)
+            FROM players p
+            LEFT JOIN player_values pv ON pv.league_id = ? AND pv.player_id = p.player_id
+            WHERE p.player_id = ?
+            LIMIT 1
+            """,
+            [league_id, player_id],
+        ).fetchone()
+        if row is None:
+            return None
+        score = max(1.0, min(100.0, float(row[3] or 0.5) * 100.0))
+        return {
+            "player_id": str(row[0]),
+            "label": f"{row[1]} ({row[2]})",
+            "position": str(row[2]),
+            "score": score,
+        }
+
+    def _roster_player_assets(self, league_id: str, roster_id: int) -> list[dict[str, Any]]:
+        row = self._conn.execute(
+            """
+            SELECT players
+            FROM rosters
+            WHERE league_id = ? AND roster_id = ?
+            LIMIT 1
+            """,
+            [league_id, roster_id],
+        ).fetchone()
+        if row is None:
+            return []
+        player_ids = [str(value) for value in json.loads(row[0] or "[]") if value not in (None, "", 0, "0")]
+        if not player_ids:
+            return []
+        rows = self._conn.execute(
+            """
+            WITH adp AS (
+                SELECT player_id, MIN(adp) AS adp
+                FROM player_adp_baseline
+                GROUP BY player_id
+            )
+            SELECT p.player_id, COALESCE(p.full_name, p.player_id), COALESCE(p.position, 'UNKNOWN'),
+                   COALESCE(
+                       (
+                           COALESCE(pv.lens_market, 0.5) * 0.30
+                         + COALESCE(pv.lens_production, 0.5) * 0.25
+                         + COALESCE(pv.comp_current_production, 0.5) * 0.20
+                         + COALESCE(pv.comp_market_liquidity, 0.5) * 0.15
+                         + COALESCE(pv.comp_ceiling, 0.5) * 0.10
+                       ) * 100.0,
+                       100.0 - LEAST(COALESCE(adp.adp, 150.0), 250.0) / 2.5
+                   ) AS score
+            FROM players p
+            LEFT JOIN player_values pv
+              ON pv.league_id = ? AND pv.roster_id = ? AND pv.player_id = p.player_id
+            LEFT JOIN adp ON adp.player_id = p.player_id
+            WHERE p.player_id IN (SELECT UNNEST(?))
+            """,
+            [league_id, roster_id, player_ids],
+        ).fetchall()
+        assets = [
+            {
+                "player_id": str(row[0]),
+                "label": f"{row[1]} ({row[2]})",
+                "position": str(row[2]),
+                "score": max(1.0, min(100.0, float(row[3] or 50.0))),
+            }
+            for row in rows
+        ]
+        assets.sort(key=lambda asset: (-asset["score"], asset["label"]))
+        return assets
+
+    def _select_send_assets(
+        self,
+        league_id: str,
+        user_roster_id: int,
+        excluded_player_id: str,
+        target_score: float | None,
+    ) -> list[dict[str, Any]]:
+        target = target_score or 55.0
+        candidates = [
+            asset
+            for asset in self._roster_player_assets(league_id, user_roster_id)
+            if asset["player_id"] != excluded_player_id
+        ]
+        if not candidates:
+            return []
+        candidates.sort(key=lambda asset: (abs(asset["score"] - target * 0.82), -asset["score"]))
+        selected = [candidates[0]]
+        if selected[0]["score"] < target * 0.65:
+            extras = [
+                asset
+                for asset in candidates[1:]
+                if asset["score"] <= target * 0.45
+            ]
+            if extras:
+                selected.append(extras[0])
+        return selected
+
+    def _select_balancing_receive_asset(
+        self,
+        league_id: str,
+        roster_id: int | None,
+        excluded_player_id: str,
+        surplus_score: float,
+    ) -> dict[str, Any] | None:
+        if roster_id is None or surplus_score < 12:
+            return None
+        candidates = [
+            asset
+            for asset in self._roster_player_assets(league_id, roster_id)
+            if asset["player_id"] != excluded_player_id and asset["score"] <= surplus_score * 1.1
+        ]
+        if not candidates:
+            return None
+        candidates.sort(key=lambda asset: abs(asset["score"] - surplus_score * 0.65))
+        return candidates[0]
+
+    def _select_receive_targets(
+        self,
+        league_id: str,
+        user_roster_id: int,
+        preferred_roster_id: int | None,
+        position: str,
+        sell_score: float,
+    ) -> list[dict[str, Any]]:
+        roster_ids = (
+            [preferred_roster_id]
+            if preferred_roster_id is not None
+            else [
+                int(row[0])
+                for row in self._conn.execute(
+                    """
+                    SELECT roster_id
+                    FROM rosters
+                    WHERE league_id = ? AND roster_id != ?
+                    ORDER BY roster_id
+                    """,
+                    [league_id, user_roster_id],
+                ).fetchall()
+            ]
+        )
+        candidates: list[dict[str, Any]] = []
+        for roster_id in roster_ids:
+            if roster_id is None or roster_id == user_roster_id:
+                continue
+            candidates.extend(
+                asset
+                for asset in self._roster_player_assets(league_id, roster_id)
+                if asset["position"] == position and asset["score"] <= sell_score * 1.05
+            )
+        if not candidates:
+            return []
+        candidates.sort(key=lambda asset: (abs(asset["score"] - sell_score * 0.82), -asset["score"]))
+        return candidates[:1]
+
+    def _fairness_band(
+        self,
+        send_score: float,
+        receive_score: float,
+        confidence: str,
+    ) -> Literal["underpay", "fair", "overpay", "unknown"]:
+        ratio = send_score / max(receive_score, 1.0)
+        if ratio < 0.82:
+            return "underpay" if confidence == "HIGH" else "unknown"
+        if ratio > 1.18:
+            return "overpay"
+        return "fair"
+
+    def _manager_pitch_angle(self, league_id: str, roster_id: int | None) -> str | None:
+        if roster_id is None:
+            return None
+        angles = TradeRepo(self._conn).get_pitch_angles(league_id, roster_id)
+        if not angles:
+            return None
+        angle = angles[0]
+        return (
+            f"Open with {angle['send_description']}; avoid {angle['avoid_description']}. "
+            f"{angle['reasoning']}"
         )
 
     def _manager_actions(

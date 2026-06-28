@@ -15,6 +15,7 @@ from fantasy.weekly.models import (
     WeeklyEdgeResponse,
     WeeklyPlayerSignal,
 )
+from fantasy.weekly.public_context import ensure_weekly_context_schema
 
 WEEKLY_EDGE_DOMAINS = ["injuries", "usage", "schedule", "stats"]
 
@@ -35,6 +36,7 @@ class WeeklyEdgeService:
         self._lineup_repo = LineupRepo(conn)
 
     def build(self, league_id: str, roster_id: int) -> WeeklyEdgeResponse:
+        ensure_weekly_context_schema(self._conn)
         starter_ids, bench_ids = self._roster_players(league_id, roster_id)
         player_ids = starter_ids + bench_ids
         player_signals = self._player_signals(starter_ids, bench_ids)
@@ -115,6 +117,9 @@ class WeeklyEdgeService:
             [player_ids, player_ids],
         ).fetchall()
         starter_set = set(starter_ids)
+        team_contexts = self._team_contexts(
+            [str(row[3]) for row in rows if row[3] is not None]
+        )
         signals: list[WeeklyPlayerSignal] = []
         for row in rows:
             metadata = _loads(row[4], {})
@@ -124,15 +129,23 @@ class WeeklyEdgeService:
                 or ""
             ).strip()
             warning = self._availability_warning(injury_status)
+            team = str(row[3]) if row[3] is not None else None
+            context = team_contexts.get(team or "")
+            matchup_note = self._matchup_note(context)
+            usage_note = self._usage_note(float(row[5] or 0.0), float(row[6] or 0.0))
             signals.append(
                 WeeklyPlayerSignal(
                     player_id=str(row[0]),
                     player_name=str(row[1]),
                     position=str(row[2]),
-                    team=str(row[3]) if row[3] is not None else None,
+                    team=team,
                     roster_slot="starter" if str(row[0]) in starter_set else "bench",
                     recent_points=round(float(row[5] or 0.0), 2),
                     recent_opportunities=round(float(row[6] or 0.0), 2),
+                    opponent_team=context["opponent"] if context else None,
+                    game_week=int(context["week"]) if context else None,
+                    matchup_note=matchup_note,
+                    usage_note=usage_note,
                     injury_status=injury_status or None,
                     availability_warning=warning,
                 )
@@ -146,6 +159,65 @@ class WeeklyEdgeService:
             )
         )
         return signals
+
+    def _team_contexts(self, teams: list[str]) -> dict[str, dict[str, Any]]:
+        unique_teams = sorted({team for team in teams if team})
+        if not unique_teams:
+            return {}
+        rows = self._conn.execute(
+            """
+            WITH ranked AS (
+                SELECT team, season, week, opponent, is_home, game_date, game_type,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY team
+                           ORDER BY
+                               CASE
+                                   WHEN TRY_CAST(game_date AS DATE) >= CURRENT_DATE THEN 0
+                                   ELSE 1
+                               END,
+                               CASE
+                                   WHEN TRY_CAST(game_date AS DATE) >= CURRENT_DATE
+                                   THEN TRY_CAST(game_date AS DATE)
+                                   ELSE NULL
+                               END ASC NULLS LAST,
+                               season DESC,
+                               week DESC
+                       ) AS rn
+                FROM team_schedule_weekly
+                WHERE team IN (SELECT UNNEST(?))
+            )
+            SELECT team, season, week, opponent, is_home, game_date, game_type
+            FROM ranked
+            WHERE rn = 1
+            """,
+            [unique_teams],
+        ).fetchall()
+        return {
+            str(row[0]): {
+                "season": int(row[1]),
+                "week": int(row[2]),
+                "opponent": str(row[3]) if row[3] is not None else None,
+                "is_home": bool(row[4]),
+                "game_date": str(row[5]) if row[5] is not None else None,
+                "game_type": str(row[6]) if row[6] is not None else None,
+            }
+            for row in rows
+        }
+
+    def _matchup_note(self, context: dict[str, Any] | None) -> str | None:
+        if context is None or context.get("opponent") is None:
+            return None
+        venue = "home" if context.get("is_home") else "away"
+        game_date = context.get("game_date")
+        date_note = f" on {game_date}" if game_date else ""
+        return f"Week {context['week']} {venue} matchup vs {context['opponent']}{date_note}."
+
+    def _usage_note(self, recent_points: float, recent_opportunities: float) -> str:
+        if recent_opportunities >= 12:
+            return f"Strong recent usage: {recent_opportunities:.1f} weighted opportunities with {recent_points:.1f} PPG."
+        if recent_opportunities >= 7:
+            return f"Usable recent role: {recent_opportunities:.1f} weighted opportunities with {recent_points:.1f} PPG."
+        return f"Thin recent role: {recent_opportunities:.1f} weighted opportunities with {recent_points:.1f} PPG."
 
     def _availability_warning(self, injury_status: str) -> str | None:
         normalized = injury_status.lower()
@@ -203,6 +275,11 @@ class WeeklyEdgeService:
                     why_now=(
                         f"{best_bench.player_name} has the stronger recent points/opportunity profile"
                         f" ({best_bench.recent_points:.1f} pts, {best_bench.recent_opportunities:.1f} opps)."
+                        + (
+                            f" {best_bench.matchup_note}"
+                            if best_bench.matchup_note
+                            else ""
+                        )
                     ),
                     risk_if_wrong=(
                         starter.availability_warning
@@ -265,4 +342,3 @@ class WeeklyEdgeService:
                 )
             )
         return decisions
-

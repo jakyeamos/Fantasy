@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from fantasy.context.models import FreshnessTag
+
 
 class WeeklyPlayerSignal(BaseModel):
     model_config = ConfigDict(frozen=False)
@@ -15,6 +17,10 @@ class WeeklyPlayerSignal(BaseModel):
     roster_slot: Literal["starter", "bench"]
     recent_points: float
     recent_opportunities: float
+    opponent_team: str | None = None
+    game_week: int | None = None
+    matchup_note: str | None = None
+    usage_note: str | None = None
     injury_status: str | None = None
     availability_warning: str | None = None
 
@@ -61,3 +67,13 @@ class WeeklyEdgeResponse(BaseModel):
     lineup_gaps: list[LineupGapDecision] = Field(default_factory=list)
     stale_domains: list[str] = Field(default_factory=list)
 
+
+class WeeklyContextRefreshResponse(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    league_id: str
+    season: int
+    refreshed_domains: list[str] = Field(default_factory=list)
+    schedule_rows: int
+    refreshed_at: str
+    freshness_tags: list[FreshnessTag] = Field(default_factory=list)

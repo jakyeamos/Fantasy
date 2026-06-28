@@ -25,6 +25,9 @@ The system must tell you — for each of your teams — what you are, what your 
 - The app-wide UI remediation pass now caps Player Rankings rendering, compacts league subroute briefing chrome, demotes unavailable Startup navigation, removes nonfunctional global header utilities, and fixes known React console warning sources.
 - The dashboard now opens with a cross-league command center backed by `/actions/command-center`, waiver cards include add/drop/FAAB guidance, opportunity ranking prioritizes actionable roster context over raw ADP gaps, and the refreshed DuckDB request policy removes mixed read-only/write connection failures.
 - Weekly edge now has a first-class `/weekly/league/{league_id}/{roster_id}/edge` API and league-overview panel that turns recent public weekly stats, injury/status metadata, lineup gaps, and freshness tags into start/sit and lineup-upgrade actions; command-center trade cards now include suggested package shape and portfolio rows rank exposure by sell/hedge/monitor urgency.
+- Weekly context can now be explicitly refreshed through `/weekly/league/{league_id}/refresh-context`, stores nflverse/nflreadpy schedule opponent context in DuckDB, marks injuries/usage/schedule/stats freshness domains, and surfaces matchup/usage notes inside weekly edge cards.
+- Command-center trade actions now build from real roster assets and manager pitch evidence, then deep-link Trade Lab with concrete send/receive player params instead of generic package placeholders.
+- The oversized league overview and trade route files were split into focused league/trade components and route helper modules while preserving route hydration and evaluator behavior.
 
 ### Active
 
@@ -101,4 +104,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after the weekly-edge, trade package, manager confidence, and portfolio urgency pass*
+*Last updated: 2026-06-28 after the weekly public-context, executable trade suggestion, and route-split tranche*

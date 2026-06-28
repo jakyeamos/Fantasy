@@ -26,6 +26,8 @@ class TradeSuggestion(BaseModel):
     target_manager_roster_id: int | None = None
     send_assets: list[str] = Field(default_factory=list)
     receive_assets: list[str] = Field(default_factory=list)
+    send_player_ids: list[str] = Field(default_factory=list)
+    receive_player_ids: list[str] = Field(default_factory=list)
     fairness_band: Literal["underpay", "fair", "overpay", "unknown"] = "unknown"
     acceptance_confidence: CommandConfidence
     manager_pitch_angle: str

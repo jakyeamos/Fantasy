@@ -169,6 +169,20 @@ player_stats_weekly = Table(
     UniqueConstraint("player_id", "season", "week", name="uq_player_stats_weekly_identity"),
 )
 
+team_schedule_weekly = Table(
+    "team_schedule_weekly",
+    metadata,
+    Column("team", String, nullable=False),
+    Column("season", Integer, nullable=False),
+    Column("week", Integer, nullable=False),
+    Column("opponent", String),
+    Column("is_home", Boolean, nullable=False, server_default=text("FALSE")),
+    Column("game_date", String),
+    Column("game_type", String),
+    Column("loaded_at", TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP")),
+    UniqueConstraint("team", "season", "week", name="uq_team_schedule_weekly_identity"),
+)
+
 player_adp_baseline = Table(
     "player_adp_baseline",
     metadata,
@@ -191,5 +205,6 @@ __all__ = [
     "ingest_runs",
     "corrections",
     "player_stats_weekly",
+    "team_schedule_weekly",
     "player_adp_baseline",
 ]

@@ -38,6 +38,7 @@ import type {
   StartupContext,
   TaxiConfigResponse,
   WaiverRecommendationsResponse,
+  WeeklyContextRefreshResponse,
   WeeklyEdgeResponse,
 } from "@/api/types"
 
@@ -438,6 +439,21 @@ export function weeklyEdgeOptions(leagueId: string, rosterId: number) {
     staleTime: 60 * 1000,
     enabled: leagueId.trim().length > 0 && rosterId > 0,
   })
+}
+
+export function refreshWeeklyContext(
+  leagueId: string,
+  season?: number | null,
+): Promise<WeeklyContextRefreshResponse> {
+  const params = new URLSearchParams()
+  if (season) {
+    params.set("season", String(season))
+  }
+  const suffix = params.size ? `?${params.toString()}` : ""
+  return postJson<WeeklyContextRefreshResponse>(
+    `/weekly/league/${leagueId}/refresh-context${suffix}`,
+    {},
+  )
 }
 
 export async function runOrphanIntake(

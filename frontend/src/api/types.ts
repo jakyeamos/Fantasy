@@ -464,6 +464,8 @@ export interface TradeSuggestion {
   target_manager_roster_id?: number | null
   send_assets: string[]
   receive_assets: string[]
+  send_player_ids: string[]
+  receive_player_ids: string[]
   fairness_band: "underpay" | "fair" | "overpay" | "unknown"
   acceptance_confidence: ConfidenceLabel
   manager_pitch_angle: string
@@ -477,6 +479,10 @@ export interface WeeklyPlayerSignal {
   roster_slot: "starter" | "bench"
   recent_points: number
   recent_opportunities: number
+  opponent_team: string | null
+  game_week: number | null
+  matchup_note: string | null
+  usage_note: string | null
   injury_status: string | null
   availability_warning: string | null
 }
@@ -516,6 +522,15 @@ export interface WeeklyEdgeResponse {
   start_sit: StartSitDecision[]
   lineup_gaps: LineupGapDecision[]
   stale_domains: string[]
+}
+
+export interface WeeklyContextRefreshResponse {
+  league_id: string
+  season: number
+  refreshed_domains: string[]
+  schedule_rows: number
+  refreshed_at: string
+  freshness_tags: FreshnessTag[]
 }
 
 export interface PlayerSearchResult {

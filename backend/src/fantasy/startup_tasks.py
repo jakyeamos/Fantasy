@@ -126,6 +126,19 @@ _SCHEMA_COMPAT_TABLES: dict[str, str] = {
             UNIQUE (league_id, domain)
         )
     """,
+    "team_schedule_weekly": """
+        CREATE TABLE IF NOT EXISTS team_schedule_weekly (
+            team       VARCHAR NOT NULL,
+            season     INTEGER NOT NULL,
+            week       INTEGER NOT NULL,
+            opponent   VARCHAR,
+            is_home    BOOLEAN NOT NULL DEFAULT FALSE,
+            game_date  VARCHAR,
+            game_type  VARCHAR,
+            loaded_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (team, season, week)
+        )
+    """,
     "league_draft_order_rules": """
         CREATE TABLE IF NOT EXISTS league_draft_order_rules (
             id                INTEGER PRIMARY KEY,
