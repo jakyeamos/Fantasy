@@ -17,6 +17,8 @@ CommandCategory = Literal[
 ]
 CommandUrgency = Literal["today", "this_week", "watch", "low"]
 CommandConfidence = Literal["HIGH", "MEDIUM", "LOW"]
+MoveLane = Literal["start_sit", "waiver", "trade", "rookie", "portfolio", "manager"]
+MoveLaneStatus = Literal["ready", "missing"]
 
 
 class TradeSuggestion(BaseModel):
@@ -73,10 +75,22 @@ class DataRefreshAction(BaseModel):
     endpoint: str
 
 
+class MoveCoverage(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    lane: MoveLane
+    label: str
+    status: MoveLaneStatus
+    action_count: int = 0
+    top_action_id: str | None = None
+    reason: str
+
+
 class CommandCenterResponse(BaseModel):
     model_config = ConfigDict(frozen=False)
 
     actions: list[CommandAction] = Field(default_factory=list)
+    move_coverage: list[MoveCoverage] = Field(default_factory=list)
     data_health: list[FreshnessTag] = Field(default_factory=list)
     refresh_actions: list[DataRefreshAction] = Field(default_factory=list)
     total: int

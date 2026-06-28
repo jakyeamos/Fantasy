@@ -105,6 +105,62 @@ def test_command_center_top_five_moves_are_actionable(db, monkeypatch):
     )
 
 
+def test_command_center_reports_required_move_lane_coverage(db, monkeypatch):
+    engine = CommandCenterEngine(db)
+    rosters = [{"league_id": "cmd_lanes", "roster_id": 1}]
+
+    monkeypatch.setattr(engine, "_user_rosters", lambda league_id: rosters)
+    monkeypatch.setattr(
+        engine,
+        "_waiver_actions",
+        lambda _: [_action("waiver:ready", "waiver", "today", "HIGH", 1)],
+    )
+    monkeypatch.setattr(
+        engine,
+        "_weekly_actions",
+        lambda _: [_action("lineup:ready", "lineup", "today", "HIGH", 2)],
+    )
+    monkeypatch.setattr(
+        engine,
+        "_opportunity_actions",
+        lambda league_id: [_action("trade:ready", "trade", "this_week", "HIGH", 3)],
+    )
+    monkeypatch.setattr(
+        "fantasy.actions.command_center.build_rookie_actions",
+        lambda _conn, _rosters: [
+            _action("rookie:ready", "rookie_pick", "this_week", "MEDIUM", 4)
+        ],
+    )
+    monkeypatch.setattr(
+        "fantasy.actions.command_center.build_manager_actions",
+        lambda _conn, _rosters, _league_name: [
+            _action("manager:ready", "manager", "this_week", "MEDIUM", 5)
+        ],
+    )
+    monkeypatch.setattr(engine, "_portfolio_actions", lambda: [])
+
+    response = engine.build("cmd_lanes")
+
+    coverage_by_lane = {item.lane: item for item in response.move_coverage}
+    assert list(coverage_by_lane) == [
+        "start_sit",
+        "waiver",
+        "trade",
+        "rookie",
+        "portfolio",
+        "manager",
+    ]
+    assert coverage_by_lane["start_sit"].status == "ready"
+    assert coverage_by_lane["start_sit"].top_action_id == "lineup:ready"
+    assert coverage_by_lane["waiver"].status == "ready"
+    assert coverage_by_lane["trade"].status == "ready"
+    assert coverage_by_lane["rookie"].status == "ready"
+    assert coverage_by_lane["manager"].status == "ready"
+    assert coverage_by_lane["portfolio"].status == "missing"
+    assert coverage_by_lane["portfolio"].top_action_id is None
+    assert "No ranked portfolio" in coverage_by_lane["portfolio"].reason
+
+
 def test_command_center_top_five_prefers_executable_manager_offer(db, monkeypatch):
     engine = CommandCenterEngine(db)
     rosters = [{"league_id": "cmd_rank", "roster_id": 1}]

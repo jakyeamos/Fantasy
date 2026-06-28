@@ -9,6 +9,7 @@ from fantasy.actions.models import (
     CommandAction,
     CommandCenterResponse,
     DataRefreshAction,
+    MoveCoverage,
     TradeSuggestion,
 )
 from fantasy.actions.manager_actions import build_manager_actions
@@ -29,6 +30,14 @@ from fantasy.weekly.models import LineupGapDecision, StartSitDecision, WeeklyPla
 from fantasy.weekly.weekly_edge_service import WeeklyEdgeService
 
 WEEKLY_DOMAINS = ["injuries", "usage", "schedule", "waivers", "market", "stats"]
+MOVE_LANE_SPECS = (
+    ("start_sit", "Start/sit", {"lineup"}, "No ranked start/sit or lineup-risk action from weekly data."),
+    ("waiver", "Waiver", {"waiver"}, "No ranked waiver add/drop/FAAB action from cached boards."),
+    ("trade", "Trade", {"trade"}, "No ranked buy/sell trade action from market or roster fit."),
+    ("rookie", "Rookie", {"rookie_pick"}, "No active rookie/draft pick action found."),
+    ("portfolio", "Portfolio", {"portfolio"}, "No ranked portfolio exposure or hedge action found."),
+    ("manager", "Manager", {"manager"}, "No high-evidence manager exploit action found."),
+)
 
 
 class CommandCenterEngine:
@@ -60,6 +69,7 @@ class CommandCenterEngine:
         data_health = self._data_health(user_rosters)
         return CommandCenterResponse(
             actions=ranked,
+            move_coverage=self._move_coverage(ranked),
             data_health=data_health,
             refresh_actions=self._refresh_actions(user_rosters, data_health),
             total=len(actions),
@@ -178,6 +188,35 @@ class CommandCenterEngine:
                 ),
             )
         return actions[:8]
+
+    def _move_coverage(self, actions: list[CommandAction]) -> list[MoveCoverage]:
+        coverage: list[MoveCoverage] = []
+        for lane, label, categories, missing_reason in MOVE_LANE_SPECS:
+            matching = [action for action in actions if action.category in categories]
+            if matching:
+                first = matching[0]
+                coverage.append(
+                    MoveCoverage(
+                        lane=lane,
+                        label=label,
+                        status="ready",
+                        action_count=len(matching),
+                        top_action_id=first.id,
+                        reason=f"{label} lane has {len(matching)} ranked action{'s' if len(matching) != 1 else ''}.",
+                    )
+                )
+                continue
+            coverage.append(
+                MoveCoverage(
+                    lane=lane,
+                    label=label,
+                    status="missing",
+                    action_count=0,
+                    top_action_id=None,
+                    reason=missing_reason,
+                )
+            )
+        return coverage
 
     def _waiver_actions(
         self, rosters: list[dict[str, object]]

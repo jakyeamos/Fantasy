@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { AlertTriangle, ArrowRight, CheckCircle2, RefreshCcw } from "lucide-react"
 
 import { commandCenterOptions, postJson, recomputeActions } from "@/api/queries"
-import type { CommandAction, DataRefreshAction, FreshnessTag } from "@/api/types"
+import type { CommandAction, DataRefreshAction, FreshnessTag, MoveCoverage } from "@/api/types"
 import { Badge } from "@/components/ui/badge"
 import { buttonClasses } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -61,6 +61,26 @@ function DataHealthStrip({ tags }: { tags: FreshnessTag[] }) {
       {stale[0]?.warning ? (
         <span className="text-muted-foreground">{stale[0].warning}</span>
       ) : null}
+    </div>
+  )
+}
+
+function MoveCoverageStrip({ coverage }: { coverage: MoveCoverage[] }) {
+  if (!coverage.length) return null
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 border-b border-border/45 pb-4 text-xs">
+      <span className="font-semibold text-foreground">Edge lanes</span>
+      {coverage.map((item) => (
+        <Badge
+          key={item.lane}
+          variant={item.status === "ready" ? "secondary" : "outline"}
+          title={item.reason}
+        >
+          {item.label}
+          {item.status === "ready" ? ` ${item.action_count}` : " missing"}
+        </Badge>
+      ))}
     </div>
   )
 }
@@ -219,6 +239,7 @@ export function CommandCenter() {
 
   const actions = query.data?.actions.slice(0, 5) ?? []
   const dataHealth = query.data?.data_health ?? []
+  const moveCoverage = query.data?.move_coverage ?? []
   const refreshActions = query.data?.refresh_actions ?? []
 
   return (
@@ -246,6 +267,7 @@ export function CommandCenter() {
         </button>
       </div>
       <DataHealthStrip tags={dataHealth} />
+      <MoveCoverageStrip coverage={moveCoverage} />
       <RefreshActionBar
         actions={refreshActions}
         onComplete={() => query.refetch()}

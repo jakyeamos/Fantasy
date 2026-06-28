@@ -437,8 +437,18 @@ export interface CommandAction {
   trade_suggestion?: TradeSuggestion | null
 }
 
+export interface MoveCoverage {
+  lane: "start_sit" | "waiver" | "trade" | "rookie" | "portfolio" | "manager"
+  label: string
+  status: "ready" | "missing"
+  action_count: number
+  top_action_id: string | null
+  reason: string
+}
+
 export interface CommandCenterResponse {
   actions: CommandAction[]
+  move_coverage: MoveCoverage[]
   data_health: FreshnessTag[]
   refresh_actions: DataRefreshAction[]
   total: number
