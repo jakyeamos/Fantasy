@@ -1,7 +1,7 @@
 import { useState } from "react"
 
 import { useQuery } from "@tanstack/react-query"
-import { AlertTriangle, ArrowRight, CheckCircle2, RefreshCcw } from "lucide-react"
+import { AlertTriangle, ArrowRight, ChevronDown, RefreshCcw } from "lucide-react"
 
 import { commandCenterOptions, postJson, recomputeActions } from "@/api/queries"
 import type { CommandAction, DataRefreshAction, FreshnessTag, MoveCoverage } from "@/api/types"
@@ -49,20 +49,14 @@ function CommandSummary({
   const readyLanes = moveCoverage.filter((lane) => lane.status === "ready")
   const primaryReadyLanes = readyLanes.slice(0, 3)
 
-  if (!dataHealth.length && !moveCoverage.length) return null
+  if (!staleDomains.length && !moveCoverage.length) return null
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded border border-border/45 bg-card/35 px-3 py-2 text-xs">
-      {dataHealth.length ? (
+      {staleDomains.length ? (
         <div className="flex items-center gap-2 pr-2 font-semibold text-foreground">
-          {staleDomains.length ? (
-            <AlertTriangle className={`size-4 ${textToneClasses.attention}`} />
-          ) : (
-            <CheckCircle2 className={`size-4 ${textToneClasses.success}`} />
-          )}
-          {staleDomains.length
-            ? `${staleDomains.length} stale data lanes`
-            : "Data fresh"}
+          <AlertTriangle className={`size-4 ${textToneClasses.attention}`} />
+          {staleDomains.length} stale data lanes
         </div>
       ) : null}
       {primaryReadyLanes.map((lane) => (
@@ -138,86 +132,105 @@ function RefreshAllButton({
 }
 
 function CommandCard({ action }: { action: CommandAction }) {
+  const [isExpanded, setIsExpanded] = useState(false)
+
   return (
-    <Card className="min-h-[244px]">
-      <CardHeader className="space-y-3 pb-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">#{action.priority_rank}</Badge>
-          <Badge variant="secondary">{categoryLabel[action.category]}</Badge>
-          <Badge variant={confidenceVariant(action.confidence)}>{action.confidence}</Badge>
-          <span className="terminal-label text-muted-foreground">
-            {urgencyCopy(action.urgency)}
-          </span>
-        </div>
-        <CardTitle className="text-xl leading-6">{action.headline}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex h-[calc(100%-96px)] flex-col justify-between gap-4">
-        <div className="space-y-3">
-          <p className="text-sm font-semibold leading-6">{action.recommended_action}</p>
-          <div className="space-y-2 text-sm leading-6 text-muted-foreground">
-            <p>
-              <span className="font-semibold text-foreground">Acceptable price:</span>{" "}
-              {action.acceptable_price}
-            </p>
-            <p>
-              <span className="font-semibold text-foreground">Timing:</span>{" "}
-              {action.timing}
-            </p>
-            <p>
-              <span className="font-semibold text-foreground">Why now:</span>{" "}
-              {action.why_now}
-            </p>
-            <p>
-              <span className="font-semibold text-foreground">Wrong if:</span>{" "}
-              {action.risk_if_wrong}
-            </p>
+    <Card>
+      <CardHeader className="space-y-3 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline">#{action.priority_rank}</Badge>
+              <Badge variant="secondary">{categoryLabel[action.category]}</Badge>
+              <Badge variant={confidenceVariant(action.confidence)}>{action.confidence}</Badge>
+              <span className="terminal-label text-muted-foreground">
+                {urgencyCopy(action.urgency)}
+              </span>
+            </div>
+            <CardTitle className="text-lg leading-6">{action.headline}</CardTitle>
           </div>
-          {action.evidence.length ? (
-            <div className="flex flex-wrap gap-2">
-              {action.evidence.slice(0, 3).map((item) => (
-                <Badge key={item} variant="outline">
-                  {item}
-                </Badge>
-              ))}
-            </div>
-          ) : null}
-          {action.stale_domains.length ? (
-            <div className={`flex items-center gap-2 rounded border px-3 py-2 text-xs ${surfaceToneClasses.attention} ${textToneClasses.attention}`}>
-              <AlertTriangle className="size-3.5 shrink-0" />
-              Refresh {action.stale_domains.join(", ")} before locking this in.
-            </div>
-          ) : null}
-          {action.trade_suggestion ? (
-            <div className="space-y-2 rounded border border-border/45 bg-background/35 p-3 text-xs text-muted-foreground">
-              <p className="font-semibold text-foreground">Suggested package</p>
-              <p>
-                <span className="font-semibold text-foreground">Send:</span>{" "}
-                {action.trade_suggestion.send_assets.join(" + ")}
-              </p>
-              <p>
-                <span className="font-semibold text-foreground">Receive:</span>{" "}
-                {action.trade_suggestion.receive_assets.join(" + ")}
-              </p>
-              <p>
-                <span className="font-semibold text-foreground">Pitch:</span>{" "}
-                {action.trade_suggestion.manager_pitch_angle}
-              </p>
-              {action.trade_suggestion.evaluation_summary ? (
-                <p>
-                  <span className="font-semibold text-foreground">Pre-score:</span>{" "}
-                  {action.trade_suggestion.evaluation_verdict.toUpperCase()}{" "}
-                  {action.trade_suggestion.evaluation_score?.toFixed(1) ?? "--"} -{" "}
-                  {action.trade_suggestion.evaluation_summary}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
+          <button
+            type="button"
+            aria-expanded={isExpanded}
+            className={buttonClasses({ variant: "ghost", size: "sm" })}
+            onClick={() => setIsExpanded((current) => !current)}
+          >
+            Details
+            <ChevronDown
+              className={`size-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+            />
+          </button>
         </div>
-        <a href={action.cta_destination} className={buttonClasses({ variant: "outline" })}>
-          {action.cta_label}
-          <ArrowRight className="size-3.5" />
-        </a>
-      </CardContent>
+        <p className="text-sm font-semibold leading-6">{action.recommended_action}</p>
+      </CardHeader>
+      {isExpanded ? (
+        <CardContent className="flex flex-col gap-4 px-4 pb-4 pt-0">
+          <div className="space-y-3">
+            <div className="space-y-2 text-sm leading-6 text-muted-foreground">
+              <p>
+                <span className="font-semibold text-foreground">Acceptable price:</span>{" "}
+                {action.acceptable_price}
+              </p>
+              <p>
+                <span className="font-semibold text-foreground">Timing:</span>{" "}
+                {action.timing}
+              </p>
+              <p>
+                <span className="font-semibold text-foreground">Why now:</span>{" "}
+                {action.why_now}
+              </p>
+              <p>
+                <span className="font-semibold text-foreground">Wrong if:</span>{" "}
+                {action.risk_if_wrong}
+              </p>
+            </div>
+            {action.evidence.length ? (
+              <div className="flex flex-wrap gap-2">
+                {action.evidence.slice(0, 3).map((item) => (
+                  <Badge key={item} variant="outline">
+                    {item}
+                  </Badge>
+                ))}
+              </div>
+            ) : null}
+            {action.stale_domains.length ? (
+              <div className={`flex items-center gap-2 rounded border px-3 py-2 text-xs ${surfaceToneClasses.attention} ${textToneClasses.attention}`}>
+                <AlertTriangle className="size-3.5 shrink-0" />
+                Refresh {action.stale_domains.join(", ")} before locking this in.
+              </div>
+            ) : null}
+            {action.trade_suggestion ? (
+              <div className="space-y-2 rounded border border-border/45 bg-background/35 p-3 text-xs text-muted-foreground">
+                <p className="font-semibold text-foreground">Suggested package</p>
+                <p>
+                  <span className="font-semibold text-foreground">Send:</span>{" "}
+                  {action.trade_suggestion.send_assets.join(" + ")}
+                </p>
+                <p>
+                  <span className="font-semibold text-foreground">Receive:</span>{" "}
+                  {action.trade_suggestion.receive_assets.join(" + ")}
+                </p>
+                <p>
+                  <span className="font-semibold text-foreground">Pitch:</span>{" "}
+                  {action.trade_suggestion.manager_pitch_angle}
+                </p>
+                {action.trade_suggestion.evaluation_summary ? (
+                  <p>
+                    <span className="font-semibold text-foreground">Pre-score:</span>{" "}
+                    {action.trade_suggestion.evaluation_verdict.toUpperCase()}{" "}
+                    {action.trade_suggestion.evaluation_score?.toFixed(1) ?? "--"} -{" "}
+                    {action.trade_suggestion.evaluation_summary}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+          <a href={action.cta_destination} className={buttonClasses({ variant: "outline" })}>
+            {action.cta_label}
+            <ArrowRight className="size-3.5" />
+          </a>
+        </CardContent>
+      ) : null}
     </Card>
   )
 }
@@ -287,7 +300,7 @@ export function CommandCenter() {
           </CardContent>
         </Card>
       ) : actions.length ? (
-        <div className="grid gap-4 xl:grid-cols-5 lg:grid-cols-3 md:grid-cols-2">
+        <div className="space-y-3">
           {actions.map((action) => (
             <CommandCard key={action.id} action={action} />
           ))}

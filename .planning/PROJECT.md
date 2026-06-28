@@ -12,6 +12,7 @@ The system must tell you — for each of your teams — what you are, what your 
 
 ### Validated
 
+- Command-center Top Moves now render as compact expandable cards, and the data-health row omits a fresh-state flag when no stale domains need attention.
 - Command-center stale refresh actions now update the freshness ledger when waiver boards are recomputed or market baselines are refreshed, so successful refreshes clear stale badges.
 - Weekly start/sit Command Center actions now require roster-legal lineup-slot swaps, reject NFL free-agent/no-game bench starters, and distinguish missing rookie stat samples from true zero-point projections.
 - Command-center landing chrome is now compact, stale refresh actions are consolidated into one queued button, and Edge Radar ranks cheap candidates before enriching only the visible winners so Top Moves loads quickly.
@@ -126,4 +127,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after Command Center refresh actions were wired to clear freshness markers*
+*Last updated: 2026-06-28 after Command Center Top Moves were compacted into expandable cards*
