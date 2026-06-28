@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { AlertTriangle, ArrowRight, ChevronDown, RefreshCcw } from "lucide-react"
 
 import { commandCenterOptions, postJson, recomputeActions } from "@/api/queries"
-import type { CommandAction, DataRefreshAction, FreshnessTag, MoveCoverage } from "@/api/types"
+import type { CommandAction, DataRefreshAction, FreshnessTag } from "@/api/types"
 import { Badge } from "@/components/ui/badge"
 import { buttonClasses } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -40,33 +40,19 @@ function formatFreshnessLabel(tag: FreshnessTag): string {
 
 function CommandSummary({
   dataHealth,
-  moveCoverage,
 }: {
   dataHealth: FreshnessTag[]
-  moveCoverage: MoveCoverage[]
 }) {
   const staleDomains = dataHealth.filter((tag) => tag.is_stale)
-  const readyLanes = moveCoverage.filter((lane) => lane.status === "ready")
-  const primaryReadyLanes = readyLanes.slice(0, 3)
 
-  if (!staleDomains.length && !moveCoverage.length) return null
+  if (!staleDomains.length) return null
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded border border-border/45 bg-card/35 px-3 py-2 text-xs">
-      {staleDomains.length ? (
-        <div className="flex items-center gap-2 pr-2 font-semibold text-foreground">
-          <AlertTriangle className={`size-4 ${textToneClasses.attention}`} />
-          {staleDomains.length} stale data lanes
-        </div>
-      ) : null}
-      {primaryReadyLanes.map((lane) => (
-        <Badge key={lane.lane} variant="secondary" title={lane.reason}>
-          {lane.label} {lane.action_count}
-        </Badge>
-      ))}
-      {readyLanes.length > primaryReadyLanes.length ? (
-        <Badge variant="outline">+{readyLanes.length - primaryReadyLanes.length} lanes</Badge>
-      ) : null}
+      <div className="flex items-center gap-2 pr-2 font-semibold text-foreground">
+        <AlertTriangle className={`size-4 ${textToneClasses.attention}`} />
+        {staleDomains.length} stale data lane{staleDomains.length === 1 ? "" : "s"}
+      </div>
       {staleDomains.slice(0, 3).map((tag) => (
         <Badge key={tag.domain} variant="outline">
           {formatFreshnessLabel(tag)} stale
@@ -262,7 +248,6 @@ export function CommandCenter() {
 
   const actions = query.data?.actions.slice(0, 5) ?? []
   const dataHealth = query.data?.data_health ?? []
-  const moveCoverage = query.data?.move_coverage ?? []
   const refreshActions = query.data?.refresh_actions ?? []
 
   return (
@@ -282,10 +267,7 @@ export function CommandCenter() {
           onComplete={() => query.refetch()}
         />
       </div>
-      <CommandSummary
-        dataHealth={dataHealth}
-        moveCoverage={moveCoverage}
-      />
+      <CommandSummary dataHealth={dataHealth} />
 
       {query.isError ? (
         <Card>
