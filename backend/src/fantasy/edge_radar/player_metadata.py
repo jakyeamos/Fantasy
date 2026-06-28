@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import csv
 import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import duckdb
@@ -12,6 +14,35 @@ class PlayerMetadataRefreshSummary:
     season: int
     source_rows: int
     updated_rows: int
+
+
+@dataclass(frozen=True)
+class PlayerMetadataImportSummary:
+    source_rows: int
+    matched_rows: int
+    updated_rows: int
+    unmatched_rows: int
+
+
+FIELD_ALIASES = {
+    "yprr": "yards_per_route_run",
+    "yards_per_route_run": "yards_per_route_run",
+    "route_participation": "route_participation",
+    "snap_share": "snap_share",
+    "first_read_share": "first_read_target_share",
+    "first_read_target_share": "first_read_target_share",
+    "slot_rate": "slot_rate",
+    "wide_rate": "wide_rate",
+    "alignment": "alignment",
+    "yards_after_catch": "yards_after_catch",
+    "missed_tackles_forced": "missed_tackles_forced",
+    "explosive_play_rate": "explosive_play_rate",
+    "goal_line_share": "goal_line_share",
+    "two_minute_snap_share": "two_minute_snap_share",
+    "third_down_snap_share": "third_down_snap_share",
+    "source": "dense_metadata_source",
+    "notes": "dense_metadata_notes",
+}
 
 
 def _loads(raw: str | None) -> dict[str, Any]:
@@ -33,6 +64,69 @@ def _safe_float(value: object) -> float:
         return float(value or 0.0)
     except (TypeError, ValueError):
         return 0.0
+
+
+def import_player_metadata_csv(
+    conn: duckdb.DuckDBPyConnection,
+    csv_path: str | Path,
+) -> PlayerMetadataImportSummary:
+    source_rows = 0
+    matched_rows = 0
+    updated_rows = 0
+    with Path(csv_path).open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        for raw in reader:
+            source_rows += 1
+            player_id = str(raw.get("player_id") or "").strip()
+            if not player_id:
+                continue
+            existing = conn.execute(
+                "SELECT metadata_blob FROM players WHERE player_id = ?",
+                [player_id],
+            ).fetchone()
+            if existing is None:
+                continue
+            matched_rows += 1
+            metadata = _loads(str(existing[0]) if existing[0] else None)
+            updates = _metadata_updates_from_row(raw)
+            if not updates:
+                continue
+            metadata.update(updates)
+            conn.execute(
+                """
+                UPDATE players
+                SET metadata_blob = ?, refreshed_at = CURRENT_TIMESTAMP
+                WHERE player_id = ?
+                """,
+                [_dumps(metadata), player_id],
+            )
+            updated_rows += 1
+    return PlayerMetadataImportSummary(
+        source_rows=source_rows,
+        matched_rows=matched_rows,
+        updated_rows=updated_rows,
+        unmatched_rows=source_rows - matched_rows,
+    )
+
+
+def _metadata_updates_from_row(raw: dict[str, str]) -> dict[str, Any]:
+    updates: dict[str, Any] = {}
+    for raw_key, value in raw.items():
+        key = FIELD_ALIASES.get(raw_key.strip())
+        if key is None or value in (None, ""):
+            continue
+        cleaned = value.strip()
+        if not cleaned:
+            continue
+        updates[key] = _typed_value(cleaned)
+    return updates
+
+
+def _typed_value(value: str) -> str | float:
+    try:
+        return float(value)
+    except ValueError:
+        return value
 
 
 class PlayerMetadataRefreshService:
@@ -152,6 +246,8 @@ class PlayerMetadataRefreshService:
 
 
 __all__ = [
+    "PlayerMetadataImportSummary",
     "PlayerMetadataRefreshService",
     "PlayerMetadataRefreshSummary",
+    "import_player_metadata_csv",
 ]

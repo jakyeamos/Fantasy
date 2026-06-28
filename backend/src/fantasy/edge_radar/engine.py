@@ -335,6 +335,15 @@ class EdgeRadarEngine:
                 source="player_market_metadata",
                 required_markers=('"trade_value_movement"',),
             ),
+            self._metadata_health(
+                source="player_dense_metadata",
+                required_markers=(
+                    '"yards_per_route_run"',
+                    '"route_participation"',
+                    '"snap_share"',
+                    '"first_read_target_share"',
+                ),
+            ),
             SourceHealth(
                 source="api_key_sources",
                 status="missing",

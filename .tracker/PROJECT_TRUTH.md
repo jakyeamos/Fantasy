@@ -1,7 +1,7 @@
 ---
 schemaVersion: 1
 healthScore: 78
-nextStep: "Populate curated coach/system rows and any premium-only role fields; Edge Radar now derives baseline usage, role-growth, and market-movement metadata from local public/stat tables."
+nextStep: "Load curated dense player metrics such as YPRR, route participation, snap share, and first-read share through the new player metadata CSV import path."
 blockers:
   - "Schema changes still require Alembic, startup compat shims, and test bootstrap updates in parallel."
   - "New tables still depend on a manual `alembic upgrade head` step because there is no startup migration runner."
@@ -33,3 +33,4 @@ Schema management is split across Alembic migrations, startup compatibility shim
 - 2026-06-28: Upgraded Edge Radar similarity to score usage, efficiency, role quality, team environment, career arc, market behavior, and forward outcome comp windows when those fields are present; split dense similarity logic out of the ranking engine.
 - 2026-06-28: Added `TeamContextRefreshService` and `POST /ingest/team-context/refresh` to automate measurable team-environment labels from nflreadpy team stats while preserving curated coach/system fields.
 - 2026-06-28: Added `PlayerMetadataRefreshService` and `POST /ingest/player-metadata/refresh` to derive target share, carry share, weekly usage, year-over-year role growth, and FantasyCalc trend movement into `players.metadata_blob`.
+- 2026-06-28: Added dense player metadata CSV import support plus `POST /ingest/player-metadata/import-csv`, allowing sourced metrics such as YPRR, route participation, snap share, first-read share, and alignment to feed Edge Radar similarity without fabricating unavailable data.

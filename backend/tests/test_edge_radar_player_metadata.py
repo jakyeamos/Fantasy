@@ -3,7 +3,59 @@ from __future__ import annotations
 import json
 
 from fantasy.edge_radar.engine import EdgeRadarEngine
-from fantasy.edge_radar.player_metadata import PlayerMetadataRefreshService
+from fantasy.edge_radar.player_metadata import (
+    PlayerMetadataRefreshService,
+    import_player_metadata_csv,
+)
+
+
+def test_import_player_metadata_csv_loads_sourced_dense_metrics(db, tmp_path):
+    db.execute(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES (
+            'luther_burden', 'Luther Burden', 'WR', 'CHI', 22,
+            '{"target_share":0.29}'
+        )
+        """
+    )
+    csv_path = tmp_path / "dense_player_metadata.csv"
+    csv_path.write_text(
+        "\n".join(
+            [
+                "player_id,player_name,yprr,route_participation,snap_share,first_read_share,slot_rate,source,notes",
+                "luther_burden,Luther Burden,3.15,0.91,0.84,0.32,0.54,manual_research,public YPRR lookup",
+                "missing_player,Missing Player,2.2,0.8,0.7,0.2,0.4,manual_research,no match",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    summary = import_player_metadata_csv(db, csv_path)
+
+    metadata = json.loads(
+        db.execute(
+            "SELECT metadata_blob FROM players WHERE player_id = 'luther_burden'"
+        ).fetchone()[0]
+    )
+
+    assert summary.source_rows == 2
+    assert summary.matched_rows == 1
+    assert summary.updated_rows == 1
+    assert summary.unmatched_rows == 1
+    assert metadata["target_share"] == 0.29
+    assert metadata["yards_per_route_run"] == 3.15
+    assert metadata["route_participation"] == 0.91
+    assert metadata["snap_share"] == 0.84
+    assert metadata["first_read_target_share"] == 0.32
+    assert metadata["slot_rate"] == 0.54
+    assert metadata["dense_metadata_source"] == "manual_research"
+    assert metadata["dense_metadata_notes"] == "public YPRR lookup"
+
+    health_by_source = {
+        source.source: source for source in EdgeRadarEngine(db).build().source_health
+    }
+    assert health_by_source["player_dense_metadata"].status == "ready"
 
 
 def test_player_metadata_refresh_derives_usage_growth_and_market_signals(db):

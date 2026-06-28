@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from fantasy.edge_radar.player_metadata import PlayerMetadataRefreshSummary
+from fantasy.edge_radar.player_metadata import (
+    PlayerMetadataImportSummary,
+    PlayerMetadataRefreshSummary,
+)
 from fantasy.edge_radar.team_context import TeamContextRefreshSummary
 from fantasy.main import create_app
 from fantasy.routers.deps import get_read_db_conn, get_write_db_conn
@@ -139,6 +142,43 @@ def test_refresh_player_metadata_route_runs_dense_signal_refresh(monkeypatch, db
         "updated_rows": 236,
     }
     assert calls == [2026]
+
+
+def test_import_player_metadata_csv_route_loads_dense_metrics(monkeypatch, db):
+    calls: list[str] = []
+
+    def _fake_import(conn, csv_path):
+        assert conn is db
+        calls.append(str(csv_path))
+        return PlayerMetadataImportSummary(
+            source_rows=2,
+            matched_rows=1,
+            updated_rows=1,
+            unmatched_rows=1,
+        )
+
+    monkeypatch.setattr(
+        "fantasy.routers.ingest.import_player_metadata_csv",
+        _fake_import,
+    )
+
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _unexpected_read_conn
+    app.dependency_overrides[get_write_db_conn] = _override_conn(db)
+    client = TestClient(app)
+
+    response = client.post(
+        "/ingest/player-metadata/import-csv?csv_path=/tmp/dense.csv"
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "source_rows": 2,
+        "matched_rows": 1,
+        "updated_rows": 1,
+        "unmatched_rows": 1,
+    }
+    assert calls == ["/tmp/dense.csv"]
 
 
 def test_refresh_league_pipeline_runs_all_offseason_refresh_steps(monkeypatch, db):

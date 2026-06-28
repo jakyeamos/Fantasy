@@ -7,7 +7,10 @@ import duckdb
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
-from fantasy.edge_radar.player_metadata import PlayerMetadataRefreshService
+from fantasy.edge_radar.player_metadata import (
+    PlayerMetadataRefreshService,
+    import_player_metadata_csv,
+)
 from fantasy.edge_radar.team_context import TeamContextRefreshService
 from fantasy.ingestion.ingest_service import IngestService
 from fantasy.ingestion.nfl_data_loader import refresh_adp_baseline_from_fantasycalc
@@ -55,6 +58,13 @@ class PlayerMetadataRefreshResponse(BaseModel):
     season: int
     source_rows: int
     updated_rows: int
+
+
+class PlayerMetadataImportResponse(BaseModel):
+    source_rows: int
+    matched_rows: int
+    updated_rows: int
+    unmatched_rows: int
 
 
 class DraftCapitalRefreshSummary(BaseModel):
@@ -167,6 +177,23 @@ def refresh_player_metadata(
         season=summary.season,
         source_rows=summary.source_rows,
         updated_rows=summary.updated_rows,
+    )
+
+
+@router.post(
+    "/player-metadata/import-csv",
+    response_model=PlayerMetadataImportResponse,
+)
+def import_player_metadata(
+    csv_path: str = Query(min_length=1),
+    conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
+) -> PlayerMetadataImportResponse:
+    summary = import_player_metadata_csv(conn, csv_path)
+    return PlayerMetadataImportResponse(
+        source_rows=summary.source_rows,
+        matched_rows=summary.matched_rows,
+        updated_rows=summary.updated_rows,
+        unmatched_rows=summary.unmatched_rows,
     )
 
 
