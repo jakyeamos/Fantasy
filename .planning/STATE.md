@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: implementing
-stopped_at: Multi-team trade evaluator sidecar scoring restored
-last_updated: "2026-06-23T22:48:22-04:00"
+stopped_at: Backend baseline pytest repaired after trend-result work
+last_updated: "2026-06-28T10:41:59-04:00"
 progress:
   total_phases: 21
   completed_phases: 16
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Tell me what my team is, what my best path is, who to trade with, what kind of deal to make, and whether the prospect or pick decision I'm considering is actually sharp in this format and league.
-**Current focus:** Trade evaluator multi-team support — third-party legs now return scored sidecar evaluations, while reroutes and package builder run through the primary counterparty path when those inputs exist.
+**Current focus:** Backend baseline verification after trend-result work — full backend `uv run pytest` passes with async test plugins available in the uv dev group, direction classification calibrated, and DuckDB trend upserts using a supported timestamp expression.
 
 ## Current Position
 
-Phase: Trade evaluator gap closure
-Plan: Multi-team third-party trade scoring with primary-path reroutes and package builder support
+Phase: Baseline stabilization
+Plan: Repair backend pytest failures after trend-result changes
 
 ## Performance Metrics
 
@@ -93,6 +93,7 @@ Recent decisions affecting current work:
 - [Market Gap Surfacing]: RookiePlayer and HygieneSuggestion responses now carry `model_vs_market_gap` from the shared recommendation-card market-gap engine, and the rookie board / hygiene rows reuse existing MarketGapPanel and MarketGapBadge components.
 - [Local Startup]: `./dev.sh` is the primary local launcher. It blocks on `.venv/bin/alembic upgrade heads` from `backend/` before starting uvicorn, which covers both current 021 Alembic heads and keeps the workflow repo-local against `data/fantasy.duckdb`.
 - [Trade Evaluator]: Multi-team trades now return `third_party_evaluations` with sidecar market fairness scores. Reroutes and package builder are no longer suppressed for multi-team requests when the primary counterparty path is otherwise evaluable.
+- [Backend Verification]: `uv run pytest` from `backend/` now loads `pytest-asyncio` via the uv dev dependency group and passes 476 tests after baseline direction confidence/transition-contender calibration and DuckDB `player_trends` upsert timestamp repair.
 
 ### Pending Todos
 
@@ -106,6 +107,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-23T22:48:22-04:00
-Stopped at: Multi-team trade evaluator sidecar scoring wired and verified
+Last session: 2026-06-28T10:41:59-04:00
+Stopped at: Backend baseline pytest repaired and verified
 Resume file: .planning/STATE.md

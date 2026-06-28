@@ -15,7 +15,7 @@ def _clamp01(value: float) -> float:
     return max(0.0, min(1.0, value))
 
 
-_CONFIDENCE_SOFTMAX_TEMPERATURE = 0.032
+_CONFIDENCE_SOFTMAX_TEMPERATURE = 0.020
 _LOW_CONFIDENCE_THRESHOLD = 0.4
 
 

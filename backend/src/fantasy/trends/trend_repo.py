@@ -226,7 +226,8 @@ class TrendRepo:
                 adp_delta = EXCLUDED.adp_delta,
                 {", ".join(f"{column} = EXCLUDED.{column}" for column in COMPONENT_COLS)},
                 startup_adp = EXCLUDED.startup_adp,
-                backfilled = EXCLUDED.backfilled
+                backfilled = EXCLUDED.backfilled,
+                computed_at = now()
             """,
             [
                 row_id,
