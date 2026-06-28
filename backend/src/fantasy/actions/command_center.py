@@ -16,6 +16,7 @@ from fantasy.trends.models import OpportunityFeedItem
 from fantasy.trends.opportunity_engine import OpportunityEngine
 from fantasy.waiver.waiver_engine import WaiverEngine
 from fantasy.waiver.waiver_repo import WaiverRepo
+from fantasy.weekly.models import LineupGapDecision, StartSitDecision, WeeklyPlayerSignal
 from fantasy.weekly.weekly_edge_service import WeeklyEdgeService
 
 WEEKLY_DOMAINS = ["injuries", "usage", "schedule", "waivers", "market", "stats"]
@@ -198,6 +199,8 @@ class CommandCenterEngine:
                 continue
 
             rec = cached.recommendations[0]
+            edge = WeeklyEdgeService(self._conn).build(league_id, roster_id)
+            matching_gap = self._matching_lineup_gap(edge.lineup_gaps, rec.position)
             bid = (
                 "free claim"
                 if rec.recommendation_label == "free_agent_only"
@@ -208,7 +211,30 @@ class CommandCenterEngine:
                 if rec.drop_candidate
                 else " Choose your lowest bench churn asset."
             )
-            stale = self._stale_domains(league_id) if cached.data_freshness_warning else []
+            stale = set(
+                self._stale_domains(league_id) if cached.data_freshness_warning else []
+            )
+            if matching_gap is not None:
+                stale.update(matching_gap.stale_domains)
+            evidence = [
+                f"Roster fit: {rec.roster_fit}",
+                f"Immediate starter: {'yes' if rec.is_immediate_start else 'no'}",
+            ]
+            why_now = rec.rationale
+            urgency = "today" if rec.urgency == "High" else "this_week"
+            if matching_gap is not None:
+                evidence.append(
+                    "Weekly lineup gap: "
+                    f"{matching_gap.position} is {matching_gap.gap_to_title_target:.1f} "
+                    "below the title target"
+                )
+                why_now = (
+                    f"{rec.rationale} It fixes a current {matching_gap.position} lineup gap: "
+                    f"{matching_gap.current_player_name} is "
+                    f"{matching_gap.gap_to_title_target:.1f} below the title target."
+                )
+                if rec.is_immediate_start and matching_gap.urgency in {"today", "this_week"}:
+                    urgency = "today"
             actions.append(
                 CommandAction(
                     id=f"waiver:{league_id}:{roster_id}:{rec.player_id}",
@@ -216,23 +242,36 @@ class CommandCenterEngine:
                     roster_id=roster_id,
                     category="waiver",
                     priority_rank=len(actions) + 1,
-                    urgency="today" if rec.urgency == "High" else "this_week",
+                    urgency=urgency,
                     confidence=rec.confidence,
                     headline=f"{self._league_name(league_id)}: add {rec.player_name}",
                     recommended_action=f"Claim {rec.player_name} for {bid}.{drop}",
-                    why_now=rec.rationale,
+                    why_now=why_now,
                     risk_if_wrong=rec.drop_reason
                     or "The player is only a depth upgrade and may not beat your bench alternative.",
-                    evidence=[
-                        f"Roster fit: {rec.roster_fit}",
-                        f"Immediate starter: {'yes' if rec.is_immediate_start else 'no'}",
-                    ],
+                    evidence=evidence,
                     cta_label="Open Waiver Board",
                     cta_destination=f"/league/{league_id}/waivers?rosterId={roster_id}",
-                    stale_domains=stale,
+                    stale_domains=sorted(stale),
                 )
             )
         return actions
+
+    def _matching_lineup_gap(
+        self,
+        lineup_gaps: list[LineupGapDecision],
+        position: str,
+    ) -> LineupGapDecision | None:
+        normalized = position.upper()
+        return next(
+            (
+                gap
+                for gap in lineup_gaps
+                if gap.position.upper() == normalized
+                or normalized in {"RB", "WR", "TE"} and gap.position.upper() == "FLEX"
+            ),
+            None,
+        )
 
     def _weekly_actions(
         self, rosters: list[dict[str, object]]
@@ -244,6 +283,11 @@ class CommandCenterEngine:
             edge = WeeklyEdgeService(self._conn).build(league_id, roster_id)
             if edge.start_sit:
                 decision = edge.start_sit[0]
+                signal_by_id = {
+                    signal.player_id: signal for signal in edge.player_signals
+                }
+                start_signal = signal_by_id.get(decision.start_player_id)
+                sit_signal = signal_by_id.get(decision.sit_player_id)
                 actions.append(
                     CommandAction(
                         id=f"weekly:start-sit:{league_id}:{roster_id}:{decision.start_player_id}:{decision.sit_player_id}",
@@ -257,11 +301,11 @@ class CommandCenterEngine:
                         recommended_action=decision.recommendation,
                         why_now=decision.why_now,
                         risk_if_wrong=decision.risk_if_wrong,
-                        evidence=[
-                            f"Position: {decision.position}",
-                            f"Projection edge: {decision.edge_points:.1f}",
-                            f"Start projection: {decision.start_projection:.1f}",
-                        ],
+                        evidence=self._weekly_start_sit_evidence(
+                            decision,
+                            start_signal,
+                            sit_signal,
+                        ),
                         cta_label="Open Weekly Edge",
                         cta_destination=(
                             f"/league/{league_id}?rosterId={roster_id}&focus=weekly"
@@ -300,6 +344,42 @@ class CommandCenterEngine:
                     )
                 )
         return actions
+
+    def _weekly_start_sit_evidence(
+        self,
+        decision: StartSitDecision,
+        start_signal: WeeklyPlayerSignal | None,
+        sit_signal: WeeklyPlayerSignal | None,
+    ) -> list[str]:
+        evidence = [
+            f"Position: {decision.position}",
+        ]
+        if sit_signal is not None:
+            evidence.append(f"Sit availability: {sit_signal.availability_status}")
+        evidence.extend(
+            [
+                f"Projection edge: {decision.edge_points:.1f}",
+                f"Start projection: {decision.start_projection:.1f}",
+                f"Sit projection: {decision.sit_projection:.1f}",
+            ]
+        )
+        if sit_signal is not None:
+            if sit_signal.availability_warning:
+                evidence.append(f"Sit risk: {sit_signal.availability_warning}")
+            if sit_signal.bye_week_warning:
+                evidence.append(f"Sit schedule: {sit_signal.bye_week_warning}")
+        if decision.stale_domains:
+            evidence.append(
+                "Weekly data stale: " + ", ".join(sorted(decision.stale_domains))
+            )
+        if start_signal is not None:
+            if start_signal.usage_note:
+                evidence.append(f"Start usage: {start_signal.usage_note}")
+            if start_signal.matchup_note:
+                evidence.append(f"Start matchup: {start_signal.matchup_note}")
+            if start_signal.role_note:
+                evidence.append(f"Start role: {start_signal.role_note}")
+        return evidence
 
     def _opportunity_actions(self, league_id: str | None) -> list[CommandAction]:
         actions: list[CommandAction] = []
