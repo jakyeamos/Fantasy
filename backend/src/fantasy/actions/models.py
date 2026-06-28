@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from fantasy.context.models import FreshnessTag
+
 CommandCategory = Literal[
     "waiver",
     "lineup",
@@ -31,6 +33,9 @@ class TradeSuggestion(BaseModel):
     fairness_band: Literal["underpay", "fair", "overpay", "unknown"] = "unknown"
     acceptance_confidence: CommandConfidence
     manager_pitch_angle: str
+    evaluation_score: float | None = None
+    evaluation_verdict: Literal["send", "counter", "avoid", "unknown"] = "unknown"
+    evaluation_summary: str | None = None
 
 
 class CommandAction(BaseModel):
@@ -58,5 +63,6 @@ class CommandCenterResponse(BaseModel):
     model_config = ConfigDict(frozen=False)
 
     actions: list[CommandAction] = Field(default_factory=list)
+    data_health: list[FreshnessTag] = Field(default_factory=list)
     total: int
     computed_at: str

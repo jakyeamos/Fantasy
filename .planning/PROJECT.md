@@ -29,6 +29,7 @@ The system must tell you — for each of your teams — what you are, what your 
 - Command-center trade actions now build from real roster assets and manager pitch evidence, then deep-link Trade Lab with concrete send/receive player params instead of generic package placeholders.
 - The oversized league overview and trade route files were split into focused league/trade components and route helper modules while preserving route hydration and evaluator behavior.
 - Command-center trade package construction now lives in a dedicated trade suggestion builder, and the Trade Lab route hydration/search parsing lives in route helper modules so both source files stay below local size gates.
+- Weekly edge now scores start/sit moves with projection, availability, matchup, and opponent-position environment context; the command center shows data-health freshness, executable weekly/portfolio CTAs, and pre-scored trade packages with top-five action acceptance coverage.
 
 ### Active
 
@@ -105,4 +106,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after the weekly public-context, executable trade suggestion, route-split, and size-gate cleanup tranche*
+*Last updated: 2026-06-28 after the weekly projection, data-health, pre-scored trade package, executable CTA, and command-center acceptance tranche*

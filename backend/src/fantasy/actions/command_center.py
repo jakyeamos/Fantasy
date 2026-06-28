@@ -7,6 +7,7 @@ import duckdb
 
 from fantasy.actions.models import CommandAction, CommandCenterResponse
 from fantasy.actions.trade_suggestions import TradeSuggestionBuilder
+from fantasy.context.models import FreshnessTag
 from fantasy.context.context_repo import ContextRepo
 from fantasy.context.freshness_service import FreshnessService
 from fantasy.portfolio.portfolio_repo import PortfolioRepo
@@ -65,6 +66,7 @@ class CommandCenterEngine:
         ]
         return CommandCenterResponse(
             actions=ranked,
+            data_health=self._data_health(user_rosters),
             total=len(actions),
             computed_at=datetime.now(timezone.utc).isoformat(),
         )
@@ -101,6 +103,36 @@ class CommandCenterEngine:
             for tag in self._freshness.get_tags(league_id, WEEKLY_DOMAINS)
             if tag.is_stale
         ]
+
+    def _data_health(self, rosters: list[dict[str, object]]) -> list[FreshnessTag]:
+        league_ids = sorted({str(roster["league_id"]) for roster in rosters})
+        if not league_ids:
+            return []
+        health: list[FreshnessTag] = []
+        for domain in WEEKLY_DOMAINS:
+            tags = [
+                tag
+                for league_id in league_ids
+                for tag in self._freshness.get_tags(league_id, [domain])
+            ]
+            stale_count = sum(1 for tag in tags if tag.is_stale)
+            last_updated = max(
+                (tag.last_updated for tag in tags if tag.last_updated is not None),
+                default=None,
+            )
+            health.append(
+                FreshnessTag(
+                    domain=domain,
+                    last_updated=last_updated,
+                    is_stale=stale_count > 0,
+                    warning=(
+                        f"{stale_count}/{len(league_ids)} tracked leagues stale for {domain}"
+                        if stale_count
+                        else None
+                    ),
+                )
+            )
+        return health
 
     def _waiver_actions(
         self, rosters: list[dict[str, object]]
@@ -175,10 +207,15 @@ class CommandCenterEngine:
                         risk_if_wrong=decision.risk_if_wrong,
                         evidence=[
                             f"Position: {decision.position}",
-                            f"Projected edge proxy: {decision.edge_points:.1f}",
+                            f"Projection edge: {decision.edge_points:.1f}",
+                            f"Start projection: {decision.start_projection:.1f}",
                         ],
                         cta_label="Open Weekly Edge",
-                        cta_destination=f"/league/{league_id}?rosterId={roster_id}",
+                        cta_destination=(
+                            f"/league/{league_id}?rosterId={roster_id}&focus=weekly"
+                            f"&startPlayerId={decision.start_player_id}"
+                            f"&sitPlayerId={decision.sit_player_id}"
+                        ),
                         stale_domains=decision.stale_domains,
                     )
                 )
@@ -203,7 +240,10 @@ class CommandCenterEngine:
                             f"Title gap: {gap.gap_to_title_target:.1f}",
                         ],
                         cta_label="Open Weekly Edge",
-                        cta_destination=f"/league/{league_id}?rosterId={roster_id}",
+                        cta_destination=(
+                            f"/league/{league_id}?rosterId={roster_id}&focus=weekly"
+                            f"&position={quote_plus(gap.position)}"
+                        ),
                         stale_domains=gap.stale_domains,
                     )
                 )
@@ -355,7 +395,7 @@ class CommandCenterEngine:
                         f"Position: {row.position}",
                     ],
                     cta_label="Open Portfolio",
-                    cta_destination="/portfolio",
+                    cta_destination=f"/portfolio?playerId={quote_plus(row.player_id)}",
                 )
             )
         return actions

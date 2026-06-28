@@ -7,6 +7,8 @@ from urllib.parse import quote_plus
 import duckdb
 
 from fantasy.actions.models import TradeSuggestion
+from fantasy.trade.models import TradeAsset, TradeRequest
+from fantasy.trade.trade_engine import TradeEngine
 from fantasy.trade.trade_repo import TradeRepo
 from fantasy.trends.models import OpportunityFeedItem
 
@@ -85,7 +87,7 @@ class TradeSuggestionBuilder:
         )
         if balancing is not None:
             receive_assets.append(balancing)
-        return TradeSuggestion(
+        suggestion = TradeSuggestion(
             league_id=league_id,
             target_player_id=item.player_id,
             target_player_name=item.player_name,
@@ -103,6 +105,7 @@ class TradeSuggestionBuilder:
             manager_pitch_angle=self._manager_pitch_angle(league_id, target_roster_id)
             or "Frame it as roster flexibility for them, not as a model discount for you.",
         )
+        return self._with_evaluation(suggestion, user_roster_id)
 
     def _sell_suggestion(
         self,
@@ -123,7 +126,7 @@ class TradeSuggestionBuilder:
         )
         if not receive_assets:
             return None
-        return TradeSuggestion(
+        suggestion = TradeSuggestion(
             league_id=league_id,
             target_player_id=item.player_id,
             target_player_name=item.player_name,
@@ -140,6 +143,56 @@ class TradeSuggestionBuilder:
             acceptance_confidence=item.trend_confidence,
             manager_pitch_angle=self._manager_pitch_angle(league_id, target_roster_id)
             or "Sell the weekly certainty and make the return liquid enough to pivot again.",
+        )
+        return self._with_evaluation(suggestion, user_roster_id)
+
+    def _with_evaluation(
+        self,
+        suggestion: TradeSuggestion,
+        user_roster_id: int,
+    ) -> TradeSuggestion:
+        if not suggestion.send_player_ids or not suggestion.receive_player_ids:
+            return suggestion
+        request = TradeRequest(
+            league_id=suggestion.league_id,
+            user_roster_id=user_roster_id,
+            counterparty_roster_id=suggestion.target_manager_roster_id,
+            user_sends=[
+                TradeAsset(asset_type="player", player_id=player_id)
+                for player_id in suggestion.send_player_ids
+            ],
+            user_receives=[
+                TradeAsset(asset_type="player", player_id=player_id)
+                for player_id in suggestion.receive_player_ids
+            ],
+        )
+        evaluation = TradeEngine(self._conn).evaluate(request)
+        score = round(
+            (
+                evaluation.market_fairness.score
+                + evaluation.direction_fit.score
+                + evaluation.roster_fit.score
+                + evaluation.timing_quality.score
+            )
+            / 4.0,
+            2,
+        )
+        if score >= 58 and evaluation.market_fairness.score >= 42:
+            verdict = "send"
+        elif score >= 45:
+            verdict = "counter"
+        else:
+            verdict = "avoid"
+        return suggestion.model_copy(
+            update={
+                "evaluation_score": score,
+                "evaluation_verdict": verdict,
+                "evaluation_summary": (
+                    f"{evaluation.strategic_distinction.headline}; package score {score:.1f}, "
+                    f"market {evaluation.market_fairness.score:.1f}, "
+                    f"direction {evaluation.direction_fit.score:.1f}."
+                ),
+            }
         )
 
     def _query_asset(self, player_ids: list[str]) -> dict[str, str] | None:

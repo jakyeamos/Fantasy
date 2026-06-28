@@ -66,10 +66,77 @@ def test_weekly_edge_surfaces_start_sit_swap(db):
     assert top.start_player_name == "Hot Bench"
     assert top.sit_player_name == "Cold Starter"
     assert top.confidence in {"HIGH", "MEDIUM"}
+    assert top.start_projection > top.sit_projection
     assert "vs Y" in top.why_now
     hot_signal = next(signal for signal in result.player_signals if signal.player_id == "wr_hot")
     assert hot_signal.opponent_team == "Y"
+    assert hot_signal.projection_points > hot_signal.recent_points
     assert hot_signal.usage_note is not None
+
+
+def test_weekly_edge_pushes_out_starter_below_active_bench(db):
+    db.execute(
+        """
+        INSERT INTO leagues (
+            league_id, name, season, scoring_settings, roster_positions,
+            settings_blob, superflex, tep, ppr
+        )
+        VALUES ('weekly_injury', 'Weekly Injury', '2026', '{}', '["RB","BN"]', '{}', FALSE, FALSE, 1.0)
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO rosters (
+            id, league_id, roster_id, owner_id, owner_display_name,
+            starters, players, reserve, taxi
+        )
+        VALUES (
+            2, 'weekly_injury', 1, 'owner_a', 'Alpha',
+            '["rb_out"]', '["rb_out","rb_active"]', '[]', '[]'
+        )
+        """
+    )
+    players = [
+        ("rb_out", "Out Starter", "Out"),
+        ("rb_active", "Active Bench", "Active"),
+        ("opp_rb", "Opponent RB", "Active"),
+    ]
+    for player_id, name, status in players:
+        team = "Y" if player_id == "opp_rb" else "X"
+        db.execute(
+            """
+            INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+            VALUES (?, ?, 'RB', ?, 25, ?)
+            """,
+            [player_id, name, team, json.dumps({"status": status})],
+        )
+    db.execute(
+        """
+        INSERT INTO player_stats_weekly (
+            player_id, player_name, position, season, week, fantasy_points, carries
+        )
+        VALUES
+            ('rb_out', 'Out Starter', 'RB', 2026, 1, 12.0, 12.0),
+            ('rb_active', 'Active Bench', 'RB', 2026, 1, 8.0, 10.0),
+            ('opp_rb', 'Opponent RB', 'RB', 2026, 1, 20.0, 18.0)
+        """
+    )
+    ensure_weekly_context_schema(db)
+    db.execute(
+        """
+        INSERT INTO team_schedule_weekly (team, season, week, opponent, is_home, game_date, game_type)
+        VALUES ('X', 2026, 3, 'Y', TRUE, '2026-09-20', 'REG')
+        """
+    )
+
+    result = WeeklyEdgeService(db).build("weekly_injury", 1)
+
+    top = result.start_sit[0]
+    assert top.start_player_name == "Active Bench"
+    assert top.sit_player_name == "Out Starter"
+    starter = next(signal for signal in result.player_signals if signal.player_id == "rb_out")
+    assert starter.availability_status == "out"
+    assert starter.projection_points < starter.recent_points
 
 
 def test_weekly_context_refresh_marks_public_domains(db, monkeypatch):

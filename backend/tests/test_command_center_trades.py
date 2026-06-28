@@ -101,3 +101,6 @@ def test_trade_suggestion_uses_real_roster_assets(db):
     assert suggestion.receive_player_ids[0] == "target_wr"
     assert suggestion.send_assets == ["Send WR (WR)"]
     assert "usable weekly points" in suggestion.manager_pitch_angle
+    assert suggestion.evaluation_score is not None
+    assert suggestion.evaluation_verdict in {"send", "counter", "avoid"}
+    assert suggestion.evaluation_summary is not None

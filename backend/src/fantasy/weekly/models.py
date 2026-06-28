@@ -6,6 +6,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from fantasy.context.models import FreshnessTag
 
+MatchupGrade = Literal["plus", "neutral", "minus", "bye", "unknown"]
+
 
 class WeeklyPlayerSignal(BaseModel):
     model_config = ConfigDict(frozen=False)
@@ -17,11 +19,15 @@ class WeeklyPlayerSignal(BaseModel):
     roster_slot: Literal["starter", "bench"]
     recent_points: float
     recent_opportunities: float
+    projection_points: float
     opponent_team: str | None = None
     game_week: int | None = None
+    matchup_grade: MatchupGrade = "unknown"
     matchup_note: str | None = None
+    opponent_allowance_note: str | None = None
     usage_note: str | None = None
     injury_status: str | None = None
+    availability_status: Literal["active", "monitor", "out", "unknown"] = "unknown"
     availability_warning: str | None = None
 
 
@@ -34,6 +40,8 @@ class StartSitDecision(BaseModel):
     sit_player_name: str
     position: str
     edge_points: float
+    start_projection: float
+    sit_projection: float
     confidence: Literal["HIGH", "MEDIUM", "LOW"]
     recommendation: str
     why_now: str

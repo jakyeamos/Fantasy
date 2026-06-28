@@ -437,6 +437,7 @@ export interface CommandAction {
 
 export interface CommandCenterResponse {
   actions: CommandAction[]
+  data_health: FreshnessTag[]
   total: number
   computed_at: string
 }
@@ -469,6 +470,9 @@ export interface TradeSuggestion {
   fairness_band: "underpay" | "fair" | "overpay" | "unknown"
   acceptance_confidence: ConfidenceLabel
   manager_pitch_angle: string
+  evaluation_score?: number | null
+  evaluation_verdict: "send" | "counter" | "avoid" | "unknown"
+  evaluation_summary?: string | null
 }
 
 export interface WeeklyPlayerSignal {
@@ -479,11 +483,15 @@ export interface WeeklyPlayerSignal {
   roster_slot: "starter" | "bench"
   recent_points: number
   recent_opportunities: number
+  projection_points: number
   opponent_team: string | null
   game_week: number | null
+  matchup_grade: "plus" | "neutral" | "minus" | "bye" | "unknown"
   matchup_note: string | null
+  opponent_allowance_note: string | null
   usage_note: string | null
   injury_status: string | null
+  availability_status: "active" | "monitor" | "out" | "unknown"
   availability_warning: string | null
 }
 
@@ -494,6 +502,8 @@ export interface StartSitDecision {
   sit_player_name: string
   position: string
   edge_points: number
+  start_projection: number
+  sit_projection: number
   confidence: ConfidenceLabel
   recommendation: string
   why_now: string

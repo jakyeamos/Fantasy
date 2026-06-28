@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
-import { AlertTriangle, ArrowRight, RefreshCcw } from "lucide-react"
+import { AlertTriangle, ArrowRight, CheckCircle2, RefreshCcw } from "lucide-react"
 
 import { commandCenterOptions, recomputeActions } from "@/api/queries"
-import type { CommandAction } from "@/api/types"
+import type { CommandAction, FreshnessTag } from "@/api/types"
 import { Badge } from "@/components/ui/badge"
 import { buttonClasses } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,6 +29,37 @@ function confidenceVariant(confidence: CommandAction["confidence"]) {
   if (confidence === "HIGH") return "default"
   if (confidence === "MEDIUM") return "secondary"
   return "outline"
+}
+
+function formatFreshnessLabel(tag: FreshnessTag): string {
+  return tag.domain.replaceAll("_", " ")
+}
+
+function DataHealthStrip({ tags }: { tags: FreshnessTag[] }) {
+  if (!tags.length) return null
+  const stale = tags.filter((tag) => tag.is_stale)
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 border-b border-border/45 pb-4 text-xs">
+      <div className="flex items-center gap-2 pr-2 font-semibold text-foreground">
+        {stale.length ? (
+          <AlertTriangle className="size-4 text-orange-300" />
+        ) : (
+          <CheckCircle2 className="size-4 text-emerald-300" />
+        )}
+        Data health
+      </div>
+      {tags.map((tag) => (
+        <Badge key={tag.domain} variant={tag.is_stale ? "outline" : "secondary"}>
+          {formatFreshnessLabel(tag)}
+          {tag.is_stale ? " stale" : " fresh"}
+        </Badge>
+      ))}
+      {stale[0]?.warning ? (
+        <span className="text-muted-foreground">{stale[0].warning}</span>
+      ) : null}
+    </div>
+  )
 }
 
 function CommandCard({ action }: { action: CommandAction }) {
@@ -88,6 +119,14 @@ function CommandCard({ action }: { action: CommandAction }) {
                 <span className="font-semibold text-foreground">Pitch:</span>{" "}
                 {action.trade_suggestion.manager_pitch_angle}
               </p>
+              {action.trade_suggestion.evaluation_summary ? (
+                <p>
+                  <span className="font-semibold text-foreground">Pre-score:</span>{" "}
+                  {action.trade_suggestion.evaluation_verdict.toUpperCase()}{" "}
+                  {action.trade_suggestion.evaluation_score?.toFixed(1) ?? "--"} -{" "}
+                  {action.trade_suggestion.evaluation_summary}
+                </p>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -126,6 +165,7 @@ export function CommandCenter() {
   }
 
   const actions = query.data?.actions.slice(0, 5) ?? []
+  const dataHealth = query.data?.data_health ?? []
 
   return (
     <section className="space-y-4">
@@ -151,6 +191,7 @@ export function CommandCenter() {
           Recompute
         </button>
       </div>
+      <DataHealthStrip tags={dataHealth} />
 
       {query.isError ? (
         <Card>
