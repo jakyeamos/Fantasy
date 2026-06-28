@@ -287,7 +287,7 @@ export function CommandCenter() {
             The highest-priority action queue for {selectedLeague?.league_name ?? "this league"}.
           </p>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-3">
+        <div className="flex flex-wrap items-end justify-end gap-3">
           <label className="flex h-11 items-center gap-2 rounded-lg border border-border/60 bg-card/55 px-3">
             <input
               type="checkbox"
