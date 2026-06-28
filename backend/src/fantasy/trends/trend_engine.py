@@ -32,6 +32,20 @@ class TrendEngine:
             return None
         return self._build_snapshot_from_baseline(baseline)
 
+    def current_snapshots(self, player_ids: Sequence[str]) -> dict[str, dict[str, Any]]:
+        ids = [str(player_id) for player_id in player_ids]
+        if not ids:
+            return {}
+
+        snapshots = self._repo.get_latest_player_rows(ids)
+        missing_ids = [player_id for player_id in ids if player_id not in snapshots]
+        baselines = self._repo.get_player_baselines(missing_ids)
+        for player_id, baseline in baselines.items():
+            if baseline["startup_adp"] is None and baseline["ppg"] is None:
+                continue
+            snapshots[player_id] = self._build_snapshot_from_baseline(baseline)
+        return snapshots
+
     def compute_trend(self, player_id: str) -> TrendResult:
         seasons = self._repo.get_player_seasons(player_id, limit=2)
         if len(seasons) >= 2:
@@ -53,6 +67,63 @@ class TrendEngine:
             candidate["player_id"] for candidate in self._repo.list_candidate_players()
         ]
         return {player_id: self.compute_trend(player_id) for player_id in ids}
+
+    def compute_trends(
+        self,
+        player_ids: Sequence[str],
+        *,
+        snapshots: dict[str, dict[str, Any]] | None = None,
+    ) -> dict[str, TrendResult]:
+        ids = [str(player_id) for player_id in player_ids]
+        if not ids:
+            return {}
+
+        current_snapshots = snapshots if snapshots is not None else self.current_snapshots(ids)
+        seasons_by_player = self._repo.get_player_seasons_map(ids, limit=2)
+        trends: dict[str, TrendResult] = {}
+        for player_id in ids:
+            seasons = seasons_by_player.get(player_id, [])
+            if len(seasons) >= 2:
+                trends[player_id] = self._compute_from_two_seasons(
+                    player_id,
+                    seasons[0],
+                    seasons[1],
+                    seasons_compared=2,
+                )
+                continue
+
+            current = current_snapshots.get(player_id)
+            if len(seasons) == 1:
+                trends[player_id] = self._backfill_single_season(
+                    player_id,
+                    current or seasons[0],
+                )
+                continue
+
+            if current is None:
+                trends[player_id] = TrendResult(
+                    player_id=player_id,
+                    trend_label="will_maintain",
+                    confidence="LOW",
+                    delta_magnitude=0.0,
+                    component_deltas={},
+                    adp_delta=None,
+                    seasons_compared=0,
+                    backfilled=True,
+                )
+                continue
+
+            prior = self._proxy_prior_from_snapshot(current)
+            result = self._compute_from_two_seasons(
+                player_id,
+                current,
+                prior,
+                seasons_compared=1,
+            )
+            result.backfilled = True
+            result.confidence = "LOW"
+            trends[player_id] = result
+        return trends
 
     def _compute_from_two_seasons(
         self,

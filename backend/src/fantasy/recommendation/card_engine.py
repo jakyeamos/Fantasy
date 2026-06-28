@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import duckdb
+from pydantic import ValidationError
 
 from fantasy.market.market_service import MarketService
 from fantasy.player_flags.flag_repo import FlagRepo
@@ -11,6 +12,7 @@ from fantasy.recommendation.constants import confidence_label_from_score
 from fantasy.recommendation.gap_engine import MarketGapEngine
 from fantasy.recommendation.models import RecommendationCard, SupportingFactor
 from fantasy.intelligence.models import PlayerValue
+from fantasy.trends.models import TrendResult
 
 if TYPE_CHECKING:
     from fantasy.lineup.models import HygieneSuggestion, LineupResult, LineupSlotScore
@@ -113,7 +115,8 @@ class RecommendationCardEngine:
                    comp_ceiling,
                    comp_floor,
                    lens_production,
-                   lens_market
+                   lens_market,
+                   trend_result_json
             FROM player_values
             WHERE league_id = ? AND player_id = ?
             ORDER BY computed_at DESC
@@ -160,6 +163,17 @@ class RecommendationCardEngine:
             player_total_count=player_total_count,
             anti_overreaction_fired=anti_overreaction_fired,
         )
+
+    def _trend_result_from_players(self, league_id: str, player_ids: list[str]) -> TrendResult | None:
+        for player_id in player_ids:
+            row = self._player_value_row(league_id, player_id)
+            if row is None or row[8] is None:
+                continue
+            try:
+                return TrendResult.model_validate_json(row[8])
+            except ValidationError:
+                continue
+        return None
 
     def _first_gap_from_players(self, league_id: str, player_ids: list[str]):
         for player_id in player_ids:
@@ -233,6 +247,7 @@ class RecommendationCardEngine:
             league_specificity_notes="Trade pricing is grounded in this league's existing value environment.",
             manager_specificity_notes=evaluation.manager_exploit_quality.reasoning,
             model_vs_market_gap=self._first_gap_from_players(league_id, candidate_ids),
+            trend_result=self._trend_result_from_players(league_id, candidate_ids),
             cta_label="Evaluate This Trade",
             cta_destination=f"/trades?leagueId={league_id}",
         )
@@ -316,6 +331,7 @@ class RecommendationCardEngine:
                 league_specificity_notes="Contender benchmarks are derived from this league's active starters.",
                 manager_specificity_notes=None,
                 model_vs_market_gap=self.model_vs_market_gap(result.league_id, best_slot.player_id),
+                trend_result=self._trend_result_from_players(result.league_id, [best_slot.player_id]),
                 cta_label="Open Overview",
                 cta_destination=f"/league/{result.league_id}",
             )
@@ -374,6 +390,7 @@ class RecommendationCardEngine:
             ),
             model_vs_market_gap=suggestion.model_vs_market_gap
             or self._first_gap_from_players(league_id, target_ids),
+            trend_result=self._trend_result_from_players(league_id, target_ids),
             cta_label="Review Roster",
             cta_destination=f"/league/{league_id}",
         )

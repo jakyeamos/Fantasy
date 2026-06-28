@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 import duckdb
@@ -49,6 +50,52 @@ class TrendRepo:
         ]
         return [dict(zip(columns, row, strict=False)) for row in rows]
 
+    def get_player_seasons_map(
+        self,
+        player_ids: Sequence[str],
+        limit: int = 2,
+    ) -> dict[str, list[dict[str, Any]]]:
+        ids = [str(player_id) for player_id in player_ids]
+        if not ids:
+            return {}
+
+        bounded_limit = max(int(limit), 1)
+        rows = self._conn.execute(
+            f"""
+            SELECT player_id, season, trend_label, confidence, delta_magnitude,
+                   adp_delta, startup_adp, backfilled, {", ".join(COMPONENT_COLS)}
+            FROM (
+                SELECT t.*,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY t.player_id
+                           ORDER BY t.season DESC
+                       ) AS row_num
+                FROM player_trends t
+                WHERE t.player_id IN (SELECT UNNEST(?))
+            )
+            WHERE row_num <= {bounded_limit}
+            ORDER BY player_id, season DESC
+            """,
+            [ids],
+        ).fetchall()
+        columns = [
+            "player_id",
+            "season",
+            "trend_label",
+            "confidence",
+            "delta_magnitude",
+            "adp_delta",
+            "startup_adp",
+            "backfilled",
+            *COMPONENT_COLS,
+        ]
+        seasons_by_player: dict[str, list[dict[str, Any]]] = {}
+        for row in rows:
+            season = dict(zip(columns, row, strict=False))
+            player_id = str(season.pop("player_id"))
+            seasons_by_player.setdefault(player_id, []).append(season)
+        return seasons_by_player
+
     def get_latest_player_row(self, player_id: str) -> dict[str, Any] | None:
         row = self._conn.execute(
             f"""
@@ -81,6 +128,55 @@ class TrendRepo:
             *COMPONENT_COLS,
         ]
         return dict(zip(columns, row, strict=False))
+
+    def get_latest_player_rows(
+        self,
+        player_ids: Sequence[str],
+    ) -> dict[str, dict[str, Any]]:
+        ids = [str(player_id) for player_id in player_ids]
+        if not ids:
+            return {}
+
+        rows = self._conn.execute(
+            f"""
+            SELECT player_id, full_name, position, age, season, startup_adp,
+                   backfilled, {", ".join(COMPONENT_COLS)}
+            FROM (
+                SELECT t.player_id,
+                       COALESCE(p.full_name, t.player_id) AS full_name,
+                       COALESCE(p.position, 'UNKNOWN') AS position,
+                       COALESCE(p.age, 24) AS age,
+                       t.season,
+                       t.startup_adp,
+                       t.backfilled,
+                       {", ".join(f"t.{column}" for column in COMPONENT_COLS)},
+                       ROW_NUMBER() OVER (
+                           PARTITION BY t.player_id
+                           ORDER BY t.season DESC
+                       ) AS row_num
+                FROM player_trends t
+                LEFT JOIN players p ON p.player_id = t.player_id
+                WHERE t.player_id IN (SELECT UNNEST(?))
+            )
+            WHERE row_num = 1
+            """,
+            [ids],
+        ).fetchall()
+        columns = [
+            "player_id",
+            "full_name",
+            "position",
+            "age",
+            "season",
+            "startup_adp",
+            "backfilled",
+            *COMPONENT_COLS,
+        ]
+        snapshots: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            snapshot = dict(zip(columns, row, strict=False))
+            snapshots[str(snapshot["player_id"])] = snapshot
+        return snapshots
 
     def get_player_baseline(self, player_id: str) -> dict[str, Any] | None:
         row = self._conn.execute(
@@ -124,6 +220,58 @@ class TrendRepo:
             "games_played": int(row[6]) if row[6] is not None else 0,
             "best_week": _as_float(row[7]),
         }
+
+    def get_player_baselines(
+        self,
+        player_ids: Sequence[str],
+    ) -> dict[str, dict[str, Any]]:
+        ids = [str(player_id) for player_id in player_ids]
+        if not ids:
+            return {}
+
+        rows = self._conn.execute(
+            """
+            WITH targets AS (
+                SELECT UNNEST(?) AS player_id
+            ),
+            stats AS (
+                SELECT player_id,
+                       AVG(fantasy_points) AS ppg,
+                       COUNT(*) AS games_played,
+                       MAX(fantasy_points) AS best_week
+                FROM player_stats_weekly
+                WHERE player_id IN (SELECT player_id FROM targets)
+                GROUP BY player_id
+            )
+            SELECT targets.player_id,
+                   COALESCE(p.full_name, b.player_name, targets.player_id) AS full_name,
+                   COALESCE(p.position, b.position, 'UNKNOWN') AS position,
+                   COALESCE(p.age, 24) AS age,
+                   b.adp AS startup_adp,
+                   stats.ppg,
+                   stats.games_played,
+                   stats.best_week
+            FROM targets
+            LEFT JOIN players p ON p.player_id = targets.player_id
+            LEFT JOIN player_adp_baseline b ON b.player_id = targets.player_id
+            LEFT JOIN stats ON stats.player_id = targets.player_id
+            """,
+            [ids],
+        ).fetchall()
+        baselines: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            player_id = str(row[0])
+            baselines[player_id] = {
+                "player_id": player_id,
+                "full_name": str(row[1] or player_id),
+                "position": str(row[2] or "UNKNOWN"),
+                "age": int(row[3]) if row[3] is not None else 24,
+                "startup_adp": _as_float(row[4]),
+                "ppg": _as_float(row[5]),
+                "games_played": int(row[6]) if row[6] is not None else 0,
+                "best_week": _as_float(row[7]),
+            }
+        return baselines
 
     def list_candidate_players(self) -> list[dict[str, Any]]:
         candidates: dict[str, dict[str, Any]] = {}
@@ -268,11 +416,11 @@ class TrendRepo:
         self.write_trend_row(
             player_id=value.player_id,
             season=season,
-            trend_label=None,
-            confidence=None,
-            delta_magnitude=0.0,
-            adp_delta=None,
+            trend_label=value.trend_result.trend_label if value.trend_result else None,
+            confidence=value.trend_result.confidence if value.trend_result else None,
+            delta_magnitude=value.trend_result.delta_magnitude if value.trend_result else 0.0,
+            adp_delta=value.trend_result.adp_delta if value.trend_result else None,
             components=components,
             startup_adp=startup_adp,
-            backfilled=backfilled,
+            backfilled=value.trend_result.backfilled if value.trend_result else backfilled,
         )

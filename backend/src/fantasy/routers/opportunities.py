@@ -21,4 +21,6 @@ def get_opportunity_feed(
         items=items,
         total=len(items),
         computed_at=datetime.now(timezone.utc).isoformat(),
+        status="ok",
+        degraded_reason=None,
     )

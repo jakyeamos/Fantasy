@@ -242,6 +242,7 @@ SCHEMA_SQL = [
         lens_insulation DOUBLE,
         lens_team_fit DOUBLE,
         lens_direction DOUBLE,
+        trend_result_json VARCHAR,
         UNIQUE (league_id, roster_id, player_id)
     )
     """,

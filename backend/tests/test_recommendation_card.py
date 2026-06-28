@@ -51,6 +51,25 @@ def test_card_model_has_required_fields() -> None:
         RecommendationCard(**payload)
 
 
+def test_card_model_accepts_trend_result() -> None:
+    payload = _base_card()
+    payload["trend_result"] = {
+        "player_id": "player-1",
+        "trend_label": "will_rise",
+        "confidence": "HIGH",
+        "delta_magnitude": 0.12,
+        "component_deltas": {"comp_short_term": 0.08},
+        "adp_delta": 4.0,
+        "seasons_compared": 2,
+        "backfilled": False,
+    }
+
+    card = RecommendationCard(**payload)
+
+    assert card.trend_result is not None
+    assert card.trend_result.trend_label == "will_rise"
+
+
 def test_supporting_factor_direction_values() -> None:
     factor = SupportingFactor(
         factor_name="Market signal",

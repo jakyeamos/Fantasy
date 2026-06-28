@@ -25,10 +25,16 @@ export function OpportunityCardList({
   items,
   isLoading,
   isError,
+  isTimeout,
+  isDegraded,
+  degradedReason,
 }: {
   items: OpportunityFeedItem[]
   isLoading: boolean
   isError: boolean
+  isTimeout: boolean
+  isDegraded: boolean
+  degradedReason: string | null
 }) {
   if (isLoading) {
     return (
@@ -43,34 +49,55 @@ export function OpportunityCardList({
   if (isError) {
     return (
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="space-y-2 p-6">
+          <p className="font-headline text-2xl font-bold tracking-tight">
+            {isTimeout ? "Opportunity Feed Timed Out" : "Opportunity Feed Unavailable"}
+          </p>
           <p className="text-sm text-muted-foreground">
-            Opportunity feed could not be loaded. Check your data connection and
-            try refreshing.
+            {isTimeout
+              ? "The local opportunity pass did not finish within the request budget."
+              : "Opportunity feed could not be loaded. Check your data connection and try refreshing."}
           </p>
         </CardContent>
       </Card>
     )
   }
 
+  const degradedBanner = isDegraded ? (
+    <Card>
+      <CardContent className="space-y-2 p-5">
+        <p className="font-headline text-xl font-bold tracking-tight">
+          Opportunity Feed Degraded
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {degradedReason ?? "Partial opportunity data is available."}
+        </p>
+      </CardContent>
+    </Card>
+  ) : null
+
   if (items.length === 0) {
     return (
-      <Card>
-        <CardContent className="space-y-2 p-6">
-          <p className="font-headline text-2xl font-bold tracking-tight">
-            No Opportunities Available
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Ingest fresh roster and valuation data to surface buy, sell, and
-            hold signals across your leagues.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        {degradedBanner}
+        <Card>
+          <CardContent className="space-y-2 p-6">
+            <p className="font-headline text-2xl font-bold tracking-tight">
+              No Opportunities Available
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Ingest fresh roster and valuation data to surface buy, sell, and
+              hold signals across your leagues.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
   return (
     <div className="space-y-3">
+      {degradedBanner}
       {items.map((item, index) => (
         <OpportunityCard key={item.player_id} item={item} rank={index + 1} />
       ))}

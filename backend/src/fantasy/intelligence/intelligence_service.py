@@ -184,7 +184,7 @@ class IntelligenceService:
                    comp_age_curve, comp_insulation, comp_market_liquidity,
                    comp_positional_scarcity, comp_fragility, comp_ceiling, comp_floor,
                    comp_rerollability, comp_contract, lens_production, lens_market,
-                   lens_insulation, lens_team_fit, lens_direction
+                   lens_insulation, lens_team_fit, lens_direction, trend_result_json
             FROM player_values
             WHERE league_id = ? AND roster_id = ? AND player_id = ?
             LIMIT 1
@@ -200,7 +200,7 @@ class IntelligenceService:
                        comp_age_curve, comp_insulation, comp_market_liquidity,
                        comp_positional_scarcity, comp_fragility, comp_ceiling, comp_floor,
                        comp_rerollability, comp_contract, lens_production, lens_market,
-                       lens_insulation, lens_team_fit, lens_direction
+                       lens_insulation, lens_team_fit, lens_direction, trend_result_json
                 FROM player_values
                 WHERE league_id = ? AND roster_id = ? AND player_id = ?
                 LIMIT 1
@@ -231,6 +231,7 @@ class IntelligenceService:
             lens_insulation=row[18],
             lens_team_fit=row[19],
             lens_direction=row[20],
+            trend_result=json.loads(row[21]) if row[21] else None,
         )
 
     def get_lineup_result(self, league_id: str, roster_id: int) -> LineupResult:
@@ -282,7 +283,8 @@ class IntelligenceService:
                     liquidity = EXCLUDED.liquidity,
                     positional_insulation = EXCLUDED.positional_insulation,
                     composite = EXCLUDED.composite,
-                    computation_json = EXCLUDED.computation_json
+                    computation_json = EXCLUDED.computation_json,
+                    computed_at = now()
                 """,
                 [
                     row_id,
@@ -323,7 +325,8 @@ class IntelligenceService:
                     alternates_json = EXCLUDED.alternates_json,
                     delta_json = EXCLUDED.delta_json,
                     approved_moves = EXCLUDED.approved_moves,
-                    discouraged_moves = EXCLUDED.discouraged_moves
+                    discouraged_moves = EXCLUDED.discouraged_moves,
+                    computed_at = now()
                 """,
                 [
                     row_id,
@@ -359,9 +362,10 @@ class IntelligenceService:
                         comp_age_curve, comp_insulation, comp_market_liquidity,
                         comp_positional_scarcity, comp_fragility, comp_ceiling,
                         comp_floor, comp_rerollability, comp_contract,
-                        lens_production, lens_market, lens_insulation, lens_team_fit, lens_direction
+                        lens_production, lens_market, lens_insulation, lens_team_fit,
+                        lens_direction, trend_result_json
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT (league_id, roster_id, player_id) DO UPDATE SET
                         comp_current_production = EXCLUDED.comp_current_production,
                         comp_short_term = EXCLUDED.comp_short_term,
@@ -379,7 +383,9 @@ class IntelligenceService:
                         lens_market = EXCLUDED.lens_market,
                         lens_insulation = EXCLUDED.lens_insulation,
                         lens_team_fit = EXCLUDED.lens_team_fit,
-                        lens_direction = EXCLUDED.lens_direction
+                        lens_direction = EXCLUDED.lens_direction,
+                        trend_result_json = EXCLUDED.trend_result_json,
+                        computed_at = now()
                     """,
                     [
                         row_id,
@@ -403,6 +409,11 @@ class IntelligenceService:
                         value.lens_insulation,
                         value.lens_team_fit,
                         value.lens_direction,
+                        (
+                            value.trend_result.model_dump_json()
+                            if value.trend_result is not None
+                            else None
+                        ),
                     ],
                 )
 

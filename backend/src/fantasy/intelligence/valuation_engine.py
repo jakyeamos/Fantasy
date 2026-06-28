@@ -113,6 +113,7 @@ class ValuationEngine:
             league_id=league_id,
             roster_id=roster_id,
             player_id=player_id,
+            trend_result=trend_result,
             comp_current_production=current_production,
             comp_short_term=short_term,
             comp_role_stability=role_stability,
@@ -188,8 +189,17 @@ class ValuationEngine:
         if roster_row is None:
             return {}
         player_ids = list(dict.fromkeys(__import__("json").loads(roster_row[0] or "[]")))
+        from fantasy.trends.trend_engine import TrendEngine
+
+        trend_results = TrendEngine(self._conn).compute_all_players(player_ids)
         return {
-            player_id: self.compute_player(league_id, roster_id, player_id, direction_label)
+            player_id: self.compute_player(
+                league_id,
+                roster_id,
+                player_id,
+                direction_label,
+                trend_result=trend_results.get(player_id),
+            )
             for player_id in player_ids
         }
 

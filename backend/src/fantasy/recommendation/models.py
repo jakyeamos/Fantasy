@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from fantasy.trends.models import TrendResult
+
 
 RecommendationTypeLabel = Literal[
     "trade",
@@ -77,6 +79,7 @@ class RecommendationCard(BaseModel):
     league_specificity_notes: str | None = None
     manager_specificity_notes: str | None = None
     model_vs_market_gap: ModelVsMarketGap | None = None
+    trend_result: TrendResult | None = None
     cta_label: str
     cta_destination: str
 

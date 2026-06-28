@@ -4,6 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
+from fantasy.trends.models import TrendResult
+
 
 class TeamScorecard(BaseModel):
     model_config = ConfigDict(frozen=False)
@@ -73,6 +75,7 @@ class PlayerValue(BaseModel):
     lens_insulation: float | None = None
     lens_team_fit: float | None = None
     lens_direction: float | None = None
+    trend_result: TrendResult | None = None
 
 
 class ScorecardInputs(BaseModel):

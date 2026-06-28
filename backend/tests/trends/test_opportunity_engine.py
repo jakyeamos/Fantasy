@@ -315,13 +315,13 @@ def test_feed_bounds_similarity_enrichment(db, monkeypatch):
 
     enriched_player_ids: list[str] = []
 
-    def _fake_similar_players(player_id, _conn):
+    def _fake_similar_players(player_id, _snapshots):
         enriched_player_ids.append(str(player_id))
         return []
 
     monkeypatch.setattr(
         opportunity_engine,
-        "find_similar_players",
+        "find_similar_players_from_snapshots",
         _fake_similar_players,
     )
 

@@ -42,7 +42,8 @@ class LeagueRepo:
                 settings_blob = EXCLUDED.settings_blob,
                 superflex = EXCLUDED.superflex,
                 tep = EXCLUDED.tep,
-                ppr = EXCLUDED.ppr
+                ppr = EXCLUDED.ppr,
+                ingested_at = now()
             """,
             [
                 league.league_id,
@@ -79,7 +80,8 @@ class LeagueRepo:
                 starters = EXCLUDED.starters,
                 players = EXCLUDED.players,
                 reserve = EXCLUDED.reserve,
-                taxi = EXCLUDED.taxi
+                taxi = EXCLUDED.taxi,
+                ingested_at = now()
             """,
             [
                 row_id,
@@ -114,7 +116,8 @@ class LeagueRepo:
                 losses = EXCLUDED.losses,
                 ties = EXCLUDED.ties,
                 fpts = EXCLUDED.fpts,
-                fpts_against = EXCLUDED.fpts_against
+                fpts_against = EXCLUDED.fpts_against,
+                ingested_at = now()
             """,
             [
                 row_id,
@@ -148,7 +151,8 @@ class LeagueRepo:
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (league_id, season, round, roster_id) DO UPDATE SET
                     owner_id = EXCLUDED.owner_id,
-                    previous_owner_id = EXCLUDED.previous_owner_id
+                    previous_owner_id = EXCLUDED.previous_owner_id,
+                    ingested_at = now()
                 """,
                 [
                     row_id,
@@ -203,7 +207,8 @@ class LeagueRepo:
                 position = EXCLUDED.position,
                 team = EXCLUDED.team,
                 age = EXCLUDED.age,
-                metadata_blob = EXCLUDED.metadata_blob
+                metadata_blob = EXCLUDED.metadata_blob,
+                refreshed_at = now()
             """,
             [
                 player_dict.get("player_id"),
@@ -241,7 +246,8 @@ class LeagueRepo:
                 drops = EXCLUDED.drops,
                 draft_picks = EXCLUDED.draft_picks,
                 waiver_bid = EXCLUDED.waiver_bid,
-                week = EXCLUDED.week
+                week = EXCLUDED.week,
+                ingested_at = now()
             """,
             [
                 txn.transaction_id,

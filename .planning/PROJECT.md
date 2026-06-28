@@ -30,6 +30,7 @@ The system must tell you — for each of your teams — what you are, what your 
 - The oversized league overview and trade route files were split into focused league/trade components and route helper modules while preserving route hydration and evaluator behavior.
 - Command-center trade package construction now lives in a dedicated trade suggestion builder, and the Trade Lab route hydration/search parsing lives in route helper modules so both source files stay below local size gates.
 - Weekly edge now scores start/sit moves with projection, availability, matchup, and opponent-position environment context; the command center shows data-health freshness, executable weekly/portfolio CTAs, and pre-scored trade packages with top-five action acceptance coverage.
+- Player values now persist `trend_result` into recommendation cards, opportunity-feed trend computation is batched with bounded similar-player enrichment, and the feed exposes degraded-state metadata with a clearer frontend fallback.
 
 ### Active
 
@@ -106,4 +107,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after the weekly projection, data-health, pre-scored trade package, executable CTA, and command-center acceptance tranche*
+*Last updated: 2026-06-28 after the trend-result recommendation integration and bounded opportunity-feed stabilization tranche*

@@ -54,7 +54,8 @@ class ProfilingRepo:
                 exploitation_evidence = EXCLUDED.exploitation_evidence,
                 roster_summary = EXCLUDED.roster_summary,
                 aggregate_trade_stats = EXCLUDED.aggregate_trade_stats,
-                trade_history = EXCLUDED.trade_history
+                trade_history = EXCLUDED.trade_history,
+                computed_at = now()
             """,
             [
                 row_id,

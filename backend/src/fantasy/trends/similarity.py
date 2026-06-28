@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 import math
+from typing import Any
 
 import duckdb
 
@@ -47,18 +49,31 @@ def find_similar_players(
 ) -> list[SimilarPlayer]:
     engine = TrendEngine(conn)
     repo = TrendRepo(conn)
-    target = engine.current_snapshot(player_id)
+    candidates = repo.list_candidate_players()
+    snapshots = engine.current_snapshots(
+        [str(candidate["player_id"]) for candidate in candidates]
+    )
+    return find_similar_players_from_snapshots(player_id, snapshots.values(), n=n)
+
+
+def find_similar_players_from_snapshots(
+    player_id: str,
+    snapshots: Iterable[dict[str, Any]],
+    n: int = 3,
+) -> list[SimilarPlayer]:
+    snapshot_by_player_id = {
+        str(snapshot["player_id"]): snapshot
+        for snapshot in snapshots
+        if snapshot.get("player_id") is not None
+    }
+    target = snapshot_by_player_id.get(player_id)
     if target is None:
         return []
 
     scored: list[tuple[float, dict[str, object]]] = []
     target_tier = _adp_tier(target.get("startup_adp"))  # type: ignore[arg-type]
-    for candidate in repo.list_candidate_players():
-        candidate_id = str(candidate["player_id"])
+    for candidate_id, snapshot in snapshot_by_player_id.items():
         if candidate_id == player_id:
-            continue
-        snapshot = engine.current_snapshot(candidate_id)
-        if snapshot is None:
             continue
         if snapshot.get("position") != target.get("position"):
             continue
