@@ -7,6 +7,8 @@ import duckdb
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from fantasy.context.context_repo import ContextRepo
+from fantasy.context.freshness_service import FreshnessService
 from fantasy.edge_radar.player_metadata import (
     PlayerMetadataRefreshService,
     import_player_metadata_csv,
@@ -307,6 +309,13 @@ async def refresh_adp_baseline(
         raise HTTPException(status_code=503, detail="FantasyCalc ADP API unavailable.") from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if league_id is not None:
+        FreshnessService(ContextRepo(conn)).mark_refreshed(
+            league_id,
+            "market",
+            "FantasyCalc ADP baseline refreshed.",
+        )
 
     return AdpBaselineRefreshResponse(
         source="fantasycalc_api",

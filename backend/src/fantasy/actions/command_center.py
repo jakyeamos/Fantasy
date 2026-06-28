@@ -87,6 +87,11 @@ class CommandCenterEngine:
             roster_id = int(roster["roster_id"])
             result = WaiverEngine(self._conn).compute_recommendations(league_id, roster_id)
             self._waiver_repo.upsert_waiver_recommendations(result)
+            self._freshness.mark_refreshed(
+                league_id,
+                "waivers",
+                "Command Center waiver board recomputed.",
+            )
         return self.build()
 
     def _user_rosters(self, league_id: str | None) -> list[dict[str, object]]:

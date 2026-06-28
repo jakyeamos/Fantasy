@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 
 from fantasy.actions.command_center import CommandCenterEngine
-from fantasy.actions.models import CommandAction
+from fantasy.actions.models import CommandAction, CommandCenterResponse
+from fantasy.context.context_repo import ContextRepo
+from fantasy.context.freshness_service import FreshnessService
 from fantasy.lineup.lineup_repo import LineupRepo
 from fantasy.lineup.models import LineupResult, LineupSlotScore
 from fantasy.trends.models import OpportunityCta, OpportunityFeedItem
@@ -37,6 +39,49 @@ def _action(
         cta_label="Open Decision",
         cta_destination=f"/decision/{rank}",
     )
+
+
+def test_command_center_recompute_marks_waivers_fresh(db, monkeypatch):
+    engine = CommandCenterEngine(db)
+    rosters = [{"league_id": "cmd_refresh", "roster_id": 1}]
+    calls: list[tuple[str, int]] = []
+
+    class _FakeWaiverEngine:
+        def __init__(self, conn):
+            assert conn is db
+
+        def compute_recommendations(self, league_id: str, roster_id: int):
+            calls.append((league_id, roster_id))
+            return object()
+
+    monkeypatch.setattr(engine, "_user_rosters", lambda league_id: rosters)
+    monkeypatch.setattr(
+        "fantasy.actions.command_center.WaiverEngine",
+        _FakeWaiverEngine,
+    )
+    monkeypatch.setattr(
+        engine._waiver_repo,
+        "upsert_waiver_recommendations",
+        lambda _result: None,
+    )
+    monkeypatch.setattr(
+        engine,
+        "build",
+        lambda league_id=None: CommandCenterResponse(
+            actions=[],
+            move_coverage=[],
+            data_health=[],
+            refresh_actions=[],
+            total=0,
+            computed_at="2026-06-28T00:00:00+00:00",
+        ),
+    )
+
+    engine.recompute()
+
+    assert calls == [("cmd_refresh", 1)]
+    waiver_tag = FreshnessService(ContextRepo(db)).get_tags("cmd_refresh", ["waivers"])[0]
+    assert waiver_tag.is_stale is False
 
 
 def test_command_center_top_five_moves_are_actionable(db, monkeypatch):

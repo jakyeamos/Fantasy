@@ -6,6 +6,8 @@ from fantasy.edge_radar.player_metadata import (
     PlayerMetadataImportSummary,
     PlayerMetadataRefreshSummary,
 )
+from fantasy.context.freshness_service import FreshnessService
+from fantasy.context.context_repo import ContextRepo
 from fantasy.edge_radar.team_context import TeamContextRefreshSummary
 from fantasy.main import create_app
 from fantasy.routers.deps import get_read_db_conn, get_write_db_conn
@@ -70,6 +72,8 @@ def test_refresh_adp_baseline_uses_league_profile(monkeypatch, db):
         "num_teams": 12,
         "ppr": 0.5,
     }
+    market_tag = FreshnessService(ContextRepo(db)).get_tags("lg1", ["market"])[0]
+    assert market_tag.is_stale is False
 
 
 def test_refresh_team_context_route_runs_environment_refresh(monkeypatch, db):

@@ -12,6 +12,7 @@ The system must tell you — for each of your teams — what you are, what your 
 
 ### Validated
 
+- Command-center stale refresh actions now update the freshness ledger when waiver boards are recomputed or market baselines are refreshed, so successful refreshes clear stale badges.
 - Weekly start/sit Command Center actions now require roster-legal lineup-slot swaps, reject NFL free-agent/no-game bench starters, and distinguish missing rookie stat samples from true zero-point projections.
 - Command-center landing chrome is now compact, stale refresh actions are consolidated into one queued button, and Edge Radar ranks cheap candidates before enriching only the visible winners so Top Moves loads quickly.
 - Command-center Edge Radar trade cards now suppress sell recommendations unless the player is actually on the selected portfolio roster, while still allowing opponent buy targets and deduplicating repeated Edge Radar action IDs and repeated player/signal cards before rendering.
@@ -125,4 +126,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after weekly start/sit actions were constrained to playable, slot-legal swaps*
+*Last updated: 2026-06-28 after Command Center refresh actions were wired to clear freshness markers*
