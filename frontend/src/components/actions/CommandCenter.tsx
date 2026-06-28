@@ -121,7 +121,7 @@ function CommandCard({ action }: { action: CommandAction }) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
-    <Card>
+    <Card style={{ boxShadow: "0 8px 18px -18px hsl(var(--foreground) / 0.55)" }}>
       <CardHeader className="space-y-3 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-2">

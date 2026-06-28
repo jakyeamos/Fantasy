@@ -12,6 +12,7 @@ The system must tell you — for each of your teams — what you are, what your 
 
 ### Validated
 
+- Command-center Top Moves rows now use a restrained local shadow instead of the heavier shared panel glow.
 - Command-center readiness lane counts stay out of the landing summary, so fresh data leaves no unexplained status row and stale warnings remain the only health chrome.
 - Command-center Top Moves now render as compact expandable cards, and the data-health row omits a fresh-state flag when no stale domains need attention.
 - Command-center stale refresh actions now update the freshness ledger when waiver boards are recomputed or market baselines are refreshed, so successful refreshes clear stale badges.
@@ -128,4 +129,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after Command Center hid non-actionable readiness lane badges*
+*Last updated: 2026-06-28 after Command Center Top Moves row shadows were toned down*
