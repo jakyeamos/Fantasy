@@ -20,6 +20,7 @@ from fantasy.trends.opportunity_weekly import (
     weekly_fit_context,
     weekly_fit_multiplier,
     weekly_fit_note,
+    weekly_fit_payload,
 )
 from fantasy.trends.trend_repo import TrendRepo
 
@@ -164,6 +165,7 @@ class OpportunityEngine:
                     calendar_escalated=escalation_label is not None,
                     calendar_escalation_label=escalation_label,
                     cta=cta,
+                    weekly_fit=weekly_fit_payload(weekly_fit),
                 )
             )
 

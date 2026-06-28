@@ -7,6 +7,7 @@ import type { OpportunityFeedItem } from "@/api/types"
 import { OpportunityCardList } from "@/components/opportunities/OpportunityCardList"
 import { buttonClasses } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { filterOpportunityItems } from "@/lib/opportunityFilters"
 import { cn } from "@/lib/utils"
 
 export const Route = createFileRoute("/opportunities")({
@@ -25,6 +26,7 @@ function OpportunityFeedPage() {
   const [highConfidenceOnly, setHighConfidenceOnly] = useState(false)
   const [leagueFilter, setLeagueFilter] = useState("all")
   const [includeSpeculative, setIncludeSpeculative] = useState(false)
+  const [lineupFitOnly, setLineupFitOnly] = useState(false)
   const leagueOptions = useMemo(
     () =>
       Array.from(
@@ -39,26 +41,13 @@ function OpportunityFeedPage() {
         .sort(),
     [items],
   )
-  const filteredItems = items.filter((item) => {
-    if (!includeSpeculative && item.trend_confidence === "LOW" && item.availability === "available") {
-      return false
-    }
-    if (scopeFilter !== "all" && item.availability !== scopeFilter) {
-      return false
-    }
-    if (actionFilter !== "all" && item.suggested_action !== actionFilter) {
-      return false
-    }
-    if (highConfidenceOnly && item.trend_confidence !== "HIGH") {
-      return false
-    }
-    if (leagueFilter !== "all") {
-      const leagueIds = new Set([...item.owned_in_leagues, item.cta?.league_id ?? ""])
-      if (!leagueIds.has(leagueFilter)) {
-        return false
-      }
-    }
-    return true
+  const filteredItems = filterOpportunityItems(items, {
+    scopeFilter,
+    actionFilter,
+    highConfidenceOnly,
+    leagueFilter,
+    includeSpeculative,
+    lineupFitOnly,
   })
   const topSignal = items[0] ?? null
   const isTimeout = query.error?.name === "TimeoutError"
@@ -188,6 +177,16 @@ function OpportunityFeedPage() {
             onClick={() => setHighConfidenceOnly((value) => !value)}
           >
             High confidence
+          </button>
+          <button
+            type="button"
+            className={buttonClasses({
+              variant: lineupFitOnly ? "default" : "outline",
+              size: "sm",
+            })}
+            onClick={() => setLineupFitOnly((value) => !value)}
+          >
+            Solves lineup gap
           </button>
           <label className="inline-flex min-h-9 items-center gap-2 rounded-md border border-border/60 px-3 text-xs font-medium text-muted-foreground">
             <input

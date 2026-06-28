@@ -1061,6 +1061,14 @@ export interface OpportunityCta {
   target_player_roster_id: number | null
 }
 
+export interface OpportunityWeeklyFit {
+  position: string
+  player_name: string
+  gap_to_title_target: number
+  is_stale: boolean
+  stale_domains: string[]
+}
+
 export interface OpportunityFeedItem {
   player_id: string
   player_name: string
@@ -1078,6 +1086,7 @@ export interface OpportunityFeedItem {
   calendar_escalated: boolean
   calendar_escalation_label: string | null
   cta: OpportunityCta | null
+  weekly_fit: OpportunityWeeklyFit | null
 }
 
 export interface OpportunityFeedResponse {

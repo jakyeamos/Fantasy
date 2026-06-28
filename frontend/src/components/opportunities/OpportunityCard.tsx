@@ -1,6 +1,6 @@
 import type { OpportunityFeedItem } from "@/api/types"
 import { Link } from "@tanstack/react-router"
-import { ArrowRightLeft, ExternalLink, Gauge, UserRound } from "lucide-react"
+import { AlertTriangle, ArrowRightLeft, ExternalLink, Gauge, Target, UserRound } from "lucide-react"
 
 import { CalendarEscalationLabel } from "@/components/opportunities/CalendarEscalationLabel"
 import { ConfidenceIndicator } from "@/components/opportunities/ConfidenceIndicator"
@@ -81,7 +81,36 @@ export function OpportunityCard({
               ADP Gap: {formatGap(item.adp_gap)}
             </span>
             <ConfidenceIndicator confidence={item.trend_confidence} />
+            {item.weekly_fit ? (
+              <Badge
+                variant="outline"
+                className="gap-1.5 border-primary/25 bg-primary/10 text-primary"
+              >
+                <Target className="size-3" />
+                Solves {item.weekly_fit.position} gap
+              </Badge>
+            ) : null}
+            {item.weekly_fit?.is_stale ? (
+              <Badge
+                variant="outline"
+                className="gap-1.5 border-warning/25 bg-warning-surface text-warning"
+              >
+                <AlertTriangle className="size-3" />
+                Stale weekly data
+              </Badge>
+            ) : null}
           </div>
+
+          {item.weekly_fit ? (
+            <div className="rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-xs leading-5 text-primary">
+              What I would check: {item.weekly_fit.player_name} is{" "}
+              {item.weekly_fit.gap_to_title_target.toFixed(1)} below the title target at{" "}
+              {item.weekly_fit.position}.{" "}
+              {item.weekly_fit.is_stale
+                ? `Refresh ${item.weekly_fit.stale_domains.join(", ")} before acting.`
+                : "Weekly data is fresh enough to use this as a lineup-fit tiebreaker."}
+            </div>
+          ) : null}
 
           <p className="text-sm leading-relaxed text-muted-foreground">
             {item.why_summary}

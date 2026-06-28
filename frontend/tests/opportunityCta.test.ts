@@ -11,6 +11,7 @@ const baseItem: OpportunityFeedItem = {
   trend_confidence: "HIGH",
   adp_gap: -32,
   suggested_action: "buy",
+  availability: "opponent_roster",
   impact_score: 32,
   why_summary: "Buy signal",
   owned_in_leagues: [],
@@ -19,6 +20,7 @@ const baseItem: OpportunityFeedItem = {
   calendar_escalated: false,
   calendar_escalation_label: null,
   cta: null,
+  weekly_fit: null,
 }
 
 assert.deepEqual(

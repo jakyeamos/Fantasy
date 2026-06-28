@@ -47,6 +47,16 @@ class OpportunityCta(BaseModel):
     target_player_roster_id: int | None = None
 
 
+class OpportunityWeeklyFit(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    position: str
+    player_name: str
+    gap_to_title_target: float
+    is_stale: bool = False
+    stale_domains: list[str] = Field(default_factory=list)
+
+
 class OpportunityFeedItem(BaseModel):
     model_config = ConfigDict(frozen=False)
 
@@ -66,6 +76,7 @@ class OpportunityFeedItem(BaseModel):
     calendar_escalated: bool = False
     calendar_escalation_label: str | None = None
     cta: OpportunityCta | None = None
+    weekly_fit: OpportunityWeeklyFit | None = None
 
 
 class OpportunityFeedResponse(BaseModel):

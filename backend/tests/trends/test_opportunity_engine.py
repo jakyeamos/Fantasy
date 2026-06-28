@@ -348,6 +348,12 @@ def test_buy_target_solving_lineup_gap_outranks_larger_raw_gap(db):
     assert abs(raw.adp_gap) > abs(fit.adp_gap)
     assert fit.impact_score > raw.impact_score
     assert "current WR lineup gap" in fit.why_summary
+    assert fit.weekly_fit is not None
+    assert fit.weekly_fit.position == "WR"
+    assert fit.weekly_fit.player_name == "Weak WR"
+    assert fit.weekly_fit.gap_to_title_target == 14.0
+    assert fit.weekly_fit.is_stale is False
+    assert fit.weekly_fit.stale_domains == []
 
 
 def test_stale_weekly_data_dampens_lineup_gap_opportunity_boost(db):
@@ -387,6 +393,9 @@ def test_stale_weekly_data_dampens_lineup_gap_opportunity_boost(db):
     assert [item.player_id for item in items[:2]] == ["raw_rb", "fit_wr"]
     fit = next(item for item in items if item.player_id == "fit_wr")
     assert "Verify stale weekly data first" in fit.why_summary
+    assert fit.weekly_fit is not None
+    assert fit.weekly_fit.is_stale is True
+    assert set(fit.weekly_fit.stale_domains) == {"usage", "stats", "schedule", "injuries"}
 
 
 def test_veteran_buy_low_contending_team(db):

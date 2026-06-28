@@ -6,7 +6,7 @@ from fantasy.context.context_repo import ContextRepo
 from fantasy.context.freshness_service import FreshnessService
 from fantasy.lineup.lineup_repo import LineupRepo
 from fantasy.lineup.models import LineupSlotScore
-from fantasy.trends.models import OpportunityCta
+from fantasy.trends.models import OpportunityCta, OpportunityWeeklyFit
 
 WeeklyFitContext = dict[str, object]
 
@@ -95,4 +95,20 @@ def weekly_fit_note(weekly_fit: WeeklyFitContext | None) -> str:
         f" It also solves a current {slot.position} lineup gap: "
         f"{slot.player_name} is {slot.gap_to_title_target:.1f} below the title target."
         + stale_note
+    )
+
+
+def weekly_fit_payload(weekly_fit: WeeklyFitContext | None) -> OpportunityWeeklyFit | None:
+    if weekly_fit is None:
+        return None
+    slot = weekly_fit.get("slot")
+    if not isinstance(slot, LineupSlotScore):
+        return None
+    stale_domains = [str(domain) for domain in weekly_fit.get("stale_domains") or []]
+    return OpportunityWeeklyFit(
+        position=slot.position,
+        player_name=slot.player_name,
+        gap_to_title_target=round(slot.gap_to_title_target, 2),
+        is_stale=bool(stale_domains),
+        stale_domains=stale_domains,
     )
