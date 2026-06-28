@@ -12,6 +12,7 @@ The system must tell you — for each of your teams — what you are, what your 
 
 ### Validated
 
+- Command-center Top Moves hides start/sit cards by default behind an Include start/sit filter, and waiver/Edge Radar recommendations now respect Sleeper position caps such as AMG's QB limit.
 - Command-center Top Moves now loads the selected league's action queue through the league-specific actions endpoint, with a compact league selector instead of a mixed cross-league list.
 - Command-center Top Moves rows now use a restrained local shadow instead of the heavier shared panel glow.
 - Command-center readiness lane counts stay out of the landing summary, so fresh data leaves no unexplained status row and stale warnings remain the only health chrome.
@@ -130,4 +131,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after Command Center Top Moves became league-scoped*
+*Last updated: 2026-06-28 after start/sit filtering and waiver position-cap enforcement*

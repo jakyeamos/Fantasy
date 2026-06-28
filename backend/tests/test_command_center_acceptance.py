@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 
+import fantasy.actions.command_center as command_center_module
 from fantasy.actions.command_center import CommandCenterEngine
 from fantasy.actions.models import CommandAction, CommandCenterResponse
 from fantasy.context.context_repo import ContextRepo
@@ -508,6 +509,112 @@ def test_command_center_connects_waiver_add_to_lineup_gap(db):
         evidence == "Weekly lineup gap: WR is 14.0 below the title target"
         for evidence in waiver_action.evidence
     )
+
+
+def test_command_center_skips_cached_waiver_rec_at_position_limit(db, monkeypatch):
+    db.execute(
+        """
+        INSERT INTO leagues (
+            league_id, name, season, scoring_settings, roster_positions,
+            settings_blob, superflex, tep, ppr
+        )
+        VALUES (
+            'cmd_waiver_cap', 'Waiver Cap', '2026', '{}',
+            '["QB","WR","BN"]', '{"position_limit_qb":1}', FALSE, FALSE, 1.0
+        )
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO rosters (
+            id, league_id, roster_id, owner_id, owner_display_name,
+            starters, players, reserve, taxi
+        )
+        VALUES (
+            1, 'cmd_waiver_cap', 1, 'owner_a', 'Alpha',
+            '["roster_qb"]', '["roster_qb"]', '[]', '[]'
+        )
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES
+            ('roster_qb', 'Roster QB', 'QB', 'CAP', 27, '{}'),
+            ('cached_qb', 'Cached QB', 'QB', 'CAP', 22, '{}'),
+            ('cached_wr', 'Cached WR', 'WR', 'CAP', 23, '{}')
+        """
+    )
+
+    class EmptyWeeklyEdgeService:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def build(self, *_args, **_kwargs):
+            return type(
+                "WeeklyEdge",
+                (),
+                {
+                    "lineup_gaps": [],
+                    "player_signals": [],
+                    "start_sit": [],
+                    "risk_actions": [],
+                },
+            )()
+
+    monkeypatch.setattr(
+        command_center_module,
+        "WeeklyEdgeService",
+        EmptyWeeklyEdgeService,
+    )
+    WaiverRepo(db).upsert_waiver_recommendations(
+        WaiverRecommendationsResponse(
+            league_id="cmd_waiver_cap",
+            roster_id=1,
+            waiver_type_label="faab",
+            waiver_type_raw=2,
+            remaining_faab=72,
+            total_faab=100,
+            computed_at="2026-06-28T00:00:00+00:00",
+            recommendations=[
+                WaiverRecommendation(
+                    player_id="cached_qb",
+                    player_name="Cached QB",
+                    position="QB",
+                    recommendation_label="faab_bid",
+                    bid_low=8,
+                    bid_mid=12,
+                    bid_high=16,
+                    urgency="High",
+                    confidence="HIGH",
+                    rationale="Cached QB was ranked before the cap check existed.",
+                    is_immediate_start=False,
+                    roster_fit="Dynasty stash",
+                ),
+                WaiverRecommendation(
+                    player_id="cached_wr",
+                    player_name="Cached WR",
+                    position="WR",
+                    recommendation_label="faab_bid",
+                    bid_low=5,
+                    bid_mid=8,
+                    bid_high=11,
+                    urgency="Medium",
+                    confidence="MEDIUM",
+                    rationale="Cached WR is still roster legal.",
+                    is_immediate_start=False,
+                    roster_fit="Bench churn upgrade",
+                ),
+            ],
+        )
+    )
+
+    response = CommandCenterEngine(db).build("cmd_waiver_cap")
+
+    waiver_actions = [action for action in response.actions if action.category == "waiver"]
+    assert waiver_actions
+    assert all("Cached QB" not in action.headline for action in waiver_actions)
+    assert any(action.headline == "Waiver Cap: add Cached WR" for action in waiver_actions)
 
 
 def test_command_center_connects_buy_window_to_lineup_gap(db, monkeypatch):

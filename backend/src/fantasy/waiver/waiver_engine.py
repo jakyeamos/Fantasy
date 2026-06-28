@@ -217,7 +217,7 @@ class WaiverEngine:
         self,
         league_id: str,
         roster_id: int,
-    ) -> tuple[set[str], Counter[str]]:
+    ) -> tuple[set[str], Counter[str], Counter[str]]:
         roster_row = self._conn.execute(
             """
             SELECT players
@@ -238,7 +238,7 @@ class WaiverEngine:
         ).fetchone()
         player_ids = [str(player_id) for player_id in _loads(roster_row[0], [])] if roster_row else []
         if not player_ids:
-            return set(), Counter()
+            return set(), Counter(), Counter()
 
         player_rows = self._conn.execute(
             """
@@ -259,7 +259,31 @@ class WaiverEngine:
             for position, needed in starter_requirements.items()
             if roster_counts.get(position, 0) < needed + 1
         }
-        return weak_positions, starter_requirements
+        return weak_positions, starter_requirements, roster_counts
+
+    def _position_limits(self, league_id: str) -> dict[str, int]:
+        league_row = self._conn.execute(
+            """
+            SELECT settings_blob
+            FROM leagues
+            WHERE league_id = ?
+            LIMIT 1
+            """,
+            [league_id],
+        ).fetchone()
+        settings = _loads(league_row[0], {}) if league_row else {}
+        limits: dict[str, int] = {}
+        for position in ("QB", "RB", "WR", "TE"):
+            raw_limit = settings.get(f"position_limit_{position.lower()}")
+            if raw_limit is None:
+                continue
+            try:
+                limit = int(raw_limit)
+            except (TypeError, ValueError):
+                continue
+            if limit > 0:
+                limits[position] = limit
+        return limits
 
     def _stats_map(self, player_ids: list[str]) -> dict[str, float]:
         if not player_ids:
@@ -477,7 +501,11 @@ class WaiverEngine:
         state = get_faab_state(self._conn, league_id, roster_id)
         direction_label = self._direction_label(league_id, roster_id)
         direction_urgency = DIRECTION_URGENCY.get(direction_label, 0.55)
-        weak_positions, starter_requirements = self._roster_needs(league_id, roster_id)
+        weak_positions, starter_requirements, roster_counts = self._roster_needs(
+            league_id,
+            roster_id,
+        )
+        position_limits = self._position_limits(league_id)
         available_ids = get_available_players(self._conn, league_id)
         player_rows = self._player_rows(available_ids)
         stats_map = self._stats_map(available_ids)
@@ -491,6 +519,10 @@ class WaiverEngine:
         recommendations: list[tuple[float, WaiverRecommendation]] = []
         for player in player_rows:
             player_id = str(player["player_id"])
+            position = str(player["position"])
+            position_limit = position_limits.get(position)
+            if position_limit is not None and roster_counts.get(position, 0) >= position_limit:
+                continue
             player_score, positional_scarcity, is_immediate_start = self._score_available_player(
                 player,
                 weak_positions=weak_positions,

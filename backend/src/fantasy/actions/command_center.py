@@ -27,6 +27,7 @@ from fantasy.edge_radar.models import EdgeRadarItem
 from fantasy.portfolio.portfolio_repo import PortfolioRepo
 from fantasy.trends.models import OpportunityFeedItem
 from fantasy.trends.opportunity_engine import OpportunityEngine
+from fantasy.waiver.models import WaiverRecommendation
 from fantasy.waiver.waiver_engine import WaiverEngine
 from fantasy.waiver.waiver_repo import WaiverRepo
 from fantasy.weekly.models import LineupGapDecision, StartSitDecision, WeeklyPlayerSignal
@@ -239,7 +240,13 @@ class CommandCenterEngine:
             if cached is None or not cached.recommendations:
                 continue
 
-            rec = cached.recommendations[0]
+            rec = self._first_roster_legal_waiver_rec(
+                league_id,
+                roster_id,
+                cached.recommendations,
+            )
+            if rec is None:
+                continue
             edge = WeeklyEdgeService(self._conn).build(league_id, roster_id)
             matching_gap = self._matching_lineup_gap(edge.lineup_gaps, rec.position)
             bid = (
@@ -303,6 +310,26 @@ class CommandCenterEngine:
                 )
             )
         return actions
+
+    def _first_roster_legal_waiver_rec(
+        self,
+        league_id: str,
+        roster_id: int,
+        recommendations: list[WaiverRecommendation],
+    ) -> WaiverRecommendation | None:
+        waiver_engine = WaiverEngine(self._conn)
+        _, _, roster_counts = waiver_engine._roster_needs(league_id, roster_id)
+        position_limits = waiver_engine._position_limits(league_id)
+        return next(
+            (
+                recommendation
+                for recommendation in recommendations
+                if position_limits.get(recommendation.position) is None
+                or roster_counts.get(recommendation.position, 0)
+                < position_limits[recommendation.position]
+            ),
+            None,
+        )
 
     def _matching_lineup_gap(
         self,

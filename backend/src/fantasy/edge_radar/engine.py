@@ -21,6 +21,7 @@ from fantasy.edge_radar.similarity import (
     value_gain_evidence,
 )
 from fantasy.portfolio.portfolio_repo import PortfolioRepo
+from fantasy.waiver.waiver_engine import WaiverEngine
 
 MIN_PLAYER_DELTA = 0.10
 BUY_HIGH_MARKET_PRICE = 0.70
@@ -298,12 +299,24 @@ class EdgeRadarEngine:
             [league_id, league_id],
         ).fetchall()
         items: list[EdgeRadarItem] = []
+        waiver_engine = WaiverEngine(self._conn)
         for row in rows:
+            league_id_value = str(row[0])
+            roster_id_value = int(row[1])
+            _, _, roster_counts = waiver_engine._roster_needs(
+                league_id_value,
+                roster_id_value,
+            )
+            position_limits = waiver_engine._position_limits(league_id_value)
             payload = _loads(str(row[2]), {})
             recs = payload.get("recommendations") if isinstance(payload, dict) else []
             for rec in list(recs or [])[:3]:
                 player_id = str(rec.get("player_id") or "")
                 if not player_id:
+                    continue
+                position = str(rec.get("position") or "UNKNOWN")
+                position_limit = position_limits.get(position)
+                if position_limit is not None and roster_counts.get(position, 0) >= position_limit:
                     continue
                 bid_low = rec.get("bid_low")
                 bid_high = rec.get("bid_high")
@@ -315,11 +328,11 @@ class EdgeRadarEngine:
                     EdgeRadarItem(
                         id=f"waiver_pickup:{row[0]}:{row[1]}:{player_id}",
                         signal_type="waiver_pickup",
-                        league_id=str(row[0]),
-                        roster_id=int(row[1]),
+                        league_id=league_id_value,
+                        roster_id=roster_id_value,
                         player_id=player_id,
                         player_name=str(rec.get("player_name") or player_id),
-                        position=str(rec.get("position") or "UNKNOWN"),
+                        position=position,
                         action_label="Waiver pickup",
                         market_delta=round(market_delta, 2),
                         market_price=0.0,

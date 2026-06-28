@@ -143,3 +143,39 @@ def test_stale_data_warning(db):
     result = WaiverEngine(db).compute_recommendations("waiver_x", 1)
     assert result.data_freshness_warning is True
     assert all(item.data_freshness_warning for item in result.recommendations)
+
+
+def test_position_limit_skips_capped_position_adds(db):
+    _seed_waiver_context(db)
+    db.execute(
+        """
+        UPDATE leagues
+        SET settings_blob = ?
+        WHERE league_id = 'waiver_x'
+        """,
+        [json.dumps({"waiver_budget": 100, "waiver_type": 2, "position_limit_qb": 1})],
+    )
+    db.execute(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES ('fa_qb', 'Free Agent QB', 'QB', 'X', 22, '{"status":"Active"}')
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO player_stats_weekly (player_id, player_name, position, season, week, fantasy_points)
+        VALUES ('fa_qb', 'Free Agent QB', 'QB', 2026, 1, 24.0)
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO player_adp_baseline (player_id, player_name, position, adp, adp_source)
+        VALUES ('fa_qb', 'Free Agent QB', 'QB', 2.0, 'seed')
+        """
+    )
+
+    result = WaiverEngine(db).compute_recommendations("waiver_x", 1)
+
+    recommendation_ids = {item.player_id for item in result.recommendations}
+    assert "fa_qb" not in recommendation_ids
+    assert "fa1" in recommendation_ids

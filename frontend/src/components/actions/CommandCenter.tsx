@@ -230,6 +230,7 @@ export function CommandCenter() {
   const leaguesQuery = useQuery(dashboardSummaryOptions)
   const leagues = leaguesQuery.data ?? []
   const [selectedLeagueId, setSelectedLeagueId] = useState("")
+  const [includeStartSit, setIncludeStartSit] = useState(false)
   const activeLeagueId = selectedLeagueId || leagues[0]?.league_id || ""
   const selectedLeague = leagues.find((league) => league.league_id === activeLeagueId)
   const query = useQuery(leagueActionsOptions(activeLeagueId))
@@ -268,7 +269,9 @@ export function CommandCenter() {
     return null
   }
 
-  const actions = query.data?.actions.slice(0, 5) ?? []
+  const actions = (query.data?.actions ?? [])
+    .filter((action) => includeStartSit || action.category !== "lineup")
+    .slice(0, 5)
   const dataHealth = query.data?.data_health ?? []
   const refreshActions = query.data?.refresh_actions ?? []
 
@@ -285,6 +288,15 @@ export function CommandCenter() {
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3">
+          <label className="flex h-11 items-center gap-2 rounded-lg border border-border/60 bg-card/55 px-3">
+            <input
+              type="checkbox"
+              checked={includeStartSit}
+              className="size-4 accent-primary"
+              onChange={(event) => setIncludeStartSit(event.target.checked)}
+            />
+            <span className="terminal-label text-muted-foreground">Include start/sit</span>
+          </label>
           <label className="flex flex-col gap-1">
             <span className="terminal-label text-muted-foreground">League</span>
             <select
@@ -332,8 +344,8 @@ export function CommandCenter() {
               No Ranked Moves for {selectedLeague?.league_name ?? "This League"}
             </p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Run recompute after a fresh ingest to warm waiver, market, manager,
-              and portfolio artifacts for command ranking.
+              Run recompute after a fresh ingest, or include start/sit if you want
+              lineup-only actions in this view.
             </p>
           </CardContent>
         </Card>
