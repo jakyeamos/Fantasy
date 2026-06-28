@@ -311,6 +311,22 @@ class EdgeRadarEngine:
             self._table_health("nflreadpy", ["player_stats_weekly"]),
             self._table_health("local_prospect_csv", ["prospect_features"]),
             self._table_health("manual_imports", ["team_context_by_season"]),
+            self._team_context_health(
+                source="team_context_curated",
+                where_clause="""
+                    head_coach IS NOT NULL
+                    OR offensive_coordinator IS NOT NULL
+                    OR play_caller IS NOT NULL
+                    OR offensive_system IS NOT NULL
+                """,
+            ),
+            self._team_context_health(
+                source="team_environment_nflreadpy",
+                where_clause="""
+                    source = 'team_environment_nflreadpy'
+                    AND (pace_label IS NOT NULL OR pass_rate_label IS NOT NULL)
+                """,
+            ),
             SourceHealth(
                 source="api_key_sources",
                 status="missing",
@@ -342,6 +358,31 @@ class EdgeRadarEngine:
                 f"{source} source has data in {', '.join(tables)}."
                 if ready
                 else f"{source} source is missing data in at least one required table."
+            ),
+            freshness=1.0 if ready else 0.0,
+        )
+
+    def _team_context_health(self, *, source: str, where_clause: str) -> SourceHealth:
+        try:
+            row = self._conn.execute(
+                f"""
+                SELECT COUNT(*), MAX(loaded_at)
+                FROM team_context_by_season
+                WHERE {where_clause}
+                """
+            ).fetchone()
+        except Exception:
+            row = None
+        count = int(row[0]) if row and row[0] is not None else 0
+        loaded_at = row[1] if row and row[1] is not None else None
+        ready = count > 0
+        return SourceHealth(
+            source=source,
+            status="ready" if ready else "missing",
+            detail=(
+                f"{source} has {count} rows; latest load {loaded_at}."
+                if ready
+                else f"{source} has no loaded team context rows."
             ),
             freshness=1.0 if ready else 0.0,
         )

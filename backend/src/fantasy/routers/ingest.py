@@ -7,6 +7,7 @@ import duckdb
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from fantasy.edge_radar.team_context import TeamContextRefreshService
 from fantasy.ingestion.ingest_service import IngestService
 from fantasy.ingestion.nfl_data_loader import refresh_adp_baseline_from_fantasycalc
 from fantasy.market.models import FantasyCalcUnavailableError
@@ -41,6 +42,12 @@ class AdpBaselineRefreshResponse(BaseModel):
     num_qbs: int
     num_teams: int
     ppr: float
+
+
+class TeamContextRefreshResponse(BaseModel):
+    season: int
+    environment_rows: int
+    upserted_rows: int
 
 
 class DraftCapitalRefreshSummary(BaseModel):
@@ -128,6 +135,19 @@ def _resolve_adp_refresh_profile(
     resolved_ppr = resolved_ppr if resolved_ppr is not None else 1.0
 
     return resolved_num_qbs, resolved_num_teams, resolved_ppr
+
+
+@router.post("/team-context/refresh", response_model=TeamContextRefreshResponse)
+def refresh_team_context(
+    season: int = Query(default=2026, ge=1999, le=2035),
+    conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
+) -> TeamContextRefreshResponse:
+    summary = TeamContextRefreshService(conn).refresh(season)
+    return TeamContextRefreshResponse(
+        season=summary.season,
+        environment_rows=summary.environment_rows,
+        upserted_rows=summary.upserted_rows,
+    )
 
 
 @router.post("/{league_id}", response_model=IngestRunResponse)
