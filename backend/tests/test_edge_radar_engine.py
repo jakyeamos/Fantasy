@@ -345,6 +345,89 @@ def test_edge_radar_attaches_similarity_evidence_from_system_age_and_outcomes(db
     assert any("Similarity: Similar WR" in evidence for evidence in item.source_evidence)
 
 
+def test_edge_radar_uses_team_context_source_for_system_similarity(db):
+    _seed_league(db)
+    db.execute(
+        """
+        INSERT INTO team_context_by_season (
+            team, season, head_coach, offensive_coordinator, play_caller,
+            offensive_system, pace_label, pass_rate_label, source, notes
+        )
+        VALUES
+            (
+                'SEA', 2026, 'Coach A', 'OC A', 'OC A',
+                'wide_zone_play_action', 'neutral', 'balanced', 'manual_csv', 'test'
+            ),
+            (
+                'MIA', 2026, 'Coach A', 'OC A', 'OC A',
+                'wide_zone_play_action', 'neutral', 'balanced', 'manual_csv', 'test'
+            ),
+            (
+                'CAR', 2026, 'Coach B', 'OC B', 'OC B',
+                'spread', 'slow', 'pass_heavy', 'manual_csv', 'test'
+            )
+        """
+    )
+    _seed_player(
+        db,
+        player_id="target_wr",
+        player_name="Target WR",
+        position="WR",
+        model_value=0.82,
+        market_value=0.50,
+        adp=90,
+        age=24,
+        team="SEA",
+    )
+    _seed_player(
+        db,
+        player_id="similar_wr",
+        player_name="Similar WR",
+        position="WR",
+        model_value=0.79,
+        market_value=0.53,
+        adp=92,
+        age=25,
+        team="MIA",
+    )
+    _seed_player(
+        db,
+        player_id="different_wr",
+        player_name="Different WR",
+        position="WR",
+        model_value=0.79,
+        market_value=0.53,
+        adp=92,
+        age=25,
+        team="CAR",
+    )
+    db.execute(
+        """
+        INSERT INTO player_stats_weekly (
+            player_id, player_name, position, season, week, fantasy_points, targets
+        )
+        VALUES
+            ('similar_wr', 'Similar WR', 'WR', 2025, 1, 18.0, 9.0),
+            ('different_wr', 'Different WR', 'WR', 2025, 1, 7.0, 4.0)
+        """
+    )
+
+    response = EdgeRadarEngine(db).build()
+    item = next(
+        candidate for candidate in response.items if candidate.player_id == "target_wr"
+    )
+    health_by_source = {source.source: source for source in response.source_health}
+
+    assert health_by_source["manual_imports"].status == "ready"
+    assert item.similar_player_outcomes[0].player_id == "similar_wr"
+    assert "same offensive system" in item.similar_player_outcomes[0].context
+    assert "same head coach" in item.similar_player_outcomes[0].context
+    assert any(
+        "Team context: wide_zone_play_action" in evidence
+        for evidence in item.source_evidence
+    )
+
+
 def test_command_center_consumes_edge_radar_discoveries_as_actions(db):
     _seed_league(db)
     _seed_player(

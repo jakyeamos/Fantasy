@@ -194,6 +194,23 @@ player_adp_baseline = Table(
     Column("loaded_at", TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP")),
 )
 
+team_context_by_season = Table(
+    "team_context_by_season",
+    metadata,
+    Column("team", String, nullable=False),
+    Column("season", Integer, nullable=False),
+    Column("head_coach", String),
+    Column("offensive_coordinator", String),
+    Column("play_caller", String),
+    Column("offensive_system", String),
+    Column("pace_label", String),
+    Column("pass_rate_label", String),
+    Column("source", String, nullable=False, server_default=text("'manual_csv'")),
+    Column("notes", String),
+    Column("loaded_at", TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP")),
+    UniqueConstraint("team", "season", name="uq_team_context_by_season_identity"),
+)
+
 __all__ = [
     "metadata",
     "leagues",
@@ -207,4 +224,5 @@ __all__ = [
     "player_stats_weekly",
     "team_schedule_weekly",
     "player_adp_baseline",
+    "team_context_by_season",
 ]

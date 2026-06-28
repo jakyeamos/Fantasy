@@ -6,6 +6,7 @@ from typing import Any
 import duckdb
 
 from fantasy.config import Settings
+from fantasy.edge_radar.team_context import TEAM_CONTEXT_DDL
 from fantasy.ingestion.ingest_service import IngestService
 from fantasy.ingestion.sleeper_client import SleeperClient
 from fantasy.intelligence.intelligence_service import IntelligenceService
@@ -355,6 +356,7 @@ _SCHEMA_COMPAT_TABLES: dict[str, str] = {
             UNIQUE (player_id, flag_type)
         )
     """,
+    "team_context_by_season": TEAM_CONTEXT_DDL,
     "market_values": """
         CREATE TABLE IF NOT EXISTS market_values (
             id                  INTEGER PRIMARY KEY,

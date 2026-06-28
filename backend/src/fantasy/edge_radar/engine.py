@@ -34,6 +34,29 @@ def _loads(raw: str | None, fallback: Any) -> Any:
         return fallback
 
 
+def _merge_context_metadata(
+    metadata: dict[str, Any],
+    context: dict[str, str | None],
+) -> dict[str, Any]:
+    merged = dict(metadata)
+    for key, value in context.items():
+        if value and not merged.get(key):
+            merged[key] = value
+    return merged
+
+
+def _team_context_evidence(metadata: dict[str, Any]) -> list[str]:
+    offensive_system = metadata.get("offensive_system")
+    if not offensive_system:
+        return []
+    parts = [str(offensive_system)]
+    if metadata.get("head_coach"):
+        parts.append(f"HC {metadata['head_coach']}")
+    if metadata.get("offensive_coordinator"):
+        parts.append(f"OC {metadata['offensive_coordinator']}")
+    return [f"Team context: {', '.join(parts)}"]
+
+
 class EdgeRadarEngine:
     def __init__(self, conn: duckdb.DuckDBPyConnection) -> None:
         self._conn = conn
@@ -97,10 +120,21 @@ class EdgeRadarEngine:
                    COALESCE(adp.adp, 250.0),
                    COALESCE(pv.comp_role_stability, 0.5),
                    COALESCE(pv.comp_ceiling, 0.5),
-                   COALESCE(pv.comp_floor, 0.5)
+                   COALESCE(pv.comp_floor, 0.5),
+                   TRY_CAST(l.season AS INTEGER),
+                   tc.head_coach,
+                   tc.offensive_coordinator,
+                   tc.play_caller,
+                   tc.offensive_system,
+                   tc.pace_label,
+                   tc.pass_rate_label
             FROM player_values pv
             LEFT JOIN players p ON p.player_id = pv.player_id
+            LEFT JOIN leagues l ON l.league_id = pv.league_id
             LEFT JOIN player_adp_baseline adp ON adp.player_id = pv.player_id
+            LEFT JOIN team_context_by_season tc
+              ON tc.team = p.team
+             AND tc.season = TRY_CAST(l.season AS INTEGER)
             WHERE (? IS NULL OR pv.league_id = ?)
             """,
             [league_id, league_id],
@@ -126,12 +160,18 @@ class EdgeRadarEngine:
                 market_price=market_price,
                 owned_by_user=owner_roster_id == user_roster_id,
             )
+            metadata = _merge_context_metadata(
+                _loads(row[6], {}),
+                self._team_context_from_row(row, 14),
+            )
             comps = self._similar_player_outcomes(
+                league_id=row_league_id,
+                season=int(row[13]) if row[13] is not None else None,
                 player_id=player_id,
                 position=str(row[3]),
                 team=str(row[4] or ""),
                 age=int(row[5]) if row[5] is not None else None,
-                metadata=_loads(row[6], {}),
+                metadata=metadata,
                 model_value=model_value,
                 market_price=market_price,
                 role_stability=_clamp01(float(row[10] or 0.5)),
@@ -175,6 +215,7 @@ class EdgeRadarEngine:
                         f"Market price: {market_price:.2f}",
                         f"Startup ADP: {float(row[9] or 250.0):.1f}",
                     ]
+                    + _team_context_evidence(metadata)
                     + similarity_evidence,
                     similarity_score=comps[0].similarity_score if comps else 0.0,
                     similar_player_outcomes=comps,
@@ -200,6 +241,8 @@ class EdgeRadarEngine:
     def _similar_player_outcomes(
         self,
         *,
+        league_id: str,
+        season: int | None,
         player_id: str,
         position: str,
         team: str,
@@ -230,22 +273,37 @@ class EdgeRadarEngine:
                    COALESCE(pv.comp_ceiling, 0.5),
                    COALESCE(pv.comp_floor, 0.5),
                    AVG(ps.fantasy_points) AS avg_points,
-                   COUNT(ps.player_id) AS stat_games
+                   COUNT(ps.player_id) AS stat_games,
+                   tc.head_coach,
+                   tc.offensive_coordinator,
+                   tc.play_caller,
+                   tc.offensive_system,
+                   tc.pace_label,
+                   tc.pass_rate_label
             FROM players p
             JOIN player_values pv ON pv.player_id = p.player_id
             LEFT JOIN player_stats_weekly ps ON ps.player_id = p.player_id
+            LEFT JOIN team_context_by_season tc
+              ON tc.team = p.team
+             AND (? IS NOT NULL AND tc.season = ?)
             WHERE p.player_id != ?
               AND COALESCE(p.position, 'UNKNOWN') = ?
+              AND pv.league_id = ?
             GROUP BY p.player_id, p.full_name, p.position, p.team, p.age, p.metadata_blob,
                      pv.lens_production, pv.lens_direction, pv.comp_current_production,
-                     pv.lens_market, pv.comp_role_stability, pv.comp_ceiling, pv.comp_floor
+                     pv.lens_market, pv.comp_role_stability, pv.comp_ceiling, pv.comp_floor,
+                     tc.head_coach, tc.offensive_coordinator, tc.play_caller,
+                     tc.offensive_system, tc.pace_label, tc.pass_rate_label
             LIMIT 80
             """,
-            [player_id, position],
+            [season, season, player_id, position, league_id],
         ).fetchall()
         outcomes: list[SimilarPlayerOutcome] = []
         for row in rows:
-            comp_metadata = _loads(row[5], {})
+            comp_metadata = _merge_context_metadata(
+                _loads(row[5], {}),
+                self._team_context_from_row(row, 13),
+            )
             score = self._similarity_score(
                 team=team,
                 age=age,
@@ -288,6 +346,28 @@ class EdgeRadarEngine:
             )
         outcomes.sort(key=lambda outcome: (-outcome.similarity_score, outcome.player_name))
         return outcomes[:3]
+
+    def _team_context_from_row(
+        self,
+        row: tuple[Any, ...],
+        start_index: int,
+    ) -> dict[str, str | None]:
+        keys = (
+            "head_coach",
+            "offensive_coordinator",
+            "play_caller",
+            "offensive_system",
+            "pace_label",
+            "pass_rate_label",
+        )
+        return {
+            key: (
+                str(row[start_index + offset])
+                if row[start_index + offset] is not None
+                else None
+            )
+            for offset, key in enumerate(keys)
+        }
 
     def _similarity_score(
         self,
@@ -449,12 +529,7 @@ class EdgeRadarEngine:
             self._table_health("fantasycalc", ["player_adp_baseline"]),
             self._table_health("nflreadpy", ["player_stats_weekly"]),
             self._table_health("local_prospect_csv", ["prospect_features"]),
-            SourceHealth(
-                source="manual_imports",
-                status="missing",
-                detail="No manual Edge Radar import table configured yet.",
-                freshness=0.0,
-            ),
+            self._table_health("manual_imports", ["team_context_by_season"]),
             SourceHealth(
                 source="api_key_sources",
                 status="missing",

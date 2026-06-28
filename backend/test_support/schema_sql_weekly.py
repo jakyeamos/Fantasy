@@ -272,6 +272,22 @@ WEEKLY_SCHEMA_SQL = [
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS team_context_by_season (
+        team                  VARCHAR NOT NULL,
+        season                INTEGER NOT NULL,
+        head_coach            VARCHAR,
+        offensive_coordinator VARCHAR,
+        play_caller           VARCHAR,
+        offensive_system      VARCHAR,
+        pace_label            VARCHAR,
+        pass_rate_label       VARCHAR,
+        source                VARCHAR NOT NULL DEFAULT 'manual_csv',
+        notes                 VARCHAR,
+        loaded_at             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (team, season)
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS market_values (
         id INTEGER PRIMARY KEY,
         player_id VARCHAR NOT NULL,
