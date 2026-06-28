@@ -41,6 +41,7 @@ The system must tell you — for each of your teams — what you are, what your 
 - Command-center manager exploit actions now require stronger evidence and build concrete Trade Lab packages with real send/receive assets, manager pitch framing, fairness evidence, and prefilled trade CTAs.
 - Browser smoke discovery now retries dashboard summary during dev refresh warmup so route sweeps consistently include league, waiver, manager, and rookie-board routes when local league data is present.
 - Command-center ranking now prefers ready execution inside equal urgency/confidence buckets, so prefilled manager offers and concrete next-click actions are not crowded out by generic market-monitor cards.
+- Opportunity Feed scoring now boosts buy windows that solve active lineup gaps and dampens that weekly-fit boost when usage/stats/schedule/injury freshness is stale, adding plain-language lineup-gap and stale-data notes to the action rationale.
 
 ### Active
 
@@ -117,4 +118,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after command-center ranking began preferring executable top-five actions*
+*Last updated: 2026-06-28 after opportunity ranking began using weekly lineup fit and freshness*

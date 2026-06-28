@@ -14,6 +14,13 @@ from fantasy.trends.models import OpportunityCta, OpportunityFeedItem
 from fantasy.trends.models import confidence_multiplier
 from fantasy.trends.similarity import find_similar_players_from_snapshots
 from fantasy.trends.trend_engine import TrendEngine
+from fantasy.trends.opportunity_weekly import (
+    WeeklyFitContext,
+    build_weekly_lineup_contexts,
+    weekly_fit_context,
+    weekly_fit_multiplier,
+    weekly_fit_note,
+)
 from fantasy.trends.trend_repo import TrendRepo
 
 MarketRecommendation = Literal[
@@ -57,6 +64,7 @@ class OpportunityEngine:
             user_rosters = self._fallback_user_rosters()
         owned_map = self._owned_map(user_rosters)
         roster_contexts = self._roster_contexts(user_rosters)
+        weekly_contexts = build_weekly_lineup_contexts(self._conn, user_rosters)
         contender_leagues = self._contender_league_ids(user_rosters)
         calendar_state = (
             self._calendar_service.active_state(user_rosters[0]["league_id"])
@@ -110,12 +118,21 @@ class OpportunityEngine:
                 roster_contexts=roster_contexts,
             )
             availability = self._availability(player_id, roster_contexts)
+            weekly_fit = weekly_fit_context(
+                position=str(
+                    candidate.get("position") or snapshot.get("position") or "UNKNOWN"
+                ),
+                suggested_action=suggested_action,
+                cta=cta,
+                weekly_contexts=weekly_contexts,
+            )
             impact_score = self._impact_score(
                 adp_gap=adp_gap,
                 confidence=trend.confidence,
                 suggested_action=suggested_action,
                 availability=availability,
                 calendar_escalated=escalation_label is not None,
+                weekly_fit=weekly_fit,
             )
             items.append(
                 OpportunityFeedItem(
@@ -139,6 +156,7 @@ class OpportunityEngine:
                             and int(snapshot.get("age") or 24) >= 28
                             and bool(contender_leagues)
                         ),
+                        weekly_fit=weekly_fit,
                     ),
                     owned_in_leagues=owned_in_leagues,
                     similar_players=[],
@@ -190,6 +208,7 @@ class OpportunityEngine:
         suggested_action: str,
         availability: str,
         calendar_escalated: bool,
+        weekly_fit: WeeklyFitContext | None = None,
     ) -> float:
         score = abs(adp_gap) * confidence_multiplier(confidence)
         availability_multiplier = {
@@ -213,6 +232,7 @@ class OpportunityEngine:
             score *= 0.45
         if calendar_escalated:
             score *= 1.1
+        score *= weekly_fit_multiplier(weekly_fit)
         return score
 
     def _contender_league_ids(self, user_rosters: list[dict[str, object]]) -> set[str]:
@@ -454,31 +474,38 @@ class OpportunityEngine:
         suggested_action: str,
         trend_label: str,
         contender_fit: bool,
+        weekly_fit: WeeklyFitContext | None = None,
     ) -> str:
         gap_slots = int(round(abs(adp_gap)))
+        weekly_note = weekly_fit_note(weekly_fit)
         if suggested_action == "sell":
             return (
                 f"{player_name} sits about {gap_slots} startup slots above the model, "
                 "and the component trend still points down."
+                + weekly_note
             )
         if contender_fit:
             return (
                 f"{player_name} carries a decline signal, but the market discount is steep "
                 "enough to justify a short-window contender buy."
+                + weekly_note
             )
         if suggested_action == "buy":
             return (
                 f"{player_name} is discounted by roughly {gap_slots} startup slots while "
                 "the component trend still points up."
+                + weekly_note
             )
         if trend_label == "will_rise":
             return (
                 f"The market premium is real, but {player_name}'s component profile still "
                 "projects upward movement next season."
+                + weekly_note
             )
         return (
             f"{player_name} shows a sizable market gap, but the trend signal argues for "
             "patience instead of an immediate buy or sell."
+            + weekly_note
         )
 
     def _conflict_explanation(

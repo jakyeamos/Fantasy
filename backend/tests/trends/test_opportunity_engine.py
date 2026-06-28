@@ -1,5 +1,10 @@
-from fantasy.trends.constants import COMPONENT_COLS
+from datetime import datetime, timezone
+
+from fantasy.context.context_repo import ContextRepo
+from fantasy.lineup.lineup_repo import LineupRepo
+from fantasy.lineup.models import LineupResult, LineupSlotScore
 from fantasy.trends import opportunity_engine
+from fantasy.trends.constants import COMPONENT_COLS
 from fantasy.trends.opportunity_engine import OpportunityEngine
 from fantasy.trends.trend_repo import TrendRepo
 
@@ -10,6 +15,9 @@ class _StubCalendarService:
 
     def active_state(self, _league_id: str) -> str:
         return self._state
+
+
+FRESH_NOW = datetime(2026, 6, 28, 12, tzinfo=timezone.utc)
 
 
 def _components(score: float, *, fragility: float | None = None) -> dict[str, float]:
@@ -52,6 +60,50 @@ def _seed_direction(conn, league_id: str, roster_id: int, label: str) -> None:
         VALUES (?, ?, ?, ?, 0.92, 'seed', '[]', '{}', '[]', '[]')
         """,
         [int(f"{1 if league_id == 'league_a' else 2}{roster_id}"), league_id, roster_id, label],
+    )
+
+
+def _seed_lineup_gap(conn, league_id: str, roster_id: int, position: str) -> None:
+    LineupRepo(conn).save_lineup_result(
+        LineupResult(
+            league_id=league_id,
+            roster_id=roster_id,
+            slot_scores=[
+                LineupSlotScore(
+                    position=position,
+                    player_id=f"weak_{position.lower()}",
+                    player_name=f"Weak {position}",
+                    starter_value=42.0,
+                    replacement_level=35.0,
+                    score=0.35,
+                    playoff_target=49.0,
+                    title_target=56.0,
+                    elite_target=63.0,
+                    upgrade_leverage_score=0.9,
+                    gap_to_playoff_target=7.0,
+                    gap_to_title_target=14.0,
+                    gap_to_elite_target=21.0,
+                    below_playoff_target=True,
+                    below_title_target=True,
+                    below_elite_target=True,
+                    weak_relative_to_contender=True,
+                    benchmark_used=True,
+                    benchmark_sample_size=12,
+                )
+            ],
+            total_lineup_score=42.0,
+            overall_playoff_target=49.0,
+            overall_title_target=56.0,
+            overall_elite_target=63.0,
+            overall_gap_to_playoff_target=7.0,
+            overall_gap_to_title_target=14.0,
+            overall_gap_to_elite_target=21.0,
+            title_window_label="Fading Window",
+            title_window_composite=0.45,
+            ceiling_score=0.4,
+            stability_score=0.3,
+            depth_score=0.2,
+        )
     )
 
 
@@ -247,6 +299,94 @@ def test_opponent_buy_opportunity_links_trade_evaluator_receive_side(db):
     assert row.cta.user_roster_id == 1
     assert row.cta.manager_roster_id == 2
     assert row.cta.target_player_roster_id == 2
+
+
+def test_buy_target_solving_lineup_gap_outranks_larger_raw_gap(db):
+    conn = _base_feed_db(db)
+    conn.execute(
+        """
+        UPDATE rosters
+        SET players = '["fit_wr","raw_rb"]'
+        WHERE league_id = 'league_a' AND roster_id = 2
+        """
+    )
+    _seed_lineup_gap(conn, "league_a", 1, "WR")
+    for domain in ["usage", "stats", "schedule", "injuries"]:
+        ContextRepo(conn).upsert_freshness(
+            "league_a",
+            domain,
+            FRESH_NOW,
+            f"test fresh {domain}",
+        )
+    _seed_player(conn, "fit_wr", "Fit WR", "WR", 24, 78.0)
+    _seed_trend_history(
+        conn,
+        player_id="fit_wr",
+        current_score=0.78,
+        prior_score=0.45,
+        current_adp=78.0,
+        prior_adp=104.0,
+    )
+    _seed_player(conn, "raw_rb", "Raw RB", "RB", 24, 88.0)
+    _seed_trend_history(
+        conn,
+        player_id="raw_rb",
+        current_score=0.82,
+        prior_score=0.45,
+        current_adp=88.0,
+        prior_adp=120.0,
+    )
+
+    items = OpportunityEngine(
+        conn,
+        calendar_service=_StubCalendarService("early_season"),
+    ).build_feed()
+
+    assert [item.player_id for item in items[:2]] == ["fit_wr", "raw_rb"]
+    fit = items[0]
+    raw = items[1]
+    assert abs(raw.adp_gap) > abs(fit.adp_gap)
+    assert fit.impact_score > raw.impact_score
+    assert "current WR lineup gap" in fit.why_summary
+
+
+def test_stale_weekly_data_dampens_lineup_gap_opportunity_boost(db):
+    conn = _base_feed_db(db)
+    conn.execute(
+        """
+        UPDATE rosters
+        SET players = '["fit_wr","raw_rb"]'
+        WHERE league_id = 'league_a' AND roster_id = 2
+        """
+    )
+    _seed_lineup_gap(conn, "league_a", 1, "WR")
+    _seed_player(conn, "fit_wr", "Fit WR", "WR", 24, 78.0)
+    _seed_trend_history(
+        conn,
+        player_id="fit_wr",
+        current_score=0.78,
+        prior_score=0.45,
+        current_adp=78.0,
+        prior_adp=104.0,
+    )
+    _seed_player(conn, "raw_rb", "Raw RB", "RB", 24, 88.0)
+    _seed_trend_history(
+        conn,
+        player_id="raw_rb",
+        current_score=0.82,
+        prior_score=0.45,
+        current_adp=88.0,
+        prior_adp=120.0,
+    )
+
+    items = OpportunityEngine(
+        conn,
+        calendar_service=_StubCalendarService("early_season"),
+    ).build_feed()
+
+    assert [item.player_id for item in items[:2]] == ["raw_rb", "fit_wr"]
+    fit = next(item for item in items if item.player_id == "fit_wr")
+    assert "Verify stale weekly data first" in fit.why_summary
 
 
 def test_veteran_buy_low_contending_team(db):
