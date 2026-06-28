@@ -6,6 +6,7 @@ from urllib.parse import quote_plus
 import duckdb
 
 from fantasy.actions.models import CommandAction, CommandCenterResponse, DataRefreshAction
+from fantasy.actions.portfolio_risk import portfolio_player_risk
 from fantasy.actions.trade_suggestions import TradeSuggestionBuilder
 from fantasy.context.models import FreshnessTag
 from fantasy.context.context_repo import ContextRepo
@@ -535,6 +536,11 @@ class CommandCenterEngine:
         for row in exposure_rows[:3]:
             if row.league_count < 2:
                 continue
+            injury_risk = portfolio_player_risk(
+                self._conn,
+                row.player_id,
+                row.full_name,
+            )
             actions.append(
                 CommandAction(
                     id=f"portfolio:exposure:{row.player_id}",
@@ -542,26 +548,40 @@ class CommandCenterEngine:
                     roster_id=None,
                     category="portfolio",
                     priority_rank=row.league_count,
-                    urgency="watch" if row.league_count == 2 else "this_week",
-                    confidence="MEDIUM",
+                    urgency=(
+                        injury_risk.urgency
+                        if injury_risk is not None
+                        else "watch" if row.league_count == 2 else "this_week"
+                    ),
+                    confidence=injury_risk.confidence if injury_risk is not None else "MEDIUM",
                     headline=f"Portfolio exposure: {row.full_name}",
                     recommended_action=(
-                        row.hedge_rec
+                        injury_risk.recommended_action
+                        if injury_risk is not None
+                        else row.hedge_rec
                         or f"Review {row.full_name} across {row.league_count} leagues and decide sell, hold, or hedge."
                     ),
                     why_now=(
-                        row.urgency_reason
+                        injury_risk.why_now
+                        if injury_risk is not None
+                        else row.urgency_reason
                         or "Repeated exposure turns one injury, role loss, or market correction into a portfolio-level hit."
                     ),
                     risk_if_wrong=(
-                        "Selling too much exposure can remove a correct conviction from multiple title paths."
+                        injury_risk.risk_if_wrong
+                        if injury_risk is not None
+                        else "Selling too much exposure can remove a correct conviction from multiple title paths."
                     ),
                     evidence=[
                         f"Owned in {row.league_count} tracked leagues",
                         f"Position: {row.position}",
-                    ],
+                    ]
+                    + (injury_risk.evidence if injury_risk is not None else []),
                     cta_label="Open Portfolio",
                     cta_destination=f"/portfolio?playerId={quote_plus(row.player_id)}",
+                    stale_domains=(
+                        injury_risk.stale_domains if injury_risk is not None else []
+                    ),
                 )
             )
         return actions

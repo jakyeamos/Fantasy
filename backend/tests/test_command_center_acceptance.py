@@ -419,3 +419,59 @@ def test_command_center_connects_buy_window_to_lineup_gap(db, monkeypatch):
     assert trade_action.trade_suggestion is not None
     assert "sendPlayerId=send_wr" in trade_action.cta_destination
     assert "receivePlayerId=target_wr" in trade_action.cta_destination
+
+
+def test_command_center_escalates_injured_portfolio_exposure(db):
+    db.execute(
+        """
+        INSERT INTO leagues (
+            league_id, name, season, scoring_settings, roster_positions,
+            settings_blob, superflex, tep, ppr
+        )
+        VALUES
+            ('portfolio_a', 'Portfolio A', '2026', '{}', '[]', '{}', FALSE, FALSE, 1.0),
+            ('portfolio_b', 'Portfolio B', '2026', '{}', '[]', '{}', FALSE, FALSE, 1.0)
+        """
+    )
+    db.executemany(
+        """
+        INSERT INTO rosters (
+            id, league_id, roster_id, owner_id, owner_display_name,
+            starters, players, reserve, taxi
+        )
+        VALUES (?, ?, 1, 'portfolio_owner', 'Portfolio Owner', '[]', ?, '[]', '[]')
+        """,
+        [
+            (1, "portfolio_a", json.dumps(["injured_wr"])),
+            (2, "portfolio_b", json.dumps(["injured_wr"])),
+        ],
+    )
+    db.execute(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES (?, 'Injured Anchor', 'WR', 'BUF', 27, ?)
+        """,
+        ["injured_wr", json.dumps({"status": "Out"})],
+    )
+
+    response = CommandCenterEngine(db).build()
+
+    action = next(
+        item for item in response.actions if item.id == "portfolio:exposure:injured_wr"
+    )
+    assert action.urgency == "today"
+    assert action.confidence == "HIGH"
+    assert action.recommended_action == (
+        "Hedge Injured Anchor now: shop one share or add a direct backup plan before lineups lock."
+    )
+    assert action.risk_if_wrong == (
+        "Hedging an injured player can cost upside if availability clears faster than the market expects."
+    )
+    assert action.stale_domains == ["injuries"]
+    assert "availability is out" in action.why_now
+    assert any(evidence == "Availability: out" for evidence in action.evidence)
+    assert any(
+        evidence == "News dependency: confirm injury status before locking portfolio exposure"
+        for evidence in action.evidence
+    )
+    assert action.cta_destination == "/portfolio?playerId=injured_wr"
