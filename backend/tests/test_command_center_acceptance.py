@@ -475,3 +475,108 @@ def test_command_center_escalates_injured_portfolio_exposure(db):
         for evidence in action.evidence
     )
     assert action.cta_destination == "/portfolio?playerId=injured_wr"
+
+
+def test_command_center_surfaces_rookie_pick_timing_action(db):
+    db.execute(
+        """
+        INSERT INTO leagues (
+            league_id, name, season, scoring_settings, roster_positions,
+            settings_blob, superflex, tep, ppr
+        )
+        VALUES (
+            'cmd_rookie', 'Rookie Command', '2026', '{}',
+            '["QB","RB","WR","TE","SUPER_FLEX"]', '{"num_teams":12}',
+            TRUE, FALSE, 1.0
+        )
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO rosters (
+            id, league_id, roster_id, owner_id, owner_display_name,
+            starters, players, reserve, taxi
+        )
+        VALUES (1, 'cmd_rookie', 1, 'owner_a', 'Alpha', '[]', '[]', '[]', '[]')
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO draft_slots (
+            id, league_id, draft_id, season, roster_id, confirmed_slot, status
+        )
+        VALUES (1, 'cmd_rookie', 'draft_1', 2026, 1, 3, 'drafting')
+        """
+    )
+    players = [
+        (
+            "rookie_qb",
+            "Rookie QB",
+            "QB",
+            22,
+            {
+                "draft_year": 2026,
+                "mobile": True,
+                "draft_pick": 3,
+                "draft_ovr": 3,
+                "predicted_bucket": "hit",
+                "predicted_tier": 1,
+                "age_at_draft": 21.4,
+                "height": 76,
+                "weight": 230,
+            },
+        ),
+        (
+            "rookie_wr",
+            "Rookie WR",
+            "WR",
+            21,
+            {
+                "draft_year": 2026,
+                "forty": 4.40,
+                "target_share": 0.32,
+                "draft_pick": 8,
+            },
+        ),
+        (
+            "rookie_risk",
+            "Risk WR",
+            "WR",
+            24,
+            {"draft_year": 2026, "injury_flag": True, "draft_pick": 140},
+        ),
+    ]
+    for index, (player_id, name, position, age, metadata) in enumerate(players, start=1):
+        db.execute(
+            """
+            INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+            VALUES (?, ?, ?, 'ROK', ?, ?)
+            """,
+            [player_id, name, position, age, json.dumps(metadata)],
+        )
+        db.execute(
+            """
+            INSERT INTO player_adp_baseline (player_id, player_name, position, adp, adp_source)
+            VALUES (?, ?, ?, ?, 'test')
+            """,
+            [player_id, name, position, float(index)],
+        )
+
+    response = CommandCenterEngine(db).build("cmd_rookie")
+
+    action = next(item for item in response.actions if item.category == "rookie_pick")
+    assert action.league_id == "cmd_rookie"
+    assert action.roster_id == 1
+    assert action.urgency == "today"
+    assert action.headline == "Rookie Command: Use it at 1.03"
+    assert action.recommended_action.startswith("Use 1.03 on")
+    assert "only trade back for a clear overpay" in action.why_now
+    assert action.risk_if_wrong == (
+        "Wrong if the room takes a different tier before your slot or fresh draft-capital/landing-spot data changes the board."
+    )
+    assert action.cta_label == "Open Draft Room"
+    assert action.cta_destination == "/draft-room?leagueId=cmd_rookie&pickSlot=3"
+    assert set(action.stale_domains) == {"draft_capital", "landing_spots"}
+    assert any(evidence.startswith("Best player:") for evidence in action.evidence)
+    assert any(evidence.startswith("Draft action:") for evidence in action.evidence)
+    assert any(evidence == "Expected tier: Tier 1" for evidence in action.evidence)

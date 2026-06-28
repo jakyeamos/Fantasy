@@ -7,6 +7,7 @@ import duckdb
 
 from fantasy.actions.models import CommandAction, CommandCenterResponse, DataRefreshAction
 from fantasy.actions.portfolio_risk import portfolio_player_risk
+from fantasy.actions.rookie_actions import build_rookie_actions
 from fantasy.actions.trade_suggestions import TradeSuggestionBuilder
 from fantasy.context.models import FreshnessTag
 from fantasy.context.context_repo import ContextRepo
@@ -51,6 +52,7 @@ class CommandCenterEngine:
         actions.extend(self._weekly_actions(user_rosters))
         actions.extend(self._opportunity_actions(league_id))
         actions.extend(self._manager_actions(user_rosters))
+        actions.extend(build_rookie_actions(self._conn, user_rosters))
         actions.extend(self._portfolio_actions())
 
         actions.sort(
