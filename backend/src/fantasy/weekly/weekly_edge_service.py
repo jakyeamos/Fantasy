@@ -19,6 +19,10 @@ from fantasy.weekly.models import (
 from fantasy.weekly.public_context import ensure_weekly_context_schema
 
 WEEKLY_EDGE_DOMAINS = ["injuries", "usage", "schedule", "stats"]
+FLEX_POSITIONS = {"WR", "RB", "TE"}
+SUPER_FLEX_POSITIONS = {"QB", "WR", "RB", "TE"}
+NON_PLAYING_TEAMS = {"", "FA", "FREE AGENT", "NONE", "N/A", "NA", "UNKNOWN"}
+NON_STARTER_LINEUP_SLOTS = {"BN", "BE", "IR", "TAXI"}
 
 
 def _loads(raw: str | None, fallback: Any) -> Any:
@@ -38,7 +42,7 @@ class WeeklyEdgeService:
 
     def build(self, league_id: str, roster_id: int) -> WeeklyEdgeResponse:
         ensure_weekly_context_schema(self._conn)
-        starter_ids, bench_ids = self._roster_players(league_id, roster_id)
+        starter_ids, bench_ids, starter_slots = self._roster_players(league_id, roster_id)
         player_ids = starter_ids + bench_ids
         player_signals = self._player_signals(starter_ids, bench_ids)
         stale_domains = [
@@ -51,24 +55,43 @@ class WeeklyEdgeService:
             roster_id=roster_id,
             computed_at=datetime.now(timezone.utc).isoformat(),
             player_signals=player_signals,
-            start_sit=self._start_sit_decisions(player_signals, stale_domains),
+            start_sit=self._start_sit_decisions(
+                player_signals,
+                stale_domains,
+                starter_slots,
+            ),
             lineup_gaps=self._lineup_gaps(league_id, roster_id, stale_domains),
             stale_domains=stale_domains,
         )
 
-    def _roster_players(self, league_id: str, roster_id: int) -> tuple[list[str], list[str]]:
+    def _roster_players(
+        self,
+        league_id: str,
+        roster_id: int,
+    ) -> tuple[list[str], list[str], dict[str, str]]:
         row = self._conn.execute(
             """
-            SELECT starters, players, reserve, taxi
-            FROM rosters
-            WHERE league_id = ? AND roster_id = ?
+            SELECT r.starters, r.players, r.reserve, r.taxi, l.roster_positions
+            FROM rosters r
+            LEFT JOIN leagues l ON l.league_id = r.league_id
+            WHERE r.league_id = ? AND r.roster_id = ?
             LIMIT 1
             """,
             [league_id, roster_id],
         ).fetchone()
         if row is None:
-            return [], []
+            return [], [], {}
         starters = [str(player_id) for player_id in _loads(row[0], []) if player_id]
+        lineup_slots = [
+            str(slot)
+            for slot in _loads(row[4], [])
+            if str(slot).upper() not in NON_STARTER_LINEUP_SLOTS
+        ]
+        starter_slots = {
+            player_id: lineup_slots[index]
+            for index, player_id in enumerate(starters)
+            if player_id not in {"0", ""} and index < len(lineup_slots)
+        }
         all_players = [str(player_id) for player_id in _loads(row[1], []) if player_id]
         protected = set(starters)
         protected.update(str(player_id) for player_id in _loads(row[2], []) if player_id)
@@ -78,7 +101,7 @@ class WeeklyEdgeService:
             for player_id in all_players
             if player_id not in protected and player_id not in {"0", ""}
         ]
-        return starters, bench
+        return starters, bench, starter_slots
 
     def _player_signals(
         self,
@@ -92,6 +115,7 @@ class WeeklyEdgeService:
             """
             WITH recent AS (
                 SELECT player_id,
+                       COUNT(*) AS recent_games,
                        AVG(COALESCE(fantasy_points, 0)) AS recent_points,
                        AVG(
                            COALESCE(targets, 0) + COALESCE(carries, 0)
@@ -110,7 +134,8 @@ class WeeklyEdgeService:
             )
             SELECT p.player_id, COALESCE(p.full_name, p.player_id), COALESCE(p.position, 'FLEX'),
                    p.team, p.metadata_blob, COALESCE(recent.recent_points, 0),
-                   COALESCE(recent.recent_opportunities, 0)
+                   COALESCE(recent.recent_opportunities, 0),
+                   COALESCE(recent.recent_games, 0)
             FROM players p
             LEFT JOIN recent ON recent.player_id = p.player_id
             WHERE p.player_id IN (SELECT UNNEST(?))
@@ -154,6 +179,7 @@ class WeeklyEdgeService:
             allowance_note = self._opponent_allowance_note(matchup_context)
             recent_points = float(row[5] or 0.0)
             recent_opportunities = float(row[6] or 0.0)
+            recent_games = int(row[7] or 0)
             usage_note = self._usage_note(recent_points, recent_opportunities)
             role_note = self._role_note(metadata)
             projection = self._projection_points(
@@ -170,6 +196,7 @@ class WeeklyEdgeService:
                     position=str(row[2]),
                     team=team,
                     roster_slot="starter" if str(row[0]) in starter_set else "bench",
+                    recent_games=recent_games,
                     recent_points=round(recent_points, 2),
                     recent_opportunities=round(recent_opportunities, 2),
                     projection_points=projection,
@@ -447,17 +474,27 @@ class WeeklyEdgeService:
         self,
         signals: list[WeeklyPlayerSignal],
         stale_domains: list[str],
+        starter_slots: dict[str, str],
     ) -> list[StartSitDecision]:
         starters = [signal for signal in signals if signal.roster_slot == "starter"]
-        bench = [signal for signal in signals if signal.roster_slot == "bench"]
+        bench = [
+            signal
+            for signal in signals
+            if signal.roster_slot == "bench" and self._can_start_weekly(signal)
+        ]
         decisions: list[StartSitDecision] = []
         for starter in starters:
+            if (
+                starter.recent_games == 0
+                and not starter.availability_warning
+                and not starter.bye_week_warning
+            ):
+                continue
+            starter_slot = starter_slots.get(starter.player_id, starter.position)
             candidates = [
                 signal
                 for signal in bench
-                if signal.position == starter.position
-                or starter.position in {"FLEX", "WR", "RB", "TE"}
-                and signal.position in {"WR", "RB", "TE"}
+                if self._eligible_for_lineup_slot(starter_slot, signal.position)
             ]
             if not candidates:
                 continue
@@ -514,6 +551,25 @@ class WeeklyEdgeService:
             )
         decisions.sort(key=lambda item: (-item.edge_points, item.start_player_name.lower()))
         return decisions[:5]
+
+    def _can_start_weekly(self, signal: WeeklyPlayerSignal) -> bool:
+        team = (signal.team or "").strip().upper()
+        if team in NON_PLAYING_TEAMS:
+            return False
+        if signal.matchup_grade == "bye":
+            return False
+        return signal.recent_games > 0
+
+    def _eligible_for_lineup_slot(self, slot: str, player_position: str) -> bool:
+        normalized_slot = slot.upper()
+        normalized_position = player_position.upper()
+        if normalized_slot in {"FLEX", "FLEX1", "FLEX2"}:
+            return normalized_position in FLEX_POSITIONS
+        if normalized_slot in {"SUPER_FLEX", "SUPERFLEX", "SF", "OP"}:
+            return normalized_position in SUPER_FLEX_POSITIONS
+        if normalized_slot in {"WRRB_FLEX", "REC_FLEX"}:
+            return normalized_position in {"WR", "RB"}
+        return normalized_slot == normalized_position
 
     def _lineup_gaps(
         self,

@@ -17,6 +17,7 @@ class WeeklyPlayerSignal(BaseModel):
     position: str
     team: str | None = None
     roster_slot: Literal["starter", "bench"]
+    recent_games: int = 0
     recent_points: float
     recent_opportunities: float
     projection_points: float

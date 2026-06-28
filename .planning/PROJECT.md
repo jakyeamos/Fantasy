@@ -12,6 +12,7 @@ The system must tell you — for each of your teams — what you are, what your 
 
 ### Validated
 
+- Weekly start/sit Command Center actions now require roster-legal lineup-slot swaps, reject NFL free-agent/no-game bench starters, and distinguish missing rookie stat samples from true zero-point projections.
 - Command-center landing chrome is now compact, stale refresh actions are consolidated into one queued button, and Edge Radar ranks cheap candidates before enriching only the visible winners so Top Moves loads quickly.
 - Command-center Edge Radar trade cards now suppress sell recommendations unless the player is actually on the selected portfolio roster, while still allowing opponent buy targets and deduplicating repeated Edge Radar action IDs and repeated player/signal cards before rendering.
 - Edge Radar now exists as an internal backend discovery layer that ranks buy low, buy high, sell high, sell low, and waiver pickup signals by normalized model-vs-market delta, enriches player signals with similar-player outcome evidence from age/team/system/coach metadata when available, and feeds discoveries into Command Center actions instead of adding a competing frontend destination.
@@ -124,4 +125,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after Command Center landing chrome was compacted and Edge Radar card loading was optimized*
+*Last updated: 2026-06-28 after weekly start/sit actions were constrained to playable, slot-legal swaps*

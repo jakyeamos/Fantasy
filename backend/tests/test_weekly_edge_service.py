@@ -139,6 +139,65 @@ def test_weekly_edge_pushes_out_starter_below_active_bench(db):
     assert starter.projection_points < starter.recent_points
 
 
+def test_weekly_edge_does_not_replace_rookie_rb_with_free_agent_wr(db):
+    db.execute(
+        """
+        INSERT INTO leagues (
+            league_id, name, season, scoring_settings, roster_positions,
+            settings_blob, superflex, tep, ppr
+        )
+        VALUES ('weekly_rookie', 'Weekly Rookie', '2026', '{}', '["RB","WR","BN"]', '{}', FALSE, FALSE, 1.0)
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO rosters (
+            id, league_id, roster_id, owner_id, owner_display_name,
+            starters, players, reserve, taxi
+        )
+        VALUES (
+            4, 'weekly_rookie', 1, 'owner_a', 'Alpha',
+            '["rookie_rb","starting_wr"]', '["rookie_rb","starting_wr","fa_wr"]', '[]', '[]'
+        )
+        """
+    )
+    players = [
+        ("rookie_rb", "Rookie RB", "RB", "NYG"),
+        ("starting_wr", "Starting WR", "WR", "NYG"),
+        ("fa_wr", "Free Agent WR", "WR", "FA"),
+    ]
+    for player_id, name, position, team in players:
+        db.execute(
+            """
+            INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+            VALUES (?, ?, ?, ?, 25, ?)
+            """,
+            [player_id, name, position, team, json.dumps({"status": "Active"})],
+        )
+    db.execute(
+        """
+        INSERT INTO player_stats_weekly (
+            player_id, player_name, position, season, week, fantasy_points, targets
+        )
+        VALUES
+            ('starting_wr', 'Starting WR', 'WR', 2026, 1, 9.0, 7.0),
+            ('fa_wr', 'Free Agent WR', 'WR', 2025, 16, 18.0, 10.0),
+            ('fa_wr', 'Free Agent WR', 'WR', 2025, 17, 17.0, 10.0)
+        """
+    )
+    ensure_weekly_context_schema(db)
+    db.execute(
+        """
+        INSERT INTO team_schedule_weekly (team, season, week, opponent, is_home, game_date, game_type)
+        VALUES ('NYG', 2026, 1, 'DAL', TRUE, '2026-09-10', 'REG')
+        """
+    )
+
+    result = WeeklyEdgeService(db).build("weekly_rookie", 1)
+
+    assert result.start_sit == []
+
+
 def test_weekly_edge_surfaces_bye_and_depth_context(db):
     db.execute(
         """

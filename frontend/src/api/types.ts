@@ -504,6 +504,7 @@ export interface WeeklyPlayerSignal {
   position: string
   team: string | null
   roster_slot: "starter" | "bench"
+  recent_games: number
   recent_points: number
   recent_opportunities: number
   projection_points: number
