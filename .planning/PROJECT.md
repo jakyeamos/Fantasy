@@ -37,6 +37,7 @@ The system must tell you — for each of your teams — what you are, what your 
 - Buy-window command actions now inspect the user's weekly lineup gaps, so trade recommendations that solve a current starter hole include the gap evidence, stale weekly domains, and still deep-link into a prefilled Trade Lab package.
 - Portfolio command actions now inspect player injury/status metadata, escalating repeated exposure on out or questionable players into hedge actions with availability evidence, injury freshness warnings, and portfolio drill-in CTAs.
 - Command-center rookie pick actions now inspect active draft slots and Draft Room advice, surfacing take/trade-back guidance with prospect tier evidence, stale draft-data warnings, and direct Draft Room CTAs.
+- Command-center weekly risk actions now surface bye/no-opponent starters even when no bench pivot exists, with replacement guidance, schedule freshness warnings, usage/role evidence, and direct Weekly Edge CTAs.
 
 ### Active
 
@@ -113,4 +114,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after command-center actions began surfacing active rookie draft-slot decisions*
+*Last updated: 2026-06-28 after command-center weekly risk actions began surfacing uncovered bye-week starters*

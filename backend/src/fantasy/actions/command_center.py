@@ -9,6 +9,7 @@ from fantasy.actions.models import CommandAction, CommandCenterResponse, DataRef
 from fantasy.actions.portfolio_risk import portfolio_player_risk
 from fantasy.actions.rookie_actions import build_rookie_actions
 from fantasy.actions.trade_suggestions import TradeSuggestionBuilder
+from fantasy.actions.weekly_risk import build_weekly_risk_action
 from fantasy.context.models import FreshnessTag
 from fantasy.context.context_repo import ContextRepo
 from fantasy.context.freshness_service import FreshnessService
@@ -318,6 +319,14 @@ class CommandCenterEngine:
                         stale_domains=decision.stale_domains,
                     )
                 )
+                continue
+            risk_action = build_weekly_risk_action(
+                league_name=self._league_name(league_id),
+                edge=edge,
+                covered_player_ids=set(),
+            )
+            if risk_action is not None:
+                actions.append(risk_action)
                 continue
             if edge.lineup_gaps:
                 gap = edge.lineup_gaps[0]
