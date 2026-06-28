@@ -7,6 +7,7 @@ import duckdb
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from fantasy.edge_radar.player_metadata import PlayerMetadataRefreshService
 from fantasy.edge_radar.team_context import TeamContextRefreshService
 from fantasy.ingestion.ingest_service import IngestService
 from fantasy.ingestion.nfl_data_loader import refresh_adp_baseline_from_fantasycalc
@@ -48,6 +49,12 @@ class TeamContextRefreshResponse(BaseModel):
     season: int
     environment_rows: int
     upserted_rows: int
+
+
+class PlayerMetadataRefreshResponse(BaseModel):
+    season: int
+    source_rows: int
+    updated_rows: int
 
 
 class DraftCapitalRefreshSummary(BaseModel):
@@ -147,6 +154,19 @@ def refresh_team_context(
         season=summary.season,
         environment_rows=summary.environment_rows,
         upserted_rows=summary.upserted_rows,
+    )
+
+
+@router.post("/player-metadata/refresh", response_model=PlayerMetadataRefreshResponse)
+def refresh_player_metadata(
+    season: int = Query(default=2026, ge=1999, le=2035),
+    conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
+) -> PlayerMetadataRefreshResponse:
+    summary = PlayerMetadataRefreshService(conn).refresh(season)
+    return PlayerMetadataRefreshResponse(
+        season=summary.season,
+        source_rows=summary.source_rows,
+        updated_rows=summary.updated_rows,
     )
 
 

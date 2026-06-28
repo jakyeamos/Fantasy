@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from fantasy.edge_radar.player_metadata import PlayerMetadataRefreshSummary
 from fantasy.edge_radar.team_context import TeamContextRefreshSummary
 from fantasy.main import create_app
 from fantasy.routers.deps import get_read_db_conn, get_write_db_conn
@@ -100,6 +101,42 @@ def test_refresh_team_context_route_runs_environment_refresh(monkeypatch, db):
         "season": 2026,
         "environment_rows": 32,
         "upserted_rows": 32,
+    }
+    assert calls == [2026]
+
+
+def test_refresh_player_metadata_route_runs_dense_signal_refresh(monkeypatch, db):
+    calls: list[int] = []
+
+    class _FakePlayerMetadataRefreshService:
+        def __init__(self, conn):
+            assert conn is db
+
+        def refresh(self, season: int):
+            calls.append(season)
+            return PlayerMetadataRefreshSummary(
+                season=season,
+                source_rows=240,
+                updated_rows=236,
+            )
+
+    monkeypatch.setattr(
+        "fantasy.routers.ingest.PlayerMetadataRefreshService",
+        _FakePlayerMetadataRefreshService,
+    )
+
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _unexpected_read_conn
+    app.dependency_overrides[get_write_db_conn] = _override_conn(db)
+    client = TestClient(app)
+
+    response = client.post("/ingest/player-metadata/refresh?season=2026")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "season": 2026,
+        "source_rows": 240,
+        "updated_rows": 236,
     }
     assert calls == [2026]
 

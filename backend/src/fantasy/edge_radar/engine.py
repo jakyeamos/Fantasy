@@ -327,6 +327,14 @@ class EdgeRadarEngine:
                     AND (pace_label IS NOT NULL OR pass_rate_label IS NOT NULL)
                 """,
             ),
+            self._metadata_health(
+                source="player_usage_metadata",
+                required_markers=('"target_share"', '"carry_share"', '"weekly_targets"'),
+            ),
+            self._metadata_health(
+                source="player_market_metadata",
+                required_markers=('"trade_value_movement"',),
+            ),
             SourceHealth(
                 source="api_key_sources",
                 status="missing",
@@ -358,6 +366,39 @@ class EdgeRadarEngine:
                 f"{source} source has data in {', '.join(tables)}."
                 if ready
                 else f"{source} source is missing data in at least one required table."
+            ),
+            freshness=1.0 if ready else 0.0,
+        )
+
+    def _metadata_health(
+        self,
+        *,
+        source: str,
+        required_markers: tuple[str, ...],
+    ) -> SourceHealth:
+        clauses = " OR ".join("metadata_blob LIKE ?" for _ in required_markers)
+        try:
+            row = self._conn.execute(
+                f"""
+                SELECT COUNT(*), MAX(refreshed_at)
+                FROM players
+                WHERE metadata_blob IS NOT NULL
+                  AND ({clauses})
+                """,
+                [f"%{marker}%" for marker in required_markers],
+            ).fetchone()
+        except Exception:
+            row = None
+        count = int(row[0]) if row and row[0] is not None else 0
+        refreshed_at = row[1] if row and row[1] is not None else None
+        ready = count > 0
+        return SourceHealth(
+            source=source,
+            status="ready" if ready else "missing",
+            detail=(
+                f"{source} has {count} enriched players; latest refresh {refreshed_at}."
+                if ready
+                else f"{source} has no enriched player metadata rows."
             ),
             freshness=1.0 if ready else 0.0,
         )
