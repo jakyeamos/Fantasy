@@ -75,9 +75,6 @@ export function SuggestedOfferStartCard({
 
 export function CoreDealBoard({
   userRosterName,
-  counterpartyRosterName,
-  counterpartyRosterId,
-  thirdPartyCount,
   queryTarget,
   userSends,
   userReceives,
@@ -87,9 +84,6 @@ export function CoreDealBoard({
   onRemoveUserAsset,
 }: {
   userRosterName: string | null
-  counterpartyRosterName: string | null
-  counterpartyRosterId: number
-  thirdPartyCount: number
   queryTarget: QueryTarget
   userSends: TradeAsset[]
   userReceives: TradeAsset[]
@@ -99,70 +93,38 @@ export function CoreDealBoard({
   onRemoveUserAsset: (bucket: AssetBucket, index: number) => void
 }) {
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-      <Card className="border-primary/25">
-        <CardHeader>
-          <CardTitle>{userRosterName ? `${userRosterName} • Your Team` : "Your Team View"}</CardTitle>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Build your send and receive package from your roster’s perspective.
-          </p>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <AssetBucketPanel
-            title="You Send"
-            subtitle="Assets leaving your roster."
-            buttonLabel="Add to Send Side"
-            isActive={queryTarget.kind === "user" && queryTarget.bucket === "send"}
-            assets={userSends}
-            leagueId={leagueId}
-            pickValuesByKey={pickValuesByKey}
-            onSelect={() => onSetActiveTarget({ kind: "user", bucket: "send" })}
-            onRemove={(index) => onRemoveUserAsset("send", index)}
-          />
-          <AssetBucketPanel
-            title="You Receive"
-            subtitle="Assets you gain from the full deal."
-            buttonLabel="Add to Receive Side"
-            isActive={queryTarget.kind === "user" && queryTarget.bucket === "receive"}
-            assets={userReceives}
-            leagueId={leagueId}
-            pickValuesByKey={pickValuesByKey}
-            onSelect={() => onSetActiveTarget({ kind: "user", bucket: "receive" })}
-            onRemove={(index) => onRemoveUserAsset("receive", index)}
-          />
-        </CardContent>
-      </Card>
-
-      <Card className="border-dashed border-border/45">
-        <CardHeader>
-          <CardTitle>
-            {counterpartyRosterName
-              ? `${counterpartyRosterName} • Primary Counterparty`
-              : "Primary Counterparty"}
-          </CardTitle>
-          <p className="mt-2 text-sm text-muted-foreground">
-            This opponent still drives manager exploit scoring for the core swap.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Manager exploit scoring anchors to{" "}
-            {counterpartyRosterName ?? `roster ${counterpartyRosterId || "?"}`}. Reroutes
-            and package outputs also include each extra roster with its own scored leg.
-          </p>
-          <div className="rounded-xl border border-border/45 bg-card/45 p-4">
-            <p className="terminal-label text-muted-foreground">Deal Shape</p>
-            <p className="mt-2 text-sm font-semibold">
-              {thirdPartyCount ? `2 core teams + ${thirdPartyCount} extra` : "2 core teams"}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Extra teams get sidecar market scores and participant-specific package
-              explanations alongside your core swap.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <Card className="border-primary/25">
+      <CardHeader>
+        <CardTitle>{userRosterName ? `${userRosterName} • Your Team` : "Your Team View"}</CardTitle>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Build your send and receive package from your roster’s perspective.
+        </p>
+      </CardHeader>
+      <CardContent className="grid gap-4 md:grid-cols-2">
+        <AssetBucketPanel
+          title="You Send"
+          subtitle="Assets leaving your roster."
+          buttonLabel="Add to Send Side"
+          isActive={queryTarget.kind === "user" && queryTarget.bucket === "send"}
+          assets={userSends}
+          leagueId={leagueId}
+          pickValuesByKey={pickValuesByKey}
+          onSelect={() => onSetActiveTarget({ kind: "user", bucket: "send" })}
+          onRemove={(index) => onRemoveUserAsset("send", index)}
+        />
+        <AssetBucketPanel
+          title="You Receive"
+          subtitle="Assets you gain from the full deal."
+          buttonLabel="Add to Receive Side"
+          isActive={queryTarget.kind === "user" && queryTarget.bucket === "receive"}
+          assets={userReceives}
+          leagueId={leagueId}
+          pickValuesByKey={pickValuesByKey}
+          onSelect={() => onSetActiveTarget({ kind: "user", bucket: "receive" })}
+          onRemove={(index) => onRemoveUserAsset("receive", index)}
+        />
+      </CardContent>
+    </Card>
   )
 }
 

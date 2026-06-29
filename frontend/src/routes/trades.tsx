@@ -499,9 +499,6 @@ function TradeEvaluatorPage() {
 
           <CoreDealBoard
             userRosterName={userRosterName}
-            counterpartyRosterName={counterpartyRosterName}
-            counterpartyRosterId={counterpartyRosterId}
-            thirdPartyCount={thirdPartyTrades.length}
             queryTarget={queryTarget}
             userSends={userSends}
             userReceives={userReceives}
