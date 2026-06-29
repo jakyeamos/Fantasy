@@ -8,6 +8,7 @@ from urllib.parse import quote_plus
 import duckdb
 
 from fantasy.actions.models import TradeSuggestion
+from fantasy.intelligence.positional_context import PositionalContext
 from fantasy.trade.models import TradeAsset, TradeRequest
 from fantasy.trade.trade_engine import TradeEngine
 from fantasy.trade.trade_repo import TradeRepo
@@ -398,20 +399,29 @@ class TradeSuggestionBuilder:
             for asset in self._roster_player_assets(league_id, user_roster_id)
             if asset["player_id"] != excluded_player_id
         ]
+        context = PositionalContext(self._conn, league_id, user_roster_id)
         if require_roster_fit and receive_position is not None:
             candidates = [
                 asset
                 for asset in candidates
-                if self._is_roster_fit_send(
-                    league_id,
-                    user_roster_id,
+                if context.can_send_for_position(
                     asset,
                     receive_position,
+                    clear_overpay=target >= asset["score"] * 1.25,
                 )
             ]
         if not candidates:
             return []
-        candidates.sort(key=lambda asset: (abs(asset["score"] - target * 0.82), -asset["score"]))
+        if require_roster_fit:
+            candidates.sort(
+                key=lambda asset: (
+                    context.trade_send_cost(asset)[0],
+                    abs(asset["score"] - target * 0.82),
+                    -asset["score"],
+                )
+            )
+        else:
+            candidates.sort(key=lambda asset: (abs(asset["score"] - target * 0.82), -asset["score"]))
         selected = [candidates[0]]
         if selected[0]["score"] < target * 0.65:
             extras = [asset for asset in candidates[1:] if asset["score"] <= target * 0.45]
@@ -426,22 +436,10 @@ class TradeSuggestionBuilder:
         send_asset: dict[str, Any],
         receive_position: str,
     ) -> bool:
-        send_position = str(send_asset["position"]).upper()
-        target_position = receive_position.upper()
-        if target_position not in CORE_TRADE_POSITIONS:
-            return True
-        counts, requirements, roster_positions, tep = self._roster_shape(
-            league_id,
-            user_roster_id,
+        return PositionalContext(self._conn, league_id, user_roster_id).can_send_for_position(
+            send_asset,
+            receive_position,
         )
-        if not self._position_is_need(target_position, counts, requirements, roster_positions, tep):
-            return False
-        if send_position == target_position:
-            return True
-        if send_position not in CORE_TRADE_POSITIONS:
-            return True
-        protected_depth = self._protected_depth(send_position, requirements, roster_positions, tep)
-        return counts.get(send_position, 0) > protected_depth
 
     def _roster_shape(
         self,

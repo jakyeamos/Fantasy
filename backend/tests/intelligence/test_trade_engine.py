@@ -110,3 +110,146 @@ def test_rebuild_pick_proxy_supports_current_labels(trade_seed_data):
     one_year_punt = engine._build_pick_proxy(pick_asset, "one_year_punt")
     retool = engine._build_pick_proxy(pick_asset, "retool")
     assert one_year_punt["lens_direction"] > retool["lens_direction"]
+
+
+def test_roster_fit_rewards_surplus_to_deficit_trade(trade_seed_data):
+    trade_seed_data.executemany(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES (?, ?, ?, 'TST', 25, '{}')
+        """,
+        [
+            ("surplus_qb_1", "Surplus QB 1", "QB"),
+            ("surplus_qb_2", "Surplus QB 2", "QB"),
+            ("surplus_qb_3", "Surplus QB 3", "QB"),
+            ("need_rb", "Need RB", "RB"),
+            ("target_rb", "Target RB", "RB"),
+            ("target_qb", "Target QB", "QB"),
+        ],
+    )
+    trade_seed_data.execute(
+        """
+        UPDATE rosters
+        SET players = '["qb1","surplus_qb_1","surplus_qb_2","surplus_qb_3","wr1","te1"]'
+        WHERE league_id = 'league_x' AND roster_id = 1
+        """
+    )
+    trade_seed_data.execute(
+        """
+        UPDATE rosters
+        SET players = '["qb2","target_qb","target_rb","wr2","te2"]'
+        WHERE league_id = 'league_x' AND roster_id = 2
+        """
+    )
+    trade_seed_data.executemany(
+        """
+        INSERT INTO player_values (
+            id, league_id, roster_id, player_id,
+            comp_current_production, comp_short_term, comp_role_stability,
+            comp_age_curve, comp_insulation, comp_market_liquidity,
+            comp_positional_scarcity, comp_fragility, comp_ceiling, comp_floor,
+            comp_rerollability, comp_contract, lens_production, lens_market,
+            lens_insulation, lens_team_fit, lens_direction
+        )
+        VALUES (
+            ?, 'league_x', ?, ?, 0.55, 0.55, 0.5, 0.5, 0.6, 0.6,
+            0.55, 0.4, 0.6, 0.5, 0.5, 0.5, 0.55, ?, 0.6, 0.55, 0.55
+        )
+        """,
+        [
+            (9001, 1, "surplus_qb_3", 0.58),
+            (9002, 2, "target_rb", 0.58),
+            (9003, 2, "target_qb", 0.58),
+        ],
+    )
+    engine = TradeEngine(trade_seed_data)
+
+    surplus_to_deficit = engine.evaluate(
+        TradeRequest(
+            league_id="league_x",
+            user_roster_id=1,
+            counterparty_roster_id=2,
+            user_sends=[TradeAsset(asset_type="player", player_id="surplus_qb_3")],
+            user_receives=[TradeAsset(asset_type="player", player_id="target_rb")],
+        )
+    )
+    surplus_to_surplus = engine.evaluate(
+        TradeRequest(
+            league_id="league_x",
+            user_roster_id=1,
+            counterparty_roster_id=2,
+            user_sends=[TradeAsset(asset_type="player", player_id="surplus_qb_3")],
+            user_receives=[TradeAsset(asset_type="player", player_id="target_qb")],
+        )
+    )
+
+    assert surplus_to_deficit.roster_fit.score > surplus_to_surplus.roster_fit.score + 12
+
+
+def test_roster_fit_penalizes_sending_elite_scarce_asset_without_overpay(trade_seed_data):
+    trade_seed_data.execute(
+        """
+        UPDATE leagues
+        SET tep = TRUE, roster_positions = '["QB","RB","RB","WR","WR","TE","FLEX","SUPER_FLEX","BN","BN"]'
+        WHERE league_id = 'league_x'
+        """
+    )
+    trade_seed_data.executemany(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES (?, ?, ?, 'TST', 24, '{}')
+        """,
+        [
+            ("elite_te_trade", "Elite TE Trade", "TE"),
+            ("depth_te_trade", "Depth TE Trade", "TE"),
+            ("fair_qb_trade", "Fair QB Trade", "QB"),
+        ],
+    )
+    trade_seed_data.execute(
+        """
+        UPDATE rosters
+        SET players = '["qb1","qb2","elite_te_trade","depth_te_trade","wr1","rb1"]'
+        WHERE league_id = 'league_x' AND roster_id = 1
+        """
+    )
+    trade_seed_data.execute(
+        """
+        UPDATE rosters
+        SET players = '["fair_qb_trade","wr2","rb2","te2"]'
+        WHERE league_id = 'league_x' AND roster_id = 2
+        """
+    )
+    trade_seed_data.executemany(
+        """
+        INSERT INTO player_values (
+            id, league_id, roster_id, player_id,
+            comp_current_production, comp_short_term, comp_role_stability,
+            comp_age_curve, comp_insulation, comp_market_liquidity,
+            comp_positional_scarcity, comp_fragility, comp_ceiling, comp_floor,
+            comp_rerollability, comp_contract, lens_production, lens_market,
+            lens_insulation, lens_team_fit, lens_direction
+        )
+        VALUES (
+            ?, 'league_x', ?, ?, 0.6, 0.6, 0.5, 0.5, ?, 0.7,
+            ?, 0.3, ?, 0.55, 0.45, 0.5, 0.6, ?, 0.7, ?, 0.6
+        )
+        """,
+        [
+            (9011, 1, "elite_te_trade", 0.95, 0.92, 0.95, 0.70, 0.92),
+            (9012, 1, "depth_te_trade", 0.45, 0.45, 0.40, 0.30, 0.42),
+            (9013, 2, "fair_qb_trade", 0.65, 0.55, 0.65, 0.70, 0.60),
+        ],
+    )
+
+    evaluation = TradeEngine(trade_seed_data).evaluate(
+        TradeRequest(
+            league_id="league_x",
+            user_roster_id=1,
+            counterparty_roster_id=2,
+            user_sends=[TradeAsset(asset_type="player", player_id="elite_te_trade")],
+            user_receives=[TradeAsset(asset_type="player", player_id="fair_qb_trade")],
+        )
+    )
+
+    assert evaluation.roster_fit.score < 45
+    assert "scarce" in evaluation.roster_fit.reasoning.lower()

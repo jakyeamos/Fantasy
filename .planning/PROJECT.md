@@ -12,6 +12,7 @@ The system must tell you — for each of your teams — what you are, what your 
 
 ### Validated
 
+- Valuation and trade logic now share a positional context model that accounts for league lineup demand, TEP/superflex settings, replacement baselines, tier-cliff scarcity, and roster surplus/deficit, so elite scarce assets require a roster-improving return while discounted same-position QB edges remain actionable.
 - Command-center filter, league, and recompute controls now bottom-align so their visible boxes sit evenly in the Top Moves header.
 - Command-center Top Moves hides start/sit cards by default behind an Include start/sit filter, and waiver/Edge Radar recommendations now respect Sleeper position caps such as AMG's QB limit.
 - Command-center Top Moves now loads the selected league's action queue through the league-specific actions endpoint, with a compact league selector instead of a mixed cross-league list.
@@ -134,4 +135,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after manager-pitch trade packages were gated by roster construction*
+*Last updated: 2026-06-29 after adding shared tier-cliff and roster-construction valuation context*

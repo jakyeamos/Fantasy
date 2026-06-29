@@ -9,6 +9,7 @@ from fantasy.intelligence.constants import (
     POSITIONAL_PEAK_AGE,
 )
 from fantasy.intelligence.models import PlayerValue
+from fantasy.intelligence.positional_context import PositionalContext
 from fantasy.market.market_service import MarketService
 from fantasy.player_flags.flag_engine import FlagEngine
 from fantasy.recommendation.anti_overreaction import apply_stabilization
@@ -95,6 +96,7 @@ class ValuationEngine:
         games_played = int(stats_row[1]) if stats_row and stats_row[1] is not None else 0
         best_week = float(stats_row[2]) if stats_row and stats_row[2] is not None else None
         adp = float(adp_row[0]) if adp_row and adp_row[0] is not None else None
+        positional_context = PositionalContext(self._conn, league_id, roster_id)
 
         current_production = self._production_score(ppg, position, league_settings)
         role_stability = _clamp01(games_played / 17.0) if games_played else 0.45
@@ -102,7 +104,7 @@ class ValuationEngine:
         age_curve = self._age_curve_score(position, age)
         fragility = _clamp01(1.0 - role_stability)
         market_liquidity = _clamp01(1.0 - min(adp or 200.0, 250.0) / 250.0)
-        positional_scarcity = self._positional_scarcity(position, league_settings)
+        positional_scarcity = positional_context.positional_scarcity(player_id, position)
         ceiling = _clamp01(((best_week if best_week is not None else (ppg or 10.0)) / 30.0))
         floor = _clamp01(((ppg if ppg is not None else 8.0) / 20.0) * max(role_stability, 0.5))
         rerollability = self._rerollability(position, age)
@@ -161,7 +163,11 @@ class ValuationEngine:
             )
             / 4.0
         )
-        player_value.lens_team_fit = _clamp01((positional_scarcity + role_stability) / 2.0)
+        player_value.lens_team_fit = positional_context.team_fit(
+            player_id,
+            position,
+            role_stability,
+        )
         # TODO(Phase 17): populate trend_result automatically inside the league compute
         # pipeline so every card-emitting engine gets the same trend-aware direction prior.
         player_value.lens_direction = self._direction_lens(

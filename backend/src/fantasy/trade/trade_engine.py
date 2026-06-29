@@ -5,6 +5,7 @@ from typing import Any
 import duckdb
 
 from fantasy.intelligence.constants import REBUILD_DIRECTION_LABELS
+from fantasy.intelligence.positional_context import PositionalContext
 from fantasy.recommendation.card_engine import RecommendationCardEngine
 from fantasy.trade.constants import (
     DIRECTION_ADVANCING_THRESHOLD,
@@ -250,23 +251,33 @@ class TradeEngine:
         return DimensionScore(score=score, confidence=confidence, reasoning=reasoning)
 
     def _score_roster_fit(
-        self, sending_values: list[dict[str, Any]], receiving_values: list[dict[str, Any]]
+        self,
+        sending_values: list[dict[str, Any]],
+        receiving_values: list[dict[str, Any]],
+        request: TradeRequest,
     ) -> DimensionScore:
-        sent = [
-            (float(value.get("lens_team_fit") or 0.0) + float(value.get("comp_positional_scarcity") or 0.0)) / 2.0
-            for value in sending_values
-        ]
-        received = [
-            (float(value.get("lens_team_fit") or 0.0) + float(value.get("comp_positional_scarcity") or 0.0)) / 2.0
-            for value in receiving_values
-        ]
-        delta = (sum(received) / max(len(received), 1)) - (sum(sent) / max(len(sent), 1))
+        context = PositionalContext(self._conn, request.league_id, request.user_roster_id)
+        sent_scores: list[float] = []
+        received_scores: list[float] = []
+        notes: list[str] = []
+        for value in sending_values:
+            score, value_notes = context.trade_send_cost(value)
+            sent_scores.append(score)
+            notes.extend(value_notes)
+        for value in receiving_values:
+            score, value_notes = context.trade_receive_value(value)
+            received_scores.append(score)
+            notes.extend(value_notes)
+        delta = (sum(received_scores) / max(len(received_scores), 1)) - (
+            sum(sent_scores) / max(len(sent_scores), 1)
+        )
         score = _clamp_score(50.0 + delta * 50.0)
         descriptor = "high" if score >= 60 else "moderate" if score >= 45 else "low"
+        note_text = f" ({'; '.join(dict.fromkeys(notes))})" if notes else ""
         return DimensionScore(
             score=score,
             confidence="MEDIUM",
-            reasoning=f"Received assets have {descriptor} team fit relative to what you move out.",
+            reasoning=f"Received assets have {descriptor} team fit relative to what you move out.{note_text}",
         )
 
     def _score_direction_fit(
@@ -434,7 +445,7 @@ class TradeEngine:
             target_roster_id=request.user_roster_id,
         )
         market_fairness = self._score_market_fairness(sending_values, receiving_values)
-        roster_fit = self._score_roster_fit(sending_values, receiving_values)
+        roster_fit = self._score_roster_fit(sending_values, receiving_values, request)
         direction_fit = self._score_direction_fit(sending_values, receiving_values, direction)
         timing_quality = self._score_timing_quality(sending_values, receiving_values)
         insulation_delta = self._score_insulation_delta(sending_values, receiving_values)

@@ -106,7 +106,7 @@ def test_trade_suggestion_uses_real_roster_assets(db):
     assert suggestion.evaluation_summary is not None
 
 
-def test_manager_suggestion_avoids_scarce_tep_te_for_surplus_qb(db):
+def test_manager_suggestion_uses_discounted_qb_edge_without_scarce_tep_te(db):
     db.execute(
         """
         INSERT INTO leagues (
@@ -201,5 +201,6 @@ def test_manager_suggestion_avoids_scarce_tep_te_for_surplus_qb(db):
     )
 
     assert suggestion is not None
-    assert suggestion.send_player_ids == ["send_wr"]
-    assert suggestion.receive_player_ids == ["target_wr"]
+    assert suggestion.send_player_ids == ["bench_qb"]
+    assert suggestion.receive_player_ids == ["target_qb"]
+    assert "loveland" not in suggestion.send_player_ids
