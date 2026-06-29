@@ -46,11 +46,24 @@ export interface DraftCapitalRefreshSummary {
   rebuilt_boards: number
 }
 
+export interface TeamContextRefreshResponse {
+  season: number
+  environment_rows: number
+  upserted_rows: number
+}
+
+export interface PlayerMetadataRefreshResponse {
+  season: number
+  source_rows: number
+  updated_rows: number
+}
+
 export interface LeagueArtifactRefreshSummary {
   league_id: string
   roster_count: number
   player_value_count: number
   manager_profile_count: number
+  waiver_recommendation_count: number
   snapshot_count: number
 }
 
@@ -61,6 +74,8 @@ export interface LeagueRefreshPipelineResponse {
   sleeper_status: string
   adp: AdpBaselineRefreshResponse
   draft_capital: DraftCapitalRefreshSummary
+  team_context: TeamContextRefreshResponse
+  player_metadata: PlayerMetadataRefreshResponse
   artifacts: LeagueArtifactRefreshSummary
 }
 
@@ -807,6 +822,12 @@ export interface FreshnessTag {
   warning: string | null
 }
 
+export interface EvidenceFreshness {
+  is_stale: boolean
+  stale_domains: string[]
+  warnings: string[]
+}
+
 export interface CalendarContext {
   active_state: CalendarState
   detected_at: string
@@ -1095,6 +1116,7 @@ export interface OpportunityFeedItem {
   why_summary: string
   owned_in_leagues: string[]
   similar_players: SimilarPlayer[]
+  evidence_freshness: EvidenceFreshness
   conflict_explanation: string | null
   calendar_escalated: boolean
   calendar_escalation_label: string | null

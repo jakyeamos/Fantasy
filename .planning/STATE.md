@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: implementing
-stopped_at: Edge Radar discovery layer completed
-last_updated: "2026-06-28T17:02:51-04:00"
+stopped_at: Edge Radar refresh pipeline completed
+last_updated: "2026-06-29T00:00:00-04:00"
 progress:
   total_phases: 21
   completed_phases: 16
@@ -87,6 +87,7 @@ Recent decisions affecting current work:
 - [Phase 21]: Veteran decline signals can still convert to buy suggestions when the user has contender contexts on the board.
 - [Frontend]: Player rankings ownership is actionable: owner names link to manager dossiers, and row-level trade evaluation links preserve league/active roster context while seeding the selected player into the correct trade bucket.
 - [Refresh]: Manual league refresh now runs one full offseason pipeline: Sleeper ingest, FantasyCalc ADP refresh, 2026 actual draft-capital refresh, rookie-board rebuild, and artifact/snapshot recompute.
+- [Refresh]: Manual league refresh and dev auto-refresh now update Edge Radar team context, dense player metadata freshness, player values/trends, waiver recommendation caches, manager profiles, and snapshots before `/opportunities` or Command Center reads cached side tables.
 - [Refresh]: Actual draft-capital refresh marks both draft_capital and landing_spots freshness domains so rookie-board UI no longer serves stale offseason warnings after a successful manual refresh.
 - [DuckDB]: Local FastAPI requests reuse one process-level DuckDB file connection to avoid same-process file-handle conflicts during post-refresh query invalidation.
 - [Trade Evaluator]: The primary "You Receive" asset picker now scopes blank player search to the selected counterparty roster, so rostered players from that manager are browsable and evaluable again. Third-party receive buckets remain league-wide to preserve multi-team sidecar modeling.
@@ -98,7 +99,9 @@ Recent decisions affecting current work:
 - [Frontend Tokens]: Shared semantic UI tokens now cover success, warning, attention, info, strategy, destructive, season badges, shadows, label text sizes, and label tracking. Feature components consume `frontend/src/lib/ui-tokens.ts` instead of direct Tailwind palette/arbitrary color classes.
 - [Edge Radar]: EdgeRadarEngine computes buy_low, buy_high, sell_high, sell_low, and waiver_pickup discoveries from player value vs market price deltas and cached waiver boards; CommandCenterEngine consumes the top discoveries as existing CommandAction rows.
 - [Edge Radar]: Similarity evidence is first-class on player discoveries: same/similar position profiles are scored by age, value profile, team, and metadata-backed offensive system/head coach/offensive coordinator when present, then summarized with public weekly fantasy outcomes.
+- [Edge Radar]: Similar-player evidence freshness now tracks global player_metadata and team_context domains, surfaces stale warnings in Opportunity Feed and Command Center, and exposes refresh actions for those evidence sources.
 - [Backend Verification]: `uv run pytest` from `backend/` passed 501 tests after Edge Radar discovery-layer integration.
+- [Backend Verification]: `uv run pytest` from `backend/` passed 524 tests after refresh-pipeline Edge Radar source and downstream cache integration.
 
 ### Pending Todos
 
@@ -113,6 +116,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-28T17:02:51-04:00
-Stopped at: Edge Radar discovery layer completed and verified with `uv run pytest`
+Last session: 2026-06-29T00:00:00-04:00
+Stopped at: Edge Radar refresh pipeline completed and verified with `uv run pytest`
 Resume file: .planning/STATE.md

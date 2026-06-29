@@ -33,6 +33,8 @@ export function OpportunityCard({
   rank: number
 }) {
   const ctaTarget = buildOpportunityCtaTarget(item)
+  const similarPlayerEvidenceIsStale =
+    item.similar_players.length > 0 && item.evidence_freshness.is_stale
 
   return (
     <Card className="group overflow-hidden border-border/55 bg-card/70">
@@ -99,6 +101,15 @@ export function OpportunityCard({
                 Stale weekly data
               </Badge>
             ) : null}
+            {similarPlayerEvidenceIsStale ? (
+              <Badge
+                variant="outline"
+                className="gap-1.5 border-warning/25 bg-warning-surface text-warning"
+              >
+                <AlertTriangle className="size-3" />
+                Stale comp evidence
+              </Badge>
+            ) : null}
           </div>
 
           {item.weekly_fit ? (
@@ -123,6 +134,13 @@ export function OpportunityCard({
           ) : null}
 
           <ConflictExplanationPanel explanation={item.conflict_explanation} />
+          {similarPlayerEvidenceIsStale ? (
+            <div className="flex items-center gap-2 rounded-lg border border-warning/25 bg-warning-surface px-3 py-2 text-xs leading-5 text-warning">
+              <AlertTriangle className="size-3.5 shrink-0" />
+              Refresh {item.evidence_freshness.stale_domains.join(", ")} before
+              relying on similar-player comps.
+            </div>
+          ) : null}
           <SimilarPlayersSection players={item.similar_players} />
 
           {ctaTarget ? (

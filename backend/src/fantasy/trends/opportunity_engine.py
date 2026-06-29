@@ -6,7 +6,13 @@ from typing import Any, Literal
 import duckdb
 
 from fantasy.context.calendar_service import CalendarService
+from fantasy.context.constants import (
+    GLOBAL_FRESHNESS_LEAGUE_ID,
+    SIMILAR_PLAYER_EVIDENCE_DOMAINS,
+)
 from fantasy.context.context_repo import ContextRepo
+from fantasy.context.freshness_service import FreshnessService
+from fantasy.context.models import EvidenceFreshness
 from fantasy.intelligence.constants import CONTENDER_DIRECTION_LABELS
 from fantasy.portfolio.portfolio_repo import PortfolioRepo
 from fantasy.trends.constants import CALENDAR_ESCALATION_LABELS, OPPORTUNITY_GAP_THRESHOLD
@@ -56,6 +62,7 @@ class OpportunityEngine:
         self._repo = TrendRepo(conn)
         self._trend_engine = trend_engine or TrendEngine(conn)
         self._calendar_service = calendar_service or CalendarService(ContextRepo(conn))
+        self._freshness = FreshnessService(ContextRepo(conn))
         self._portfolio_repo = PortfolioRepo(conn)
         self.degraded_reason: str | None = None
 
@@ -177,6 +184,7 @@ class OpportunityEngine:
             )
         )
         bounded_items = items[:MAX_OPPORTUNITY_FEED_ITEMS]
+        evidence_freshness = self._similar_player_evidence_freshness(user_rosters)
         self.degraded_reason = None
         try:
             for item in bounded_items[:MAX_SIMILAR_PLAYER_ENRICHMENTS]:
@@ -184,11 +192,27 @@ class OpportunityEngine:
                     item.player_id,
                     snapshots.values(),
                 )
+                if item.similar_players:
+                    item.evidence_freshness = evidence_freshness
         except Exception:
             self.degraded_reason = (
                 "Similar-player context failed, but ranked opportunity actions are still available."
             )
         return bounded_items
+
+    def _similar_player_evidence_freshness(
+        self,
+        user_rosters: list[dict[str, object]],
+    ) -> EvidenceFreshness:
+        league_id = (
+            str(user_rosters[0]["league_id"])
+            if user_rosters
+            else GLOBAL_FRESHNESS_LEAGUE_ID
+        )
+        return self._freshness.evidence_freshness(
+            league_id,
+            SIMILAR_PLAYER_EVIDENCE_DOMAINS,
+        )
 
     def _availability(
         self,

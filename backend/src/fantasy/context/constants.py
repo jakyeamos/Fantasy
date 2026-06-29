@@ -37,7 +37,12 @@ FRESHNESS_THRESHOLDS: dict[str, int] = {
     "combine": 24,
     "draft_capital": 24,
     "landing_spots": 168,
+    "player_metadata": 168,
+    "team_context": 720,
 }
+
+GLOBAL_FRESHNESS_LEAGUE_ID = "__global__"
+SIMILAR_PLAYER_EVIDENCE_DOMAINS = ["player_metadata", "team_context"]
 
 CALENDAR_GUIDANCE: dict[tuple[str, str], str] = {
     ("rookie_fever", "pick_sell"): "Peak rookie fever window - selling now maximizes return before draft inflation spreads across the market.",

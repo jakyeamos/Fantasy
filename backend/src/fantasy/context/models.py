@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class FreshnessTag(BaseModel):
@@ -12,6 +12,14 @@ class FreshnessTag(BaseModel):
     last_updated: datetime | None
     is_stale: bool
     warning: str | None = None
+
+
+class EvidenceFreshness(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    is_stale: bool = False
+    stale_domains: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
 
 
 class CalendarContext(BaseModel):

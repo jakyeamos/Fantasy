@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from fantasy.context.models import EvidenceFreshness
+
 EdgeSignalType = Literal[
     "buy_low",
     "buy_high",
@@ -56,6 +58,7 @@ class EdgeRadarItem(BaseModel):
     acceptable_price: str
     timing_window: str
     source_evidence: list[str] = Field(default_factory=list)
+    evidence_freshness: EvidenceFreshness = Field(default_factory=EvidenceFreshness)
     similarity_score: float = 0.0
     similar_player_outcomes: list[SimilarPlayerOutcome] = Field(default_factory=list)
     risks: list[str] = Field(default_factory=list)

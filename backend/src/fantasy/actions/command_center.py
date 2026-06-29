@@ -19,6 +19,7 @@ from fantasy.actions.ranking import action_sort_key
 from fantasy.actions.rookie_actions import build_rookie_actions
 from fantasy.actions.trade_suggestions import TradeSuggestionBuilder
 from fantasy.actions.weekly_risk import build_weekly_risk_action
+from fantasy.context.constants import SIMILAR_PLAYER_EVIDENCE_DOMAINS
 from fantasy.context.models import FreshnessTag
 from fantasy.context.context_repo import ContextRepo
 from fantasy.context.freshness_service import FreshnessService
@@ -34,6 +35,7 @@ from fantasy.weekly.models import LineupGapDecision, StartSitDecision, WeeklyPla
 from fantasy.weekly.weekly_edge_service import WeeklyEdgeService
 
 WEEKLY_DOMAINS = ["injuries", "usage", "schedule", "waivers", "market", "stats"]
+COMMAND_CENTER_FRESHNESS_DOMAINS = WEEKLY_DOMAINS + SIMILAR_PLAYER_EVIDENCE_DOMAINS
 SELL_EDGE_SIGNALS = {"sell_high", "sell_low"}
 MOVE_LANE_SPECS = (
     ("start_sit", "Start/sit", {"lineup"}, "No ranked start/sit or lineup-risk action from weekly data."),
@@ -43,6 +45,16 @@ MOVE_LANE_SPECS = (
     ("portfolio", "Portfolio", {"portfolio"}, "No ranked portfolio exposure or hedge action found."),
     ("manager", "Manager", {"manager"}, "No high-evidence manager exploit action found."),
 )
+
+
+def _similar_player_stale_evidence(stale_domains: list[str]) -> list[str]:
+    if not stale_domains:
+        return []
+    return [
+        "Similar-player evidence stale: refresh "
+        + ", ".join(stale_domains)
+        + " before relying on comps."
+    ]
 
 
 class CommandCenterEngine:
@@ -125,7 +137,7 @@ class CommandCenterEngine:
         if not league_ids:
             return []
         health: list[FreshnessTag] = []
-        for domain in WEEKLY_DOMAINS:
+        for domain in COMMAND_CENTER_FRESHNESS_DOMAINS:
             tags = [
                 tag
                 for league_id in league_ids
@@ -197,6 +209,34 @@ class CommandCenterEngine:
                     description="Rebuilds cached add/drop/FAAB recommendations for tracked rosters.",
                     endpoint="/actions/recompute",
                 ),
+            )
+        if "player_metadata" in stale_domains:
+            actions.append(
+                DataRefreshAction(
+                    id="player-metadata:global",
+                    domain="player_metadata",
+                    league_id=None,
+                    label="Refresh player metadata",
+                    description=(
+                        "Rebuilds dense player role, usage, and market metadata for "
+                        "similar-player evidence."
+                    ),
+                    endpoint="/ingest/player-metadata/refresh",
+                )
+            )
+        if "team_context" in stale_domains:
+            actions.append(
+                DataRefreshAction(
+                    id="team-context:global",
+                    domain="team_context",
+                    league_id=None,
+                    label="Refresh team context",
+                    description=(
+                        "Reloads team environment, staff, and system context used by "
+                        "Edge Radar comparisons."
+                    ),
+                    endpoint="/ingest/team-context/refresh",
+                )
             )
         return actions[:8]
 
@@ -540,10 +580,15 @@ class CommandCenterEngine:
                     risk_if_wrong=item.risks[0]
                     if item.risks
                     else "Market delta may be noisy if source freshness is stale.",
-                    evidence=item.source_evidence[:4],
+                    evidence=(
+                        _similar_player_stale_evidence(
+                            item.evidence_freshness.stale_domains
+                        )
+                        + item.source_evidence
+                    )[:4],
                     cta_label=item.cta_label,
                     cta_destination=item.cta_destination,
-                    stale_domains=[],
+                    stale_domains=item.evidence_freshness.stale_domains,
                 )
             )
         return actions
@@ -618,8 +663,8 @@ class CommandCenterEngine:
         evidence = [
             f"Market gap: {round(item.adp_gap)} startup slots",
             f"Context: {item.availability.replace('_', ' ')}",
-        ]
-        stale_domains: list[str] = []
+        ] + _similar_player_stale_evidence(item.evidence_freshness.stale_domains)
+        stale = set(item.evidence_freshness.stale_domains)
         if matching_gap is not None:
             why_now = (
                 f"{item.why_summary} It solves a current {matching_gap.position} lineup gap: "
@@ -631,7 +676,7 @@ class CommandCenterEngine:
                 f"{matching_gap.position} is {matching_gap.gap_to_title_target:.1f} "
                 "below the title target"
             )
-            stale_domains = sorted(matching_gap.stale_domains)
+            stale.update(matching_gap.stale_domains)
         trade_suggestion = (
             self._trade_suggestions.build(item)
             if item.suggested_action in {"buy", "sell"}
@@ -662,7 +707,7 @@ class CommandCenterEngine:
             evidence=evidence,
             cta_label=item.cta.label if item.cta else "Open Opportunities",
             cta_destination=cta_destination,
-            stale_domains=stale_domains,
+            stale_domains=sorted(stale),
             trade_suggestion=trade_suggestion,
         )
 

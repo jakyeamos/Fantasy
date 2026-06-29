@@ -184,12 +184,27 @@ def test_league_draft_order_rules_table_created_by_startup(db):
 
 
 def test_refresh_league_artifacts_rebuilds_cached_outputs(phase2_seed_data):
+    phase2_seed_data.execute(
+        """
+        INSERT INTO waiver_recommendations (
+            id, league_id, roster_id, recommendations_json
+        )
+        VALUES (
+            1,
+            'league_x',
+            1,
+            '{"league_id":"league_x","roster_id":1,"waiver_type_label":"stale","waiver_type_raw":0,"recommendations":[{"player_id":"stale_player"}],"computed_at":"2025-01-01T00:00:00Z"}'
+        )
+        """
+    )
+
     summary = refresh_league_artifacts(phase2_seed_data, "league_x")
 
     assert summary["league_id"] == "league_x"
     assert summary["roster_count"] == 2
     assert summary["player_value_count"] > 0
     assert summary["manager_profile_count"] == 2
+    assert summary["waiver_recommendation_count"] == 2
     assert summary["snapshot_count"] == 1
     assert (
         phase2_seed_data.execute(
@@ -197,3 +212,13 @@ def test_refresh_league_artifacts_rebuilds_cached_outputs(phase2_seed_data):
         ).fetchone()[0]
         == 2
     )
+    waiver_rows = phase2_seed_data.execute(
+        """
+        SELECT recommendations_json
+        FROM waiver_recommendations
+        WHERE league_id = 'league_x'
+        ORDER BY roster_id
+        """
+    ).fetchall()
+    assert len(waiver_rows) == 2
+    assert all("stale_player" not in row[0] for row in waiver_rows)

@@ -110,6 +110,8 @@ def test_refresh_team_context_route_runs_environment_refresh(monkeypatch, db):
         "upserted_rows": 32,
     }
     assert calls == [2026]
+    tag = FreshnessService(ContextRepo(db)).get_tags("league_x", ["team_context"])[0]
+    assert tag.is_stale is False
 
 
 def test_refresh_player_metadata_route_runs_dense_signal_refresh(monkeypatch, db):
@@ -146,6 +148,8 @@ def test_refresh_player_metadata_route_runs_dense_signal_refresh(monkeypatch, db
         "updated_rows": 236,
     }
     assert calls == [2026]
+    tag = FreshnessService(ContextRepo(db)).get_tags("league_x", ["player_metadata"])[0]
+    assert tag.is_stale is False
 
 
 def test_import_player_metadata_csv_route_loads_dense_metrics(monkeypatch, db):
@@ -239,6 +243,30 @@ def test_refresh_league_pipeline_runs_all_offseason_refresh_steps(monkeypatch, d
             "rebuilt_boards": 1,
         }
 
+    class _FakeTeamContextRefreshService:
+        def __init__(self, conn):
+            assert conn is db
+
+        def refresh(self, season: int):
+            calls.append(("team_context", season))
+            return TeamContextRefreshSummary(
+                season=season,
+                environment_rows=32,
+                upserted_rows=30,
+            )
+
+    class _FakePlayerMetadataRefreshService:
+        def __init__(self, conn):
+            assert conn is db
+
+        def refresh(self, season: int):
+            calls.append(("player_metadata", season))
+            return PlayerMetadataRefreshSummary(
+                season=season,
+                source_rows=240,
+                updated_rows=236,
+            )
+
     def _fake_refresh_artifacts(conn, league_id: str):
         calls.append(("artifacts", league_id))
         return {
@@ -246,6 +274,7 @@ def test_refresh_league_pipeline_runs_all_offseason_refresh_steps(monkeypatch, d
             "roster_count": 12,
             "player_value_count": 240,
             "manager_profile_count": 12,
+            "waiver_recommendation_count": 12,
             "snapshot_count": 1,
         }
 
@@ -253,6 +282,8 @@ def test_refresh_league_pipeline_runs_all_offseason_refresh_steps(monkeypatch, d
     monkeypatch.setattr("fantasy.routers.ingest.IngestService", _FakeIngestService)
     monkeypatch.setattr("fantasy.routers.ingest.refresh_adp_baseline_from_fantasycalc", _fake_refresh_adp)
     monkeypatch.setattr("fantasy.routers.ingest.refresh_actual_draft_capital", _fake_refresh_draft_capital)
+    monkeypatch.setattr("fantasy.routers.ingest.TeamContextRefreshService", _FakeTeamContextRefreshService)
+    monkeypatch.setattr("fantasy.routers.ingest.PlayerMetadataRefreshService", _FakePlayerMetadataRefreshService)
     monkeypatch.setattr("fantasy.routers.ingest.refresh_league_artifacts", _fake_refresh_artifacts)
 
     app = create_app()
@@ -286,11 +317,22 @@ def test_refresh_league_pipeline_runs_all_offseason_refresh_steps(monkeypatch, d
             "unmatched_rows": 5,
             "rebuilt_boards": 1,
         },
+        "team_context": {
+            "season": 2026,
+            "environment_rows": 32,
+            "upserted_rows": 30,
+        },
+        "player_metadata": {
+            "season": 2026,
+            "source_rows": 240,
+            "updated_rows": 236,
+        },
         "artifacts": {
             "league_id": "lg1",
             "roster_count": 12,
             "player_value_count": 240,
             "manager_profile_count": 12,
+            "waiver_recommendation_count": 12,
             "snapshot_count": 1,
         },
     }
@@ -301,5 +343,7 @@ def test_refresh_league_pipeline_runs_all_offseason_refresh_steps(monkeypatch, d
         ("sleeper_client", "exit"),
         ("adp", (2, 12, 0.5)),
         ("draft_capital", 2026),
+        ("team_context", 2026),
+        ("player_metadata", 2026),
         ("artifacts", "lg1"),
     ]

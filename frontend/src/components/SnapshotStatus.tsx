@@ -25,7 +25,8 @@ function formatRefreshSummary(result: LeagueRefreshPipelineResponse) {
     `Sleeper ${result.sleeper_status}`,
     `ADP ${result.adp.matched_unique_rows}/${result.adp.source_rows} matched, ${result.adp.unmatched_rows} unmatched`,
     `Draft capital ${result.draft_capital.updated_rows} updated, ${result.draft_capital.rebuilt_boards} boards rebuilt`,
-    `Artifacts ${result.artifacts.roster_count} rosters, ${result.artifacts.player_value_count} values, ${result.artifacts.manager_profile_count} profiles, ${result.artifacts.snapshot_count} snapshots`,
+    `Edge context ${result.team_context.upserted_rows} teams, ${result.player_metadata.updated_rows} players`,
+    `Artifacts ${result.artifacts.roster_count} rosters, ${result.artifacts.player_value_count} values, ${result.artifacts.waiver_recommendation_count} waivers, ${result.artifacts.manager_profile_count} profiles, ${result.artifacts.snapshot_count} snapshots`,
   ].join(" · ")
 }
 

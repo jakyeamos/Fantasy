@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from fantasy.context.models import EvidenceFreshness
 from fantasy.trends.constants import CONFIDENCE_MULTIPLIERS
 
 TrendLabel = Literal["will_rise", "will_maintain", "will_fall"]
@@ -72,6 +73,7 @@ class OpportunityFeedItem(BaseModel):
     why_summary: str
     owned_in_leagues: list[str] = Field(default_factory=list)
     similar_players: list[SimilarPlayer] = Field(default_factory=list)
+    evidence_freshness: EvidenceFreshness = Field(default_factory=EvidenceFreshness)
     conflict_explanation: str | None = None
     calendar_escalated: bool = False
     calendar_escalation_label: str | None = None

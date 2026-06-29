@@ -7,6 +7,7 @@ import duckdb
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from fantasy.context.constants import GLOBAL_FRESHNESS_LEAGUE_ID
 from fantasy.context.context_repo import ContextRepo
 from fantasy.context.freshness_service import FreshnessService
 from fantasy.edge_radar.player_metadata import (
@@ -83,6 +84,7 @@ class LeagueArtifactRefreshSummary(BaseModel):
     roster_count: int
     player_value_count: int
     manager_profile_count: int
+    waiver_recommendation_count: int
     snapshot_count: int
 
 
@@ -93,6 +95,8 @@ class LeagueRefreshPipelineResponse(BaseModel):
     sleeper_status: str
     adp: AdpBaselineRefreshResponse
     draft_capital: DraftCapitalRefreshSummary
+    team_context: TeamContextRefreshResponse
+    player_metadata: PlayerMetadataRefreshResponse
     artifacts: LeagueArtifactRefreshSummary
 
 
@@ -162,6 +166,11 @@ def refresh_team_context(
     conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
 ) -> TeamContextRefreshResponse:
     summary = TeamContextRefreshService(conn).refresh(season)
+    FreshnessService(ContextRepo(conn)).mark_refreshed(
+        GLOBAL_FRESHNESS_LEAGUE_ID,
+        "team_context",
+        f"Team context refreshed for {season}.",
+    )
     return TeamContextRefreshResponse(
         season=summary.season,
         environment_rows=summary.environment_rows,
@@ -175,6 +184,11 @@ def refresh_player_metadata(
     conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
 ) -> PlayerMetadataRefreshResponse:
     summary = PlayerMetadataRefreshService(conn).refresh(season)
+    FreshnessService(ContextRepo(conn)).mark_refreshed(
+        GLOBAL_FRESHNESS_LEAGUE_ID,
+        "player_metadata",
+        f"Dense player metadata refreshed for {season}.",
+    )
     return PlayerMetadataRefreshResponse(
         season=summary.season,
         source_rows=summary.source_rows,
@@ -191,6 +205,11 @@ def import_player_metadata(
     conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
 ) -> PlayerMetadataImportResponse:
     summary = import_player_metadata_csv(conn, csv_path)
+    FreshnessService(ContextRepo(conn)).mark_refreshed(
+        GLOBAL_FRESHNESS_LEAGUE_ID,
+        "player_metadata",
+        "Dense player metadata imported from CSV.",
+    )
     return PlayerMetadataImportResponse(
         source_rows=summary.source_rows,
         matched_rows=summary.matched_rows,
@@ -258,8 +277,26 @@ async def refresh_league_pipeline(
         raise HTTPException(status_code=503, detail="FantasyCalc ADP API unavailable.") from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    FreshnessService(ContextRepo(conn)).mark_refreshed(
+        league_id,
+        "market",
+        "FantasyCalc ADP baseline refreshed by league refresh pipeline.",
+    )
 
     draft_capital_summary = refresh_actual_draft_capital(conn, draft_year=draft_year)
+    team_context_summary = TeamContextRefreshService(conn).refresh(draft_year)
+    player_metadata_summary = PlayerMetadataRefreshService(conn).refresh(draft_year)
+    freshness = FreshnessService(ContextRepo(conn))
+    freshness.mark_refreshed(
+        GLOBAL_FRESHNESS_LEAGUE_ID,
+        "team_context",
+        f"Team context refreshed for {draft_year} by league refresh pipeline.",
+    )
+    freshness.mark_refreshed(
+        GLOBAL_FRESHNESS_LEAGUE_ID,
+        "player_metadata",
+        f"Dense player metadata refreshed for {draft_year} by league refresh pipeline.",
+    )
     artifact_summary = refresh_league_artifacts(conn, league_id)
 
     return LeagueRefreshPipelineResponse(
@@ -278,6 +315,16 @@ async def refresh_league_pipeline(
             ppr=resolved_ppr,
         ),
         draft_capital=DraftCapitalRefreshSummary(**draft_capital_summary),
+        team_context=TeamContextRefreshResponse(
+            season=team_context_summary.season,
+            environment_rows=team_context_summary.environment_rows,
+            upserted_rows=team_context_summary.upserted_rows,
+        ),
+        player_metadata=PlayerMetadataRefreshResponse(
+            season=player_metadata_summary.season,
+            source_rows=player_metadata_summary.source_rows,
+            updated_rows=player_metadata_summary.updated_rows,
+        ),
         artifacts=LeagueArtifactRefreshSummary(**artifact_summary),
     )
 

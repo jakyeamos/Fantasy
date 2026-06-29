@@ -7,6 +7,10 @@ from urllib.parse import quote_plus
 
 import duckdb
 
+from fantasy.context.constants import SIMILAR_PLAYER_EVIDENCE_DOMAINS
+from fantasy.context.context_repo import ContextRepo
+from fantasy.context.freshness_service import FreshnessService
+from fantasy.context.models import EvidenceFreshness
 from fantasy.edge_radar.models import (
     EdgeRadarItem,
     EdgeRadarResponse,
@@ -53,10 +57,18 @@ def _team_context_evidence(metadata: dict[str, Any]) -> list[str]:
     return [f"Team context: {', '.join(parts)}"]
 
 
+def _freshness_evidence(evidence_freshness: EvidenceFreshness) -> list[str]:
+    if not evidence_freshness.is_stale:
+        return []
+    domains = ", ".join(evidence_freshness.stale_domains)
+    return [f"Similar-player evidence stale: refresh {domains}."]
+
+
 class EdgeRadarEngine:
     def __init__(self, conn: duckdb.DuckDBPyConnection) -> None:
         self._conn = conn
         self._portfolio_repo = PortfolioRepo(conn)
+        self._freshness = FreshnessService(ContextRepo(conn))
 
     def build(
         self,
@@ -227,6 +239,10 @@ class EdgeRadarEngine:
                 ceiling=float(candidate["ceiling"]),
                 floor=float(candidate["floor"]),
             )
+            evidence_freshness = self._freshness.evidence_freshness(
+                str(candidate["league_id"]),
+                SIMILAR_PLAYER_EVIDENCE_DOMAINS,
+            )
             similarity_evidence = (
                 [
                     "Similarity: "
@@ -236,6 +252,7 @@ class EdgeRadarEngine:
                 if comps
                 else []
             )
+            freshness_evidence = _freshness_evidence(evidence_freshness)
             items.append(
                 EdgeRadarItem(
                     id=str(candidate["id"]),
@@ -263,10 +280,12 @@ class EdgeRadarEngine:
                         f"Startup ADP: {float(candidate['startup_adp']):.1f}",
                     ]
                     + _team_context_evidence(metadata)
+                    + freshness_evidence
                     + similarity_evidence
                     + value_gain_evidence(
                         [comp.outcome_summary for comp in comps]
                     ),
+                    evidence_freshness=evidence_freshness,
                     similarity_score=comps[0].similarity_score if comps else 0.0,
                     similar_player_outcomes=comps,
                     risks=self._risks(signal_type),

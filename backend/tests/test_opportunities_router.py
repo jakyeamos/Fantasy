@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from fantasy.main import create_app
 from fantasy.routers.deps import get_read_db_conn, get_write_db_conn
+from fantasy.trends.models import SimilarPlayer
 from fantasy.trends.constants import COMPONENT_COLS
 from fantasy.trends import opportunity_engine
 from fantasy.trends.trend_repo import TrendRepo
@@ -244,3 +245,60 @@ def test_opportunities_route_returns_degraded_partial_feed(db, monkeypatch):
     assert payload["total"] == 1
     assert payload["status"] == "degraded"
     assert payload["degraded_reason"]
+
+
+def test_opportunities_route_marks_stale_similar_player_evidence(db, monkeypatch):
+    db.execute(
+        """
+        INSERT INTO leagues (
+            league_id, name, season, scoring_settings, roster_positions, settings_blob, superflex, tep, ppr
+        )
+        VALUES ('league_x', 'League X', '2025', '{}', '[]', '{}', FALSE, FALSE, 0.5)
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO rosters (
+            id, league_id, roster_id, owner_id, owner_display_name, starters, players, reserve, taxi
+        )
+        VALUES (1, 'league_x', 1, 'user_self', 'user_self', '[]', '[]', '[]', '[]')
+        """
+    )
+    _seed_route_opportunity(
+        db,
+        player_id="player_stale",
+        player_name="Player Stale",
+        adp=70.0,
+    )
+
+    def _similar_players(_player_id, _snapshots):
+        return [
+            SimilarPlayer(
+                player_id="comp_1",
+                player_name="Comp One",
+                similarity_score=0.89,
+                archetype_label="route winner",
+                context="similar role and market movement",
+            )
+        ]
+
+    monkeypatch.setattr(
+        opportunity_engine,
+        "find_similar_players_from_snapshots",
+        _similar_players,
+    )
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(db)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(db)
+    client = TestClient(app)
+
+    response = client.get("/opportunities")
+
+    assert response.status_code == 200
+    item = response.json()["items"][0]
+    assert item["similar_players"]
+    assert item["evidence_freshness"]["is_stale"] is True
+    assert item["evidence_freshness"]["stale_domains"] == [
+        "player_metadata",
+        "team_context",
+    ]

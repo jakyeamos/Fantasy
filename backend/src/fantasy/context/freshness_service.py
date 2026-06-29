@@ -3,9 +3,9 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Callable
 
-from fantasy.context.constants import FRESHNESS_THRESHOLDS
+from fantasy.context.constants import FRESHNESS_THRESHOLDS, GLOBAL_FRESHNESS_LEAGUE_ID
 from fantasy.context.context_repo import ContextRepo
-from fantasy.context.models import FreshnessTag
+from fantasy.context.models import EvidenceFreshness, FreshnessTag
 
 ClockFn = Callable[[], datetime]
 
@@ -21,6 +21,13 @@ class FreshnessService:
 
     def get_tags(self, league_id: str, domains: list[str]) -> list[FreshnessTag]:
         rows = self._repo.get_freshness_rows(league_id, domains)
+        missing_domains = [domain for domain in domains if domain not in rows]
+        if missing_domains and league_id != GLOBAL_FRESHNESS_LEAGUE_ID:
+            global_rows = self._repo.get_freshness_rows(
+                GLOBAL_FRESHNESS_LEAGUE_ID,
+                missing_domains,
+            )
+            rows.update(global_rows)
         now = self._now()
         tags: list[FreshnessTag] = []
         for domain in domains:
@@ -72,3 +79,15 @@ class FreshnessService:
             warning=None,
         )
 
+    def evidence_freshness(
+        self,
+        league_id: str,
+        domains: list[str],
+    ) -> EvidenceFreshness:
+        tags = self.get_tags(league_id, domains)
+        stale_tags = [tag for tag in tags if tag.is_stale]
+        return EvidenceFreshness(
+            is_stale=bool(stale_tags),
+            stale_domains=[tag.domain for tag in stale_tags],
+            warnings=[tag.warning for tag in stale_tags if tag.warning],
+        )

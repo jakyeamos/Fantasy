@@ -5,11 +5,12 @@ import json
 import fantasy.actions.command_center as command_center_module
 from fantasy.actions.command_center import CommandCenterEngine
 from fantasy.actions.models import CommandAction, CommandCenterResponse
+from fantasy.context.models import EvidenceFreshness
 from fantasy.context.context_repo import ContextRepo
 from fantasy.context.freshness_service import FreshnessService
 from fantasy.lineup.lineup_repo import LineupRepo
 from fantasy.lineup.models import LineupResult, LineupSlotScore
-from fantasy.trends.models import OpportunityCta, OpportunityFeedItem
+from fantasy.trends.models import OpportunityCta, OpportunityFeedItem, SimilarPlayer
 from fantasy.waiver.models import WaiverRecommendation, WaiverRecommendationsResponse
 from fantasy.waiver.waiver_repo import WaiverRepo
 from fantasy.weekly.public_context import ensure_weekly_context_schema
@@ -142,6 +143,8 @@ def test_command_center_top_five_moves_are_actionable(db, monkeypatch):
         "waivers",
         "market",
         "stats",
+        "player_metadata",
+        "team_context",
     }
     assert response.refresh_actions
     assert any(action.endpoint == "/actions/recompute" for action in response.refresh_actions)
@@ -1023,3 +1026,55 @@ def test_command_center_surfaces_rookie_pick_timing_action(db):
     assert any(evidence.startswith("Best player:") for evidence in action.evidence)
     assert any(evidence.startswith("Draft action:") for evidence in action.evidence)
     assert any(evidence == "Expected tier: Tier 1" for evidence in action.evidence)
+
+
+def test_command_center_opportunity_trade_action_warns_on_stale_similar_player_evidence(
+    db,
+    monkeypatch,
+):
+    engine = CommandCenterEngine(db)
+    monkeypatch.setattr(engine, "_opportunity_lineup_gap", lambda item: None)
+    monkeypatch.setattr(engine._trade_suggestions, "build", lambda item: None)
+    item = OpportunityFeedItem(
+        player_id="target_wr",
+        player_name="Target WR",
+        position="WR",
+        trend_label="will_rise",
+        trend_confidence="HIGH",
+        adp_gap=24.0,
+        suggested_action="buy",
+        availability="opponent_roster",
+        impact_score=80.0,
+        why_summary="Target is underpriced against similar-player evidence.",
+        cta=OpportunityCta(
+            label="Build offer",
+            destination="trade_evaluator",
+            league_id="cmd5",
+            user_roster_id=1,
+            manager_roster_id=2,
+        ),
+        similar_players=[
+            SimilarPlayer(
+                player_id="comp_wr",
+                player_name="Comp WR",
+                similarity_score=0.9,
+                archetype_label="target earner",
+                context="similar usage and market behavior",
+            )
+        ],
+        evidence_freshness=EvidenceFreshness(
+            is_stale=True,
+            stale_domains=["player_metadata", "team_context"],
+            warnings=[
+                "Player metadata data is 240h old",
+                "Team context data has never been updated - verify before acting",
+            ],
+        ),
+    )
+
+    action = engine._opportunity_action(item)
+
+    assert action is not None
+    assert action.category == "trade"
+    assert action.stale_domains == ["player_metadata", "team_context"]
+    assert any("Similar-player evidence stale" in evidence for evidence in action.evidence)

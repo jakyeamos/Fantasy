@@ -39,6 +39,10 @@ function confidenceVariant(confidence: CommandAction["confidence"]) {
   return "outline"
 }
 
+function similarEvidenceDomains(domains: string[]): string[] {
+  return domains.filter((domain) => domain === "player_metadata" || domain === "team_context")
+}
+
 function formatFreshnessLabel(tag: FreshnessTag): string {
   return tag.domain.replaceAll("_", " ")
 }
@@ -124,6 +128,7 @@ function RefreshAllButton({
 
 function CommandCard({ action }: { action: CommandAction }) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const staleSimilarEvidenceDomains = similarEvidenceDomains(action.stale_domains)
 
   return (
     <Card style={{ boxShadow: "0 8px 18px -18px hsl(var(--foreground) / 0.55)" }}>
@@ -187,7 +192,9 @@ function CommandCard({ action }: { action: CommandAction }) {
             {action.stale_domains.length ? (
               <div className={`flex items-center gap-2 rounded border px-3 py-2 text-xs ${surfaceToneClasses.attention} ${textToneClasses.attention}`}>
                 <AlertTriangle className="size-3.5 shrink-0" />
-                Refresh {action.stale_domains.join(", ")} before locking this in.
+                {staleSimilarEvidenceDomains.length
+                  ? `Refresh similar-player evidence (${staleSimilarEvidenceDomains.join(", ")}) before locking this in.`
+                  : `Refresh ${action.stale_domains.join(", ")} before locking this in.`}
               </div>
             ) : null}
             {action.trade_suggestion ? (

@@ -6,13 +6,20 @@ from typing import Any
 import duckdb
 
 from fantasy.config import Settings
+from fantasy.context.constants import GLOBAL_FRESHNESS_LEAGUE_ID
+from fantasy.context.context_repo import ContextRepo
+from fantasy.context.freshness_service import FreshnessService
+from fantasy.edge_radar.player_metadata import PlayerMetadataRefreshService
 from fantasy.edge_radar.team_context import TEAM_CONTEXT_DDL
+from fantasy.edge_radar.team_context import TeamContextRefreshService
 from fantasy.ingestion.ingest_service import IngestService
 from fantasy.ingestion.sleeper_client import SleeperClient
 from fantasy.intelligence.intelligence_service import IntelligenceService
 from fantasy.profiling.profiling_engine import ProfilingEngine
 from fantasy.profiling.profiling_repo import ProfilingRepo
 from fantasy.snapshots.snapshot_service import SnapshotService
+from fantasy.waiver.waiver_engine import WaiverEngine
+from fantasy.waiver.waiver_repo import WaiverRepo
 
 logger = logging.getLogger(__name__)
 
@@ -507,6 +514,7 @@ def refresh_league_artifacts(
     include_snapshot: bool = True,
 ) -> dict[str, Any]:
     result = IntelligenceService(conn).compute_league(league_id)
+    waiver_recommendation_count = _refresh_waiver_recommendations(conn, league_id)
     profiles = ProfilingEngine(conn).compute_all_profiles(league_id)
     profiling_repo = ProfilingRepo(conn)
     for profile in profiles:
@@ -524,7 +532,60 @@ def refresh_league_artifacts(
         "roster_count": len(result["scorecards"]),
         "player_value_count": sum(len(values) for values in result["values"].values()),
         "manager_profile_count": len(profiles),
+        "waiver_recommendation_count": waiver_recommendation_count,
         "snapshot_count": len(snapshot_ids),
+    }
+
+
+def _refresh_waiver_recommendations(
+    conn: duckdb.DuckDBPyConnection,
+    league_id: str,
+) -> int:
+    rows = conn.execute(
+        """
+        SELECT roster_id
+        FROM rosters
+        WHERE league_id = ?
+        ORDER BY roster_id
+        """,
+        [league_id],
+    ).fetchall()
+    waiver_engine = WaiverEngine(conn)
+    waiver_repo = WaiverRepo(conn)
+    refreshed = 0
+    for (roster_id,) in rows:
+        result = waiver_engine.compute_recommendations(league_id, int(roster_id))
+        waiver_repo.upsert_waiver_recommendations(result)
+        refreshed += 1
+    if refreshed > 0:
+        FreshnessService(ContextRepo(conn)).mark_refreshed(
+            league_id,
+            "waivers",
+            "Local league refresh rebuilt waiver recommendations.",
+        )
+    return refreshed
+
+
+def refresh_edge_radar_sources(
+    conn: duckdb.DuckDBPyConnection,
+    season: int,
+) -> dict[str, Any]:
+    team_context = TeamContextRefreshService(conn).refresh(season)
+    player_metadata = PlayerMetadataRefreshService(conn).refresh(season)
+    freshness = FreshnessService(ContextRepo(conn))
+    freshness.mark_refreshed(
+        GLOBAL_FRESHNESS_LEAGUE_ID,
+        "team_context",
+        f"Team context refreshed for {season} by dev auto-refresh.",
+    )
+    freshness.mark_refreshed(
+        GLOBAL_FRESHNESS_LEAGUE_ID,
+        "player_metadata",
+        f"Dense player metadata refreshed for {season} by dev auto-refresh.",
+    )
+    return {
+        "team_context": team_context,
+        "player_metadata": player_metadata,
     }
 
 
@@ -569,16 +630,30 @@ async def maybe_run_dev_refresh(
 
     for league_id in league_ids:
         try:
+            season_row = conn.execute(
+                """
+                SELECT TRY_CAST(season AS INTEGER)
+                FROM leagues
+                WHERE league_id = ?
+                LIMIT 1
+                """,
+                [league_id],
+            ).fetchone()
+            season = int(season_row[0]) if season_row and season_row[0] is not None else 2026
+            edge_sources = refresh_edge_radar_sources(conn, season)
             summary = refresh_league_artifacts(
                 conn,
                 league_id,
                 include_snapshot=settings.DEV_AUTO_REFRESH_SNAPSHOTS,
             )
             logger.info(
-                "Dev auto-refresh rebuilt %s: %s rosters, %s player values, %s profiles, %s snapshots.",
+                "Dev auto-refresh rebuilt %s: %s team-context rows, %s player metadata rows, %s rosters, %s player values, %s waiver boards, %s profiles, %s snapshots.",
                 league_id,
+                edge_sources["team_context"].upserted_rows,
+                edge_sources["player_metadata"].updated_rows,
                 summary["roster_count"],
                 summary["player_value_count"],
+                summary["waiver_recommendation_count"],
                 summary["manager_profile_count"],
                 summary["snapshot_count"],
             )
