@@ -100,6 +100,38 @@ def test_rookie_grades_reward_model_value_and_tier_gap(trade_seed_data):
             ("league_x", 2026, "rb1", "RB One", "RB", "Workhorse", "mid", 2, 2, "hit", "Medium", None, None, False, "[]"),
         ],
     )
+    trade_seed_data.executemany(
+        """
+        INSERT INTO historical_prospect_features (
+            player_id, draft_year, position, player_name, age_at_draft, draft_ovr,
+            college_rec_ypg, college_rush_ypg, college_yprr, college_ypt,
+            college_ypc, college_ypa, college_pass_td_rate, college_qb_rush_ypg,
+            college_scramble_rate, college_mkt_share_proxy, college_td_rate,
+            college_completion_pct_proxy
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (player_id, draft_year) DO UPDATE SET
+            age_at_draft = EXCLUDED.age_at_draft,
+            draft_ovr = EXCLUDED.draft_ovr,
+            college_rec_ypg = EXCLUDED.college_rec_ypg,
+            college_rush_ypg = EXCLUDED.college_rush_ypg,
+            college_yprr = EXCLUDED.college_yprr,
+            college_ypt = EXCLUDED.college_ypt,
+            college_ypc = EXCLUDED.college_ypc,
+            college_ypa = EXCLUDED.college_ypa,
+            college_pass_td_rate = EXCLUDED.college_pass_td_rate,
+            college_qb_rush_ypg = EXCLUDED.college_qb_rush_ypg,
+            college_scramble_rate = EXCLUDED.college_scramble_rate,
+            college_mkt_share_proxy = EXCLUDED.college_mkt_share_proxy,
+            college_td_rate = EXCLUDED.college_td_rate,
+            college_completion_pct_proxy = EXCLUDED.college_completion_pct_proxy
+        """,
+        [
+            ("qb2", 2026, "QB", "QB Two", 23.8, 96, None, None, None, None, None, 6.5, 0.038, 4.0, 0.02, None, None, 0.58),
+            ("wr1", 2026, "WR", "WR One", 21.1, 12, 94.0, None, 3.1, 11.2, None, None, None, None, None, 0.31, 0.14, None),
+            ("rb1", 2026, "RB", "RB One", 21.5, 45, 18.0, 92.0, None, None, 5.8, None, None, None, None, 0.78, 0.11, None),
+        ],
+    )
     app = create_app()
     app.dependency_overrides[get_read_db_conn] = _override_conn(trade_seed_data)
     client = TestClient(app)
@@ -113,6 +145,9 @@ def test_rookie_grades_reward_model_value_and_tier_gap(trade_seed_data):
     assert by_player["wr1"]["grade_label"] in {"A", "B"}
     assert "model steal" in by_player["wr1"]["rationale"]
     assert "model reach" in by_player["qb2"]["rationale"]
+    assert "rookie feature profile" in by_player["wr1"]["rationale"]
+    assert "draft capital 12" in by_player["wr1"]["rationale"]
+    assert "YPRR 3.10" in by_player["wr1"]["rationale"]
 
 
 def test_draft_grades_marks_at_time_available_from_prior_snapshot(trade_seed_data):
