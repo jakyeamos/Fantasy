@@ -700,6 +700,25 @@ def _record_label(
     return f"{wins}-{losses}-{ties}"
 
 
+def _clamp01(value: float) -> float:
+    return max(0.0, min(1.0, value))
+
+
+def _title_target_attainment_score(
+    total_lineup_score: float | None,
+    title_target: float | None,
+    elite_target: float | None,
+) -> float:
+    if total_lineup_score is None or title_target is None or title_target <= 0:
+        return 0.0
+    if total_lineup_score < title_target:
+        return _clamp01((total_lineup_score / title_target) * 0.72)
+    if elite_target is None or elite_target <= title_target:
+        return 0.9
+    elite_progress = _clamp01((total_lineup_score - title_target) / (elite_target - title_target))
+    return 0.78 + elite_progress * 0.22
+
+
 def _league_competition_rows(
     conn: duckdb.DuckDBPyConnection,
     league_id: str,
@@ -721,6 +740,11 @@ def _league_competition_rows(
             ls.ceiling_score,
             ls.stability_score,
             ls.depth_score,
+            ls.total_lineup_score,
+            ls.overall_title_target,
+            ls.overall_elite_target,
+            ts.pick_capital,
+            ts.age_risk,
             st.wins,
             st.losses,
             st.ties
@@ -740,18 +764,52 @@ def _league_competition_rows(
     ).fetchall()
 
     competition_rows: list[dict[str, Any]] = []
+    max_lineup_score = max(
+        (float(row[10]) for row in rows if row[10] is not None),
+        default=0.0,
+    )
     for row in rows:
-        wins = int(row[10]) if row[10] is not None else None
-        losses = int(row[11]) if row[11] is not None else None
-        ties = int(row[12]) if row[12] is not None else None
+        wins = int(row[15]) if row[15] is not None else None
+        losses = int(row[16]) if row[16] is not None else None
+        ties = int(row[17]) if row[17] is not None else None
+        total_lineup_score = float(row[10]) if row[10] is not None else None
+        title_target = float(row[11]) if row[11] is not None else None
+        elite_target = float(row[12]) if row[12] is not None else None
+        title_composite = float(row[5]) if row[5] is not None else None
+        future_value = float(row[4]) if row[4] is not None else None
+        pick_capital = float(row[13]) if row[13] is not None else None
+        age_risk = float(row[14]) if row[14] is not None else None
+        future_insulation = (
+            _clamp01(
+                (
+                    (future_value or 0.0)
+                    + (pick_capital or 0.0)
+                    + max(0.0, 1.0 - (age_risk or 0.0))
+                )
+                / 3.0
+            )
+            if future_value is not None or pick_capital is not None or age_risk is not None
+            else 0.0
+        )
+        lineup_power = (
+            _clamp01(total_lineup_score / max_lineup_score)
+            if total_lineup_score is not None and max_lineup_score > 0
+            else 0.0
+        )
+        title_window_score = (
+            lineup_power * 0.55
+            + _title_target_attainment_score(total_lineup_score, title_target, elite_target) * 0.25
+            + (title_composite or 0.0) * 0.10
+            + future_insulation * 0.10
+        )
         competition_rows.append(
             {
                 "roster_id": int(row[0]),
                 "manager_name": str(row[1]),
                 "direction_label": str(row[2]) if row[2] is not None else None,
                 "win_now": float(row[3]) if row[3] is not None else None,
-                "future_value": float(row[4]) if row[4] is not None else None,
-                "title_window": float(row[5]) if row[5] is not None else None,
+                "future_value": future_value,
+                "title_window": title_window_score,
                 "title_window_label": str(row[6]) if row[6] is not None else None,
                 "ceiling_score": float(row[7]) if row[7] is not None else None,
                 "stability_score": float(row[8]) if row[8] is not None else None,
