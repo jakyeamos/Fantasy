@@ -179,3 +179,85 @@ def test_position_limit_skips_capped_position_adds(db):
     recommendation_ids = {item.player_id for item in result.recommendations}
     assert "fa_qb" not in recommendation_ids
     assert "fa1" in recommendation_ids
+
+
+def test_tep_te_stash_bid_is_capped_by_roster_and_team_context(db):
+    _seed_waiver_context(db, direction="productive_struggle")
+    db.execute(
+        """
+        UPDATE leagues
+        SET tep = TRUE,
+            ppr = 0.5,
+            settings_blob = ?,
+            roster_positions = ?
+        WHERE league_id = 'waiver_x'
+        """,
+        [
+            json.dumps({"waiver_budget": 200, "waiver_type": 2}),
+            json.dumps(
+                [
+                    "QB",
+                    "RB",
+                    "RB",
+                    "WR",
+                    "WR",
+                    "WR",
+                    "TE",
+                    "FLEX",
+                    "FLEX",
+                    "SUPER_FLEX",
+                    "BN",
+                    "BN",
+                    "BN",
+                ]
+            ),
+        ],
+    )
+    db.execute(
+        """
+        UPDATE rosters
+        SET waiver_budget_used = 0,
+            players = '["qb1","rb1","wr1","loveland","raridon","joly"]',
+            starters = '["qb1","rb1","wr1","loveland"]'
+        WHERE league_id = 'waiver_x' AND roster_id = 1
+        """
+    )
+    db.executemany(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES (?, ?, 'TE', ?, ?, ?)
+        """,
+        [
+            ("loveland", "Colston Loveland", "CHI", 21, json.dumps({"status": "Active", "depth_chart_order": 1})),
+            ("raridon", "Eli Raridon", "NE", 22, json.dumps({"status": "Active"})),
+            ("joly", "Justin Joly", "DEN", 21, json.dumps({"status": "Active"})),
+            ("likely", "Isaiah Likely", "NYG", 25, json.dumps({"status": "Active", "depth_chart_order": 1})),
+            ("theo", "Theo Johnson", "NYG", 25, json.dumps({"status": "Active", "depth_chart_order": 2})),
+        ],
+    )
+    db.executemany(
+        """
+        INSERT INTO player_adp_baseline (player_id, player_name, position, adp, adp_source)
+        VALUES (?, ?, 'TE', ?, 'seed')
+        """,
+        [
+            ("loveland", "Colston Loveland", 29.0),
+            ("likely", "Isaiah Likely", 111.0),
+            ("raridon", "Eli Raridon", 222.0),
+            ("joly", "Justin Joly", 227.0),
+            ("theo", "Theo Johnson", 250.0),
+        ],
+    )
+    db.executemany(
+        """
+        INSERT INTO player_stats_weekly (player_id, player_name, position, season, week, fantasy_points)
+        VALUES ('theo', 'Theo Johnson', 'TE', 2026, ?, ?)
+        """,
+        [(11, 6.6), (12, 10.7), (13, 5.9), (15, 10.2), (16, 0.0)],
+    )
+
+    result = WaiverEngine(db).compute_recommendations("waiver_x", 1)
+
+    theo = next(item for item in result.recommendations if item.player_id == "theo")
+    assert theo.is_immediate_start is False
+    assert (theo.bid_high or 0) <= 10

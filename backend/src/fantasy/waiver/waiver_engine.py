@@ -56,6 +56,18 @@ def _format_direction(direction_label: str) -> str:
     return direction_label.replace("_", " ")
 
 
+def _depth_order(metadata: Any) -> int | None:
+    if not isinstance(metadata, dict):
+        return None
+    raw_order = metadata.get("depth_chart_order")
+    if raw_order is None:
+        return None
+    try:
+        return int(raw_order)
+    except (TypeError, ValueError):
+        return None
+
+
 def compute_bid_range(
     player_value_score: float,
     remaining_faab: int,
@@ -317,7 +329,7 @@ class WaiverEngine:
             return []
         rows = self._conn.execute(
             """
-            SELECT player_id, full_name, position, team, age
+            SELECT player_id, full_name, position, team, age, metadata_blob
             FROM players
             WHERE player_id IN (SELECT UNNEST(?))
             """,
@@ -330,6 +342,7 @@ class WaiverEngine:
                 "position": str(row[2] or "FLEX"),
                 "team": str(row[3]) if row[3] is not None else None,
                 "age": int(row[4]) if row[4] is not None else None,
+                "metadata": _loads(row[5], {}),
             }
             for row in rows
         ]
@@ -445,6 +458,132 @@ class WaiverEngine:
         scarcity = 70.0 if position in weak_positions else 45.0 if starter_requirements.get(position, 0) else 25.0
         return score, scarcity, immediate_start
 
+    def _roster_has_position_anchor(
+        self,
+        league_id: str,
+        roster_id: int,
+        position: str,
+        candidate_adp: float | None,
+    ) -> bool:
+        roster_row = self._conn.execute(
+            """
+            SELECT players, reserve, taxi
+            FROM rosters
+            WHERE league_id = ? AND roster_id = ?
+            LIMIT 1
+            """,
+            [league_id, roster_id],
+        ).fetchone()
+        if roster_row is None:
+            return False
+        player_ids: list[str] = []
+        for raw_ids in roster_row:
+            player_ids.extend(
+                str(player_id)
+                for player_id in _loads(raw_ids, [])
+                if player_id not in (None, "", 0, "0")
+            )
+        if not player_ids:
+            return False
+        rows = self._conn.execute(
+            """
+            WITH adp AS (
+                SELECT player_id, MIN(adp) AS adp
+                FROM player_adp_baseline
+                GROUP BY player_id
+            ),
+            values AS (
+                SELECT player_id, MAX(lens_market) AS lens_market
+                FROM player_values
+                WHERE league_id = ?
+                GROUP BY player_id
+            )
+            SELECT MIN(adp.adp), MAX(values.lens_market)
+            FROM players p
+            LEFT JOIN adp ON adp.player_id = p.player_id
+            LEFT JOIN values ON values.player_id = p.player_id
+            WHERE p.player_id IN (SELECT UNNEST(?))
+              AND COALESCE(p.position, '') = ?
+            """,
+            [league_id, player_ids, position],
+        ).fetchone()
+        if rows is None or (rows[0] is None and rows[1] is None):
+            return False
+        best_adp = float(rows[0]) if rows[0] is not None else None
+        best_market = float(rows[1]) if rows[1] is not None else None
+        if best_market is not None and best_market >= 0.62:
+            return True
+        return (
+            best_adp is not None
+            and best_adp <= 80.0
+            and (candidate_adp is None or candidate_adp >= best_adp + 75.0)
+        )
+
+    def _same_team_position_blocked(
+        self,
+        player: dict[str, Any],
+        candidate_adp: float | None,
+    ) -> bool:
+        team = player.get("team")
+        position = str(player["position"])
+        if team is None:
+            return False
+        rows = self._conn.execute(
+            """
+            WITH adp AS (
+                SELECT player_id, MIN(adp) AS adp
+                FROM player_adp_baseline
+                GROUP BY player_id
+            )
+            SELECT p.player_id, adp.adp, p.metadata_blob
+            FROM players p
+            LEFT JOIN adp ON adp.player_id = p.player_id
+            WHERE p.player_id != ?
+              AND COALESCE(p.team, '') = ?
+              AND COALESCE(p.position, '') = ?
+            """,
+            [player["player_id"], team, position],
+        ).fetchall()
+        candidate_order = _depth_order(player.get("metadata"))
+        for _, blocker_adp, metadata_blob in rows:
+            blocker_order = _depth_order(_loads(metadata_blob, {}))
+            if blocker_order is not None and (
+                candidate_order is None or blocker_order < candidate_order
+            ):
+                return True
+            if (
+                candidate_adp is not None
+                and blocker_adp is not None
+                and float(blocker_adp) <= candidate_adp - 75.0
+            ):
+                return True
+        return False
+
+    def _contextual_stash_bid_cap_pct(
+        self,
+        *,
+        league_id: str,
+        roster_id: int,
+        player: dict[str, Any],
+        weak_positions: set[str],
+        is_immediate_start: bool,
+        adp: float | None,
+    ) -> float | None:
+        if is_immediate_start:
+            return None
+        position = str(player["position"])
+        cap_pct: float | None = None
+        if position not in weak_positions and self._roster_has_position_anchor(
+            league_id,
+            roster_id,
+            position,
+            adp,
+        ):
+            cap_pct = 0.05
+        if self._same_team_position_blocked(player, adp):
+            cap_pct = min(cap_pct if cap_pct is not None else 0.08, 0.05)
+        return cap_pct
+
     def _urgency_label(
         self,
         recommendation_label: str,
@@ -545,6 +684,19 @@ class WaiverEngine:
                     positional_scarcity,
                     is_immediate_start,
                 )
+                cap_pct = self._contextual_stash_bid_cap_pct(
+                    league_id=league_id,
+                    roster_id=roster_id,
+                    player=player,
+                    weak_positions=weak_positions,
+                    is_immediate_start=is_immediate_start,
+                    adp=adp_map.get(player_id),
+                )
+                if cap_pct is not None and bid_high > 0:
+                    cap_high = max(1, int(int(state["remaining_faab"] or 0) * cap_pct))
+                    bid_high = min(bid_high, cap_high)
+                    bid_mid = min(bid_mid, max(1, int(bid_high * 0.72)))
+                    bid_low = min(bid_low, max(1, int(bid_mid * FAAB_LOW_MULT)))
                 recommendation_label = "faab_bid" if bid_high > 0 else "free_agent_only"
             else:
                 bid_low, bid_mid, bid_high = (0, 0, 0)

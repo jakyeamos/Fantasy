@@ -12,6 +12,7 @@ The system must tell you — for each of your teams — what you are, what your 
 
 ### Validated
 
+- Waiver FAAB ranges now cap non-starter stash bids when the roster already has a strong same-position anchor or the candidate is blocked by a better same-team positional player, preventing Theo Johnson-style TE depth from commanding priority FAAB behind Loveland.
 - Valuation and trade logic now share a positional context model that accounts for league lineup demand, TEP/superflex settings, replacement baselines, tier-cliff scarcity, and roster surplus/deficit, so elite scarce assets require a roster-improving return while discounted same-position QB edges remain actionable.
 - Command-center filter, league, and recompute controls now bottom-align so their visible boxes sit evenly in the Top Moves header.
 - Command-center Top Moves hides start/sit cards by default behind an Include start/sit filter, and waiver/Edge Radar recommendations now respect Sleeper position caps such as AMG's QB limit.
@@ -135,4 +136,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-29 after adding shared tier-cliff and roster-construction valuation context*
+*Last updated: 2026-06-29 after capping blocked waiver-stash FAAB ranges*
