@@ -619,6 +619,94 @@ export interface TradeRosterResult {
   roster_name: string
 }
 
+export interface HistoricalAsset {
+  asset_type: "player" | "pick"
+  label: string
+  player_id?: string | null
+  player_position?: string | null
+  pick_year?: number | null
+  pick_round?: number | null
+  pick_original_roster_id?: number | null
+}
+
+export interface HistoricalTradeParticipant {
+  roster_id: number
+  roster_name: string
+  sends: HistoricalAsset[]
+  receives: HistoricalAsset[]
+  current_replay?: TradeEvaluation | null
+  current_replay_error?: string | null
+  at_time_status: "available" | "unavailable"
+  at_time_delta?: number | null
+  at_time_note: string
+}
+
+export interface HistoricalTradeEvaluationRow {
+  transaction_id: string
+  date: string | null
+  week: number | null
+  participant_roster_ids: number[]
+  participants: HistoricalTradeParticipant[]
+  summary: string
+  current_winner_roster_id?: number | null
+  current_winner_name?: string | null
+  current_best_delta?: number | null
+  at_time_status: "available" | "unavailable"
+  at_time_note: string
+}
+
+export interface LeagueTradeHistoryResponse {
+  league_id: string
+  trades: HistoricalTradeEvaluationRow[]
+}
+
+export interface DraftGradeAtTime {
+  status: "available" | "unavailable"
+  note: string
+  value?: number | null
+}
+
+export interface DraftGradeSelection {
+  draft_id: string
+  roster_id: number
+  roster_name: string
+  player_id: string
+  player_name: string
+  position: string | null
+  pick_slot: number
+  round_number: number
+  season: number
+  draft_type: "rookie" | "startup"
+  current_value: number
+  expected_value: number
+  value_delta: number
+  rank_delta: number
+  grade_score: number
+  grade_label: string
+  rationale: string
+  at_time: DraftGradeAtTime
+}
+
+export interface DraftGradeTeamSummary {
+  roster_id: number
+  roster_name: string
+  pick_count: number
+  average_grade: number
+  total_value_delta: number
+  best_pick?: DraftGradeSelection | null
+  weakest_pick?: DraftGradeSelection | null
+}
+
+export interface DraftGradesResponse {
+  league_id: string
+  selections: DraftGradeSelection[]
+  team_summaries: DraftGradeTeamSummary[]
+  best_value?: DraftGradeSelection | null
+  biggest_reach?: DraftGradeSelection | null
+  best_team?: DraftGradeTeamSummary | null
+  weakest_team?: DraftGradeTeamSummary | null
+}
+
 export type TimingLabel =
   | "sell_now"
   | "hold_until_rookie_fever"

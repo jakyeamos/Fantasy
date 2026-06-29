@@ -502,7 +502,12 @@ class TradeEngine:
             explanation="The deal is roughly acceptable on price, but it does not materially change your team path.",
         )
 
-    def evaluate(self, request: TradeRequest) -> TradeEvaluation:
+    def evaluate(
+        self,
+        request: TradeRequest,
+        *,
+        include_recommendation_cards: bool = True,
+    ) -> TradeEvaluation:
         direction = self._repo.get_team_direction(request.league_id, request.user_roster_id)
         direction_label = direction["primary_label"] if direction is not None else "roster plan"
         sending_values = self._resolve_assets(
@@ -572,12 +577,13 @@ class TradeEngine:
             trade_balance=trade_balance,
             third_party_evaluations=third_party_evaluations or None,
         )
-        evaluation.recommendation_cards = self._card_engine.build_trade_card(
-            evaluation,
-            request.league_id,
-            request.user_roster_id,
-            sending_values=sending_values,
-            receiving_values=receiving_values,
-            direction_label=direction_label,
-        )
+        if include_recommendation_cards:
+            evaluation.recommendation_cards = self._card_engine.build_trade_card(
+                evaluation,
+                request.league_id,
+                request.user_roster_id,
+                sending_values=sending_values,
+                receiving_values=receiving_values,
+                direction_label=direction_label,
+            )
         return evaluation

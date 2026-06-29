@@ -8,12 +8,14 @@ import type {
   FreshnessTag,
   CorrelatedRiskRow,
   DashboardLeagueSummary,
+  DraftGradesResponse,
   DiffRow,
   DraftOrderRuleResponse,
   DraftRoomResponse,
   ExposureRow,
   HygieneResult,
   LeagueDetailResponse,
+  LeagueTradeHistoryResponse,
   LeagueDraftOrderRule,
   LeagueFormatScan,
   LeagueRosterOption,
@@ -129,6 +131,22 @@ export const playerRankingsOptions = (leagueId: string, rosterId?: number | null
         `/dashboard/league/${leagueId}/player-rankings${suffix}`,
       )
     },
+    staleTime: 5 * 60 * 1000,
+    enabled: leagueId.trim().length > 0,
+  })
+
+export const leagueTradeHistoryOptions = (leagueId: string) =>
+  queryOptions({
+    queryKey: ["trade", "history", leagueId],
+    queryFn: () => getJson<LeagueTradeHistoryResponse>(`/trade/history/${leagueId}`),
+    staleTime: 60 * 1000,
+    enabled: leagueId.trim().length > 0,
+  })
+
+export const draftGradesOptions = (leagueId: string) =>
+  queryOptions({
+    queryKey: ["draft-grades", leagueId],
+    queryFn: () => getJson<DraftGradesResponse>(`/draft-grades/${leagueId}`),
     staleTime: 5 * 60 * 1000,
     enabled: leagueId.trim().length > 0,
   })

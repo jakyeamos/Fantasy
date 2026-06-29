@@ -157,6 +157,8 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
   const isOverviewRoute = location.pathname === leaguePath
   const isComparisonRoute = location.pathname === `${leaguePath}/comparison`
   const isManagersRoute = location.pathname.startsWith(`${leaguePath}/managers`)
+  const isTradeHistoryRoute = location.pathname === `${leaguePath}/trade-history`
+  const isDraftGradesRoute = location.pathname === `${leaguePath}/draft-grades`
   const isLeagueOpsRoute = location.pathname === `${leaguePath}/league-ops`
   const isPlayerRankingsRoute =
     location.pathname === `${leaguePath}/player-rankings`
@@ -351,6 +353,28 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
                     })}
                   >
                     Managers
+                  </Link>
+                  <Link
+                    to="/league/$leagueId/trade-history"
+                    params={{ leagueId }}
+                    className={buttonClasses({
+                      variant: isTradeHistoryRoute ? "default" : "outline",
+                      size: "sm",
+                      className: "h-9 px-3",
+                    })}
+                  >
+                    Trade History
+                  </Link>
+                  <Link
+                    to="/league/$leagueId/draft-grades"
+                    params={{ leagueId }}
+                    className={buttonClasses({
+                      variant: isDraftGradesRoute ? "default" : "outline",
+                      size: "sm",
+                      className: "h-9 px-3",
+                    })}
+                  >
+                    Draft Grades
                   </Link>
                   <Link
                     to="/league/$leagueId/roster-moves"

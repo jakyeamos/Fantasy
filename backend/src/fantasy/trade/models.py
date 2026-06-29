@@ -165,3 +165,52 @@ class TradeRosterResult(BaseModel):
 
     roster_id: int
     roster_name: str
+
+
+class HistoricalAsset(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    asset_type: Literal["player", "pick"]
+    label: str
+    player_id: str | None = None
+    player_position: str | None = None
+    pick_year: int | None = None
+    pick_round: int | None = None
+    pick_original_roster_id: int | None = None
+
+
+class HistoricalTradeParticipant(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    roster_id: int
+    roster_name: str
+    sends: list[HistoricalAsset]
+    receives: list[HistoricalAsset]
+    current_replay: TradeEvaluation | None = None
+    current_replay_error: str | None = None
+    at_time_status: Literal["available", "unavailable"]
+    at_time_delta: float | None = None
+    at_time_note: str
+
+
+class HistoricalTradeEvaluationRow(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    transaction_id: str
+    date: str | None
+    week: int | None
+    participant_roster_ids: list[int]
+    participants: list[HistoricalTradeParticipant]
+    summary: str
+    current_winner_roster_id: int | None = None
+    current_winner_name: str | None = None
+    current_best_delta: float | None = None
+    at_time_status: Literal["available", "unavailable"]
+    at_time_note: str
+
+
+class LeagueTradeHistoryResponse(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    league_id: str
+    trades: list[HistoricalTradeEvaluationRow]

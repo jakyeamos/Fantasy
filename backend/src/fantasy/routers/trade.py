@@ -15,9 +15,11 @@ from fantasy.trade.models import (
     TradeRosterResult,
     TradeEvaluation,
     TradeRequest,
+    LeagueTradeHistoryResponse,
 )
 from fantasy.trade.package_builder import PackageBuilder
 from fantasy.trade.reroute_engine import RerouteEngine
+from fantasy.trade.history_service import TradeHistoryService
 from fantasy.trade.trade_engine import TradeEngine
 from fantasy.trade.trade_repo import TradeRepo
 
@@ -88,3 +90,11 @@ def list_rosters(
 ) -> list[TradeRosterResult]:
     repo = TradeRepo(conn)
     return [TradeRosterResult(**row) for row in repo.get_rosters(league_id)]
+
+
+@router.get("/history/{league_id}", response_model=LeagueTradeHistoryResponse)
+def get_trade_history(
+    league_id: str,
+    conn: duckdb.DuckDBPyConnection = Depends(get_read_db_conn),
+) -> LeagueTradeHistoryResponse:
+    return TradeHistoryService(conn).build(league_id)

@@ -15,6 +15,7 @@ from fantasy.routers import (
     context,
     corrections,
     dashboard,
+    draft_grades,
     draft_room,
     edge_radar,
     health,
@@ -108,6 +109,7 @@ def create_app() -> FastAPI:
     app.include_router(prospects.router)
     app.include_router(rookie_board.router)
     app.include_router(draft_room.router)
+    app.include_router(draft_grades.router)
     app.include_router(snapshot_diff.router)
     app.include_router(portfolio.router)
     app.include_router(trust.router)

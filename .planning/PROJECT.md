@@ -12,6 +12,7 @@ The system must tell you — for each of your teams — what you are, what your 
 
 ### Validated
 
+- League pages now include Trade History and Draft Grades screens: completed trades replay through current Trade Lab scoring with explicit at-time coverage, and stored rookie/startup selections get computed current-value grades plus at-time snapshot status.
 - Trade Lab no longer renders the non-actionable primary-counterparty/deal-shape explainer beside the send/receive package builder.
 - Trade Lab balance now separates consensus market value from app-adjusted value, with the seesaw using team fit, direction, insulation, production, scarcity, liquidity, and package concentration rather than consensus alone.
 - App-wide decorative backlighting is removed from the global background, cards, primary buttons, active trade panels, popovers, and sheets while preserving borders and focus treatment.
@@ -141,4 +142,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-29 after removing non-actionable Trade Lab explainer chrome*
+*Last updated: 2026-06-29 after adding league trade audit and draft grade screens*
