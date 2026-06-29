@@ -243,8 +243,10 @@ async def test_ingest_persists_draft_pick_selections(db, base_league, base_roste
             {
                 "draft_id": "draft_2025",
                 "season": "2025",
-                "type": "rookie",
+                "type": "linear",
                 "status": "complete",
+                "metadata": {"name": "2025 Rookie Draft"},
+                "settings": {"rounds": 3, "teams": 12},
                 "slot_to_roster_id": {"1": 1},
             }
         ],

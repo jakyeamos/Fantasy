@@ -119,6 +119,43 @@ class IngestService:
                 self._normalize_player_record(player_id, player_catalog.get(player_id))
             )
 
+    def _infer_draft_type(
+        self,
+        draft: dict[str, Any],
+        raw_picks: list[dict[str, Any]],
+    ) -> str:
+        metadata = draft.get("metadata") if isinstance(draft.get("metadata"), dict) else {}
+        settings = draft.get("settings") if isinstance(draft.get("settings"), dict) else {}
+        searchable = " ".join(
+            str(value).lower()
+            for value in [
+                draft.get("draft_type"),
+                draft.get("type"),
+                draft.get("name"),
+                metadata.get("name"),
+                metadata.get("description"),
+            ]
+            if value is not None
+        )
+        if "rookie" in searchable:
+            return "rookie"
+        if "startup" in searchable or "start-up" in searchable:
+            return "startup"
+
+        rounds = settings.get("rounds") or draft.get("rounds")
+        teams = settings.get("teams") or draft.get("teams")
+        try:
+            round_count = int(rounds)
+            team_count = int(teams)
+        except (TypeError, ValueError):
+            round_count = 0
+            team_count = 0
+        if round_count and round_count <= 8:
+            return "rookie"
+        if team_count and raw_picks and len(raw_picks) <= team_count * 8:
+            return "rookie"
+        return "startup"
+
     async def _store_draft_pick_selections(
         self, league_id: str, drafts_raw: list[dict[str, Any]]
     ) -> dict[str, int]:
@@ -134,11 +171,7 @@ class IngestService:
             raw_picks = await self.client.fetch_draft_picks(str(draft_id))
             if not raw_picks:
                 continue
-            draft_type = (
-                "rookie"
-                if str(draft.get("type") or "").lower() == "rookie"
-                else "startup"
-            )
+            draft_type = self._infer_draft_type(draft, raw_picks)
             selections = SleeperMapper.map_draft_pick_selections(
                 raw_picks,
                 league_id,

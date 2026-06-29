@@ -102,7 +102,12 @@ class DraftGradesService:
                 COALESCE(MAX(pv.lens_market), 0.0) AS current_market,
                 COALESCE(MAX(pv.lens_team_fit), 0.0) AS team_fit,
                 MIN(pmo.predicted_tier) AS predicted_tier,
-                MIN(pmo.tier) AS model_tier
+                MIN(pmo.tier) AS model_tier,
+                ANY_VALUE(pmo.predicted_bucket) AS predicted_bucket,
+                ANY_VALUE(pmo.risk_band) AS risk_band,
+                ANY_VALUE(pmo.overvalue_flag_direction) AS overvalue_flag_direction,
+                MAX(COALESCE(pmo.overvalue_magnitude, 0)) AS overvalue_magnitude,
+                BOOL_OR(COALESCE(pmo.low_confidence, FALSE)) AS low_confidence
             FROM draft_pick_selections dps
             LEFT JOIN rosters r
               ON r.league_id = dps.league_id
@@ -128,22 +133,24 @@ class DraftGradesService:
         raw = [self._row_dict(row) for row in rows]
         expected_by_key = self._expected_values(raw)
         current_rank_by_key = self._current_ranks(raw)
+        model_rank_by_key = self._model_ranks(raw)
+        opportunity_by_key = self._opportunity_context(raw)
         selections: list[DraftGradeSelection] = []
         for item in raw:
             key = (item["draft_id"], item["draft_type"], item["season"])
             expected = expected_by_key[key].get(item["pick_slot"], 0.0)
             current_value = self._selection_current_value(item)
             rank_delta = int(item["pick_slot"]) - current_rank_by_key[key][item["player_id"]]
+            model_delta = int(item["pick_slot"]) - model_rank_by_key[key][item["player_id"]]
             value_delta = current_value - expected
-            grade = max(
-                0.0,
-                min(
-                    100.0,
-                    60.0
-                    + rank_delta * 4.0
-                    + value_delta * 35.0
-                    + float(item["team_fit"] or 0.0) * 8.0,
-                ),
+            opportunity = opportunity_by_key[key][item["player_id"]]
+            grade = self._grade_score(
+                item,
+                rank_delta=rank_delta,
+                model_delta=model_delta,
+                value_delta=value_delta,
+                alternative_delta=opportunity["alternative_delta"],
+                tier_gap=opportunity["tier_gap"],
             )
             at_time = self._at_time_value(
                 league_id,
@@ -170,7 +177,15 @@ class DraftGradesService:
                     rank_delta=rank_delta,
                     grade_score=round(grade, 1),
                     grade_label=label,
-                    rationale=self._rationale(rank_delta, value_delta, position, label),
+                    rationale=self._rationale(
+                        rank_delta,
+                        model_delta,
+                        value_delta,
+                        opportunity["alternative_delta"],
+                        opportunity["tier_gap"],
+                        position,
+                        label,
+                    ),
                     at_time=at_time,
                 )
             )
@@ -202,6 +217,11 @@ class DraftGradesService:
             "team_fit",
             "predicted_tier",
             "model_tier",
+            "predicted_bucket",
+            "risk_band",
+            "overvalue_flag_direction",
+            "overvalue_magnitude",
+            "low_confidence",
         ]
         return dict(zip(columns, row, strict=False))
 
@@ -249,6 +269,91 @@ class DraftGradesService:
             }
         return ranks
 
+    def _model_rank_key(self, row: dict[str, object]) -> tuple[float, float, float]:
+        tier = row["model_tier"] or row["predicted_tier"]
+        tier_rank = float(tier) if tier is not None else 99.0
+        return (tier_rank, -self._selection_current_value(row), float(row["pick_slot"]))
+
+    def _model_ranks(
+        self,
+        rows: list[dict[str, object]],
+    ) -> dict[tuple[str, str, int], dict[str, int]]:
+        grouped: dict[tuple[str, str, int], list[dict[str, object]]] = defaultdict(list)
+        for row in rows:
+            grouped[(str(row["draft_id"]), str(row["draft_type"]), int(row["season"]))].append(row)
+        ranks: dict[tuple[str, str, int], dict[str, int]] = {}
+        for key, group in grouped.items():
+            sorted_group = sorted(group, key=self._model_rank_key)
+            ranks[key] = {
+                str(row["player_id"]): index + 1
+                for index, row in enumerate(sorted_group)
+            }
+        return ranks
+
+    def _opportunity_context(
+        self,
+        rows: list[dict[str, object]],
+    ) -> dict[tuple[str, str, int], dict[str, dict[str, float]]]:
+        grouped: dict[tuple[str, str, int], list[dict[str, object]]] = defaultdict(list)
+        for row in rows:
+            grouped[(str(row["draft_id"]), str(row["draft_type"]), int(row["season"]))].append(row)
+        result: dict[tuple[str, str, int], dict[str, dict[str, float]]] = {}
+        for key, group in grouped.items():
+            ordered = sorted(group, key=lambda item: int(item["pick_slot"]))
+            context: dict[str, dict[str, float]] = {}
+            for index, row in enumerate(ordered):
+                current_value = self._selection_current_value(row)
+                remaining = ordered[index:]
+                best_available = max(
+                    (self._selection_current_value(candidate) for candidate in remaining),
+                    default=current_value,
+                )
+                alternatives = [
+                    self._selection_current_value(candidate)
+                    for candidate in remaining
+                    if str(candidate["player_id"]) != str(row["player_id"])
+                ]
+                best_alternative = max(alternatives, default=0.0)
+                context[str(row["player_id"])] = {
+                    "alternative_delta": current_value - best_available,
+                    "tier_gap": max(0.0, current_value - best_alternative),
+                }
+            result[key] = context
+        return result
+
+    def _grade_score(
+        self,
+        item: dict[str, object],
+        *,
+        rank_delta: int,
+        model_delta: int,
+        value_delta: float,
+        alternative_delta: float,
+        tier_gap: float,
+    ) -> float:
+        draft_type = str(item["draft_type"])
+        market_weight = 2.0 if draft_type == "rookie" else 3.0
+        model_weight = 4.0 if draft_type == "rookie" else 2.0
+        grade = (
+            58.0
+            + rank_delta * market_weight
+            + model_delta * model_weight
+            + value_delta * 28.0
+            + alternative_delta * 32.0
+            + tier_gap * 24.0
+            + float(item["team_fit"] or 0.0) * 10.0
+        )
+        overvalue_direction = item.get("overvalue_flag_direction")
+        overvalue_magnitude = float(item.get("overvalue_magnitude") or 0.0)
+        overvalue_adjustment = min(8.0, overvalue_magnitude * 0.75)
+        if overvalue_direction == "undervalued":
+            grade += overvalue_adjustment
+        elif overvalue_direction == "overvalued":
+            grade -= overvalue_adjustment
+        if bool(item.get("low_confidence")):
+            grade -= 3.0
+        return max(0.0, min(100.0, grade))
+
     def _at_time_value(
         self,
         league_id: str,
@@ -294,7 +399,10 @@ class DraftGradesService:
     def _rationale(
         self,
         rank_delta: int,
+        model_delta: int,
         value_delta: float,
+        alternative_delta: float,
+        tier_gap: float,
         position: str | None,
         label: str,
     ) -> str:
@@ -304,8 +412,23 @@ class DraftGradesService:
             rank_text = f"{abs(rank_delta)} slot current-value reach"
         else:
             rank_text = "slot matched current value"
+        if model_delta > 0:
+            model_text = f"{model_delta} slot model steal"
+        elif model_delta < 0:
+            model_text = f"{abs(model_delta)} slot model reach"
+        else:
+            model_text = "model rank matched slot"
         direction = "above" if value_delta >= 0 else "below"
-        return f"{label} grade: {rank_text}; {position or 'UNKNOWN'} value is {abs(value_delta):.2f} {direction} the slot baseline."
+        alternative_text = (
+            f"{abs(alternative_delta):.2f} behind best available"
+            if alternative_delta < 0
+            else "best available by current value"
+        )
+        return (
+            f"{label} grade: {rank_text}; {model_text}; {position or 'UNKNOWN'} value is "
+            f"{abs(value_delta):.2f} {direction} the slot baseline; {alternative_text}; "
+            f"tier gap after pick {tier_gap:.2f}."
+        )
 
     def _summaries(self, selections: list[DraftGradeSelection]) -> list[DraftGradeTeamSummary]:
         grouped: dict[int, list[DraftGradeSelection]] = defaultdict(list)

@@ -44,6 +44,77 @@ def test_draft_grades_returns_rookie_and_startup_team_summaries(trade_seed_data)
     assert payload["biggest_reach"] is not None
 
 
+def test_rookie_grades_reward_model_value_and_tier_gap(trade_seed_data):
+    trade_seed_data.execute("DELETE FROM draft_pick_selections WHERE league_id = 'league_x'")
+    trade_seed_data.execute(
+        """
+        INSERT INTO draft_pick_selections (
+            id, league_id, draft_id, roster_id, player_id, pick_slot,
+            round_number, season, draft_type, position, archetype_label, ingested_at
+        )
+        VALUES
+            (10, 'league_x', 'rookie_edge', 1, 'qb2', 1, 1, 2026, 'rookie', 'QB', 'pocket', TIMESTAMP '2026-05-01 12:00:00'),
+            (11, 'league_x', 'rookie_edge', 2, 'wr1', 2, 1, 2026, 'rookie', 'WR', 'separator', TIMESTAMP '2026-05-01 12:00:00'),
+            (12, 'league_x', 'rookie_edge', 1, 'rb1', 3, 1, 2026, 'rookie', 'RB', 'workhorse', TIMESTAMP '2026-05-01 12:00:00')
+        """
+    )
+    trade_seed_data.execute(
+        """
+        UPDATE player_values
+        SET lens_market = CASE player_id
+            WHEN 'qb2' THEN 0.30
+            WHEN 'wr1' THEN 0.82
+            WHEN 'rb1' THEN 0.52
+            ELSE lens_market
+        END,
+        lens_team_fit = CASE player_id
+            WHEN 'qb2' THEN 0.00
+            WHEN 'wr1' THEN 0.30
+            WHEN 'rb1' THEN 0.10
+            ELSE lens_team_fit
+        END
+        WHERE league_id = 'league_x'
+        """
+    )
+    trade_seed_data.executemany(
+        """
+        INSERT INTO prospect_model_outputs (
+            league_id, draft_season, player_id, player_name, position,
+            archetype_label, hit_rate_bucket, tier, predicted_tier,
+            predicted_bucket, risk_band, overvalue_flag_direction,
+            overvalue_magnitude, low_confidence, comps_json
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (league_id, draft_season, player_id) DO UPDATE SET
+            tier = EXCLUDED.tier,
+            predicted_tier = EXCLUDED.predicted_tier,
+            predicted_bucket = EXCLUDED.predicted_bucket,
+            risk_band = EXCLUDED.risk_band,
+            overvalue_flag_direction = EXCLUDED.overvalue_flag_direction,
+            overvalue_magnitude = EXCLUDED.overvalue_magnitude,
+            low_confidence = EXCLUDED.low_confidence
+        """,
+        [
+            ("league_x", 2026, "qb2", "QB Two", "QB", "Pocket", "low", 4, 4, "miss", "High", "overvalued", 4, False, "[]"),
+            ("league_x", 2026, "wr1", "WR One", "WR", "Separator", "high", 1, 1, "hit", "Low", "undervalued", 4, False, "[]"),
+            ("league_x", 2026, "rb1", "RB One", "RB", "Workhorse", "mid", 2, 2, "hit", "Medium", None, None, False, "[]"),
+        ],
+    )
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(trade_seed_data)
+    client = TestClient(app)
+
+    response = client.get("/draft-grades/league_x")
+
+    assert response.status_code == 200
+    payload = response.json()
+    by_player = {item["player_id"]: item for item in payload["selections"]}
+    assert by_player["wr1"]["grade_score"] > by_player["qb2"]["grade_score"]
+    assert by_player["wr1"]["grade_label"] in {"A", "B"}
+    assert "model steal" in by_player["wr1"]["rationale"]
+    assert "model reach" in by_player["qb2"]["rationale"]
+
+
 def test_draft_grades_marks_at_time_available_from_prior_snapshot(trade_seed_data):
     _seed_draft_selection_rows(trade_seed_data)
     trade_seed_data.execute(
