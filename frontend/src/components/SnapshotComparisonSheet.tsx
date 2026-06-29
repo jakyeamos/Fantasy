@@ -52,7 +52,7 @@ export function SnapshotComparisonSheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby="snapshot-comparison-title"
-        className="ml-auto flex h-full w-full max-w-lg flex-col overflow-y-auto border-l border-border/70 bg-background p-6 shadow-2xl"
+        className="ml-auto flex h-full w-full max-w-lg flex-col overflow-y-auto border-l border-border/70 bg-background p-6"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">

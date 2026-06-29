@@ -50,13 +50,11 @@
   --input: 216 31% 80%;
   --ring: 199 100% 49%;
   --radius: 12px;
-  --elevation-primary-glow: 0 0 24px -12px hsl(var(--primary) / 0.85);
-  --elevation-primary-active: 0 0 24px -16px hsl(var(--primary) / 0.85);
-  --elevation-panel: 0 24px 50px -30px hsl(var(--foreground) / 0.85);
-  --elevation-popover: 0 28px 60px -28px hsl(var(--foreground) / 0.95);
-  --elevation-warning-glow: 0 18px 42px -28px hsl(var(--warning) / 0.55);
-  --background-glow-left: hsla(199, 100%, 49%, 0.18);
-  --background-glow-right: hsla(156, 100%, 81%, 0.12);
+  --elevation-primary-glow: none;
+  --elevation-primary-active: none;
+  --elevation-panel: none;
+  --elevation-popover: none;
+  --elevation-warning-glow: none;
   --background-end: color-mix(in srgb, hsl(var(--background)) 82%, white);
   --font-headline: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -111,8 +109,6 @@
   --border: 219 49% 33%;
   --input: 219 49% 33%;
   --ring: 199 100% 74%;
-  --background-glow-left: hsla(199, 100%, 74%, 0.14);
-  --background-glow-right: hsla(156, 100%, 81%, 0.08);
   --background-end: color-mix(in srgb, hsl(var(--background)) 88%, black);
 }
 
@@ -195,10 +191,7 @@ html {
 
 body {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, var(--background-glow-left), transparent 28%),
-    radial-gradient(circle at top right, var(--background-glow-right), transparent 24%),
-    linear-gradient(180deg, hsl(var(--background)), var(--background-end));
+  background: linear-gradient(180deg, hsl(var(--background)), var(--background-end));
   color: hsl(var(--foreground));
   font-family: var(--font-body);
   letter-spacing: -0.01em;

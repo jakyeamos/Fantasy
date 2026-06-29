@@ -216,7 +216,7 @@ export function ThirdPartyTradeCards({
               key={trade.clientId}
               className={
                 isActiveTrade
-                  ? "border-warning/70 shadow-warning-glow"
+                  ? "border-warning/70"
                   : "border-dashed border-border/45"
               }
             >

@@ -12,6 +12,7 @@ The system must tell you — for each of your teams — what you are, what your 
 
 ### Validated
 
+- App-wide decorative backlighting is removed from the global background, cards, primary buttons, active trade panels, popovers, and sheets while preserving borders and focus treatment.
 - Trade Lab evaluations now include an adjusted trade-balance seesaw that discounts loose end-of-bench package pieces, so bulk depth does not equal elite value even when raw market totals match.
 - Trade Lab now preserves full top-move trade CTA query params even when the router parses numeric-looking ids, and older name-only trade links resolve the target player into the appropriate send/receive side.
 - Waiver FAAB ranges now cap non-starter stash bids when the roster already has a strong same-position anchor or the candidate is blocked by a better same-team positional player, preventing Theo Johnson-style TE depth from commanding priority FAAB behind Loveland.
@@ -138,4 +139,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-29 after adding adjusted Trade Lab balance*
+*Last updated: 2026-06-29 after removing app backlighting*

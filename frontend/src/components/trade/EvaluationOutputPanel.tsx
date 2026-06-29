@@ -60,7 +60,7 @@ function TradeBalanceSeesaw({ evaluation }: { evaluation: TradeEvaluation }) {
           </div>
           <div className="absolute left-1/2 top-1 h-8 w-px -translate-x-1/2 bg-border" />
           <div
-            className="absolute top-0 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-primary/45 bg-background font-mono text-xs font-semibold text-primary shadow-sm transition-all"
+            className="absolute top-0 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-primary/45 bg-background font-mono text-xs font-semibold text-primary transition-all"
             style={{ left: `${markerPosition}%` }}
           >
             {score.toFixed(0)}

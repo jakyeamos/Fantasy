@@ -37,7 +37,7 @@ export function AssetBucketPanel({
     <div
       className={`rounded-xl border p-4 ${
         isActive
-          ? "border-primary/30 bg-primary/10 shadow-primary-active"
+          ? "border-primary/30 bg-primary/10"
           : "border-border/45 bg-card/45"
       }`}
     >

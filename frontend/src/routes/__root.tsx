@@ -298,7 +298,7 @@ function RootLayout() {
                 onClick={item.action}
                 className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left ${
                   item.active
-                    ? "border-primary/30 bg-primary/10 text-primary shadow-primary-active"
+                    ? "border-primary/30 bg-primary/10 text-primary"
                     : "border-transparent text-muted-foreground hover:border-border/60 hover:bg-card/55 hover:text-foreground"
                 } ${item.disabled ? "cursor-not-allowed opacity-45" : ""}`}
               >

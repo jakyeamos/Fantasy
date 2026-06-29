@@ -84,7 +84,7 @@ export function Popout({
 }) {
   return (
     <div className="pointer-events-none absolute left-0 top-full z-30 hidden w-[min(24rem,calc(100vw-2rem))] pt-3 opacity-0 transition duration-150 group-hover:block group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:block group-focus-within:pointer-events-auto group-focus-within:opacity-100">
-      <div className="translate-y-2 rounded-2xl border border-border/70 bg-background/95 p-4 shadow-popover backdrop-blur transition duration-150 group-hover:translate-y-0 group-focus-within:translate-y-0">
+      <div className="translate-y-2 rounded-2xl border border-border/70 bg-background/95 p-4 backdrop-blur transition duration-150 group-hover:translate-y-0 group-focus-within:translate-y-0">
         <p className="terminal-label text-muted-foreground">{title}</p>
         <div className="mt-3 space-y-3 text-sm leading-6 text-muted-foreground">
           {children}
