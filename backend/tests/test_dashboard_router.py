@@ -11,6 +11,7 @@ from fantasy.routers.dashboard import (
     _derive_summary_signal,
     _direction_note,
     _direction_read,
+    _league_competition_rows,
 )
 
 
@@ -184,6 +185,42 @@ def test_dashboard_league_returns_competitive_landscape(phase3_seed_data):
         "toss_up",
         "underdog",
     }
+
+
+def test_title_window_rankings_reward_sustainable_title_clearance(phase3_seed_data):
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(phase3_seed_data)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(phase3_seed_data)
+    client = TestClient(app)
+
+    assert client.post("/intelligence/compute/league_x").status_code == 200
+    phase3_seed_data.execute(
+        """
+        UPDATE team_scorecards
+        SET win_now = CASE WHEN roster_id = 1 THEN 0.95 ELSE 0.70 END,
+            future_value = CASE WHEN roster_id = 1 THEN 0.10 ELSE 1.00 END,
+            pick_capital = CASE WHEN roster_id = 1 THEN 0.10 ELSE 1.00 END,
+            age_risk = CASE WHEN roster_id = 1 THEN 0.85 ELSE 0.10 END,
+            fragility = CASE WHEN roster_id = 1 THEN 0.85 ELSE 0.10 END
+        WHERE league_id = 'league_x'
+        """
+    )
+    phase3_seed_data.execute(
+        """
+        UPDATE lineup_scores
+        SET total_lineup_score = 10.0,
+            overall_title_target = 8.0,
+            overall_elite_target = 9.0,
+            title_window_composite = 0.50
+        WHERE league_id = 'league_x'
+        """
+    )
+
+    rows = _league_competition_rows(phase3_seed_data, "league_x")
+    by_roster = {int(row["roster_id"]): row for row in rows}
+
+    assert by_roster[1]["win_now"] > by_roster[2]["win_now"]
+    assert by_roster[2]["title_window"] > by_roster[1]["title_window"]
 
 
 def test_dashboard_league_accepts_roster_override(phase3_seed_data):

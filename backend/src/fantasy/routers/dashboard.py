@@ -745,6 +745,7 @@ def _league_competition_rows(
             ls.overall_elite_target,
             ts.pick_capital,
             ts.age_risk,
+            ts.fragility,
             st.wins,
             st.losses,
             st.ties
@@ -769,9 +770,9 @@ def _league_competition_rows(
         default=0.0,
     )
     for row in rows:
-        wins = int(row[15]) if row[15] is not None else None
-        losses = int(row[16]) if row[16] is not None else None
-        ties = int(row[17]) if row[17] is not None else None
+        wins = int(row[16]) if row[16] is not None else None
+        losses = int(row[17]) if row[17] is not None else None
+        ties = int(row[18]) if row[18] is not None else None
         total_lineup_score = float(row[10]) if row[10] is not None else None
         title_target = float(row[11]) if row[11] is not None else None
         elite_target = float(row[12]) if row[12] is not None else None
@@ -779,16 +780,23 @@ def _league_competition_rows(
         future_value = float(row[4]) if row[4] is not None else None
         pick_capital = float(row[13]) if row[13] is not None else None
         age_risk = float(row[14]) if row[14] is not None else None
+        fragility = float(row[15]) if row[15] is not None else None
         future_insulation = (
             _clamp01(
                 (
                     (future_value or 0.0)
                     + (pick_capital or 0.0)
                     + max(0.0, 1.0 - (age_risk or 0.0))
+                    + max(0.0, 1.0 - (fragility or 0.0))
                 )
-                / 3.0
+                / 4.0
             )
-            if future_value is not None or pick_capital is not None or age_risk is not None
+            if (
+                future_value is not None
+                or pick_capital is not None
+                or age_risk is not None
+                or fragility is not None
+            )
             else 0.0
         )
         lineup_power = (
@@ -796,11 +804,17 @@ def _league_competition_rows(
             if total_lineup_score is not None and max_lineup_score > 0
             else 0.0
         )
+        target_attainment = _title_target_attainment_score(
+            total_lineup_score,
+            title_target,
+            elite_target,
+        )
         title_window_score = (
-            lineup_power * 0.55
-            + _title_target_attainment_score(total_lineup_score, title_target, elite_target) * 0.25
+            target_attainment * 0.45
+            + future_insulation
+            * (0.10 + target_attainment * 0.25)
             + (title_composite or 0.0) * 0.10
-            + future_insulation * 0.10
+            + lineup_power * 0.10
         )
         competition_rows.append(
             {
