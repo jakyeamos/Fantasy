@@ -173,7 +173,19 @@ class LineupEngine:
             sum(inputs.position_medians.values())
             / max(len(inputs.position_medians), 1)
         )
-        return float(inputs.position_medians.get(position, med_avg))
+        position_average = float(inputs.position_medians.get(position, med_avg))
+        adp = inputs.adp_ranks.get(player_id)
+        if adp is None:
+            return position_average
+
+        market_score = _clamp01(1.0 - min(max(float(adp), 1.0), 250.0) / 250.0)
+        position_range = {
+            "QB": 14.0,
+            "RB": 12.0,
+            "WR": 11.0,
+            "TE": 9.0,
+        }.get(position.upper(), 8.0)
+        return max(position_average, position_average + market_score * position_range)
 
     def _load_current_strength_snapshots(
         self,

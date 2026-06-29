@@ -256,6 +256,43 @@ def test_compute_all_preserves_submitted_starters_over_higher_bench_values():
     assert "bench_wr" not in {slot.player_id for slot in result.slot_scores}
 
 
+def test_missing_weekly_stats_use_adp_context_before_position_average():
+    conn = duckdb.connect(":memory:")
+    eng = LineupEngine(conn)
+    inputs = _base_inputs(
+        1,
+        roster_positions=["RB", "BN"],
+        starters=["rookie_rb"],
+        bench=[],
+        weekly={},
+        position_medians={"RB": 7.0, "WR": 6.0},
+        player_positions={"rookie_rb": "RB"},
+    )
+    inputs.adp_ranks["rookie_rb"] = 16.0
+
+    value = eng._base_current_strength_value(inputs, "rookie_rb")
+
+    assert value > 18.0
+
+
+def test_missing_weekly_stats_without_adp_still_use_position_average():
+    conn = duckdb.connect(":memory:")
+    eng = LineupEngine(conn)
+    inputs = _base_inputs(
+        1,
+        roster_positions=["RB", "BN"],
+        starters=["unknown_rb"],
+        bench=[],
+        weekly={},
+        position_medians={"RB": 7.0, "WR": 6.0},
+        player_positions={"unknown_rb": "RB"},
+    )
+
+    value = eng._base_current_strength_value(inputs, "unknown_rb")
+
+    assert value == 7.0
+
+
 def test_title_window_peak_fading_outside():
     conn = duckdb.connect(":memory:")
     eng = LineupEngine(conn)

@@ -12,6 +12,7 @@ The system must tell you — for each of your teams — what you are, what your 
 
 ### Validated
 
+- Lineup score fallback for players without weekly stats now uses ADP/market context before generic position averages, so high-value rookies like Jeremiyah Love are not treated as average RB production.
 - Lineup score active slots now preserve actual Sleeper submitted starters before filling empty slots from the bench, so comparison Lineup Plan guidance no longer treats bench players like Tory Horton or Romeo Doubs as starters.
 - League comparison Title Window rankings now use sustainable title-window strength from lineup target attainment, future/pick/youth/fragility insulation, old composite context, and current lineup power, keeping the metric related to contention without duplicating Win Now.
 - Title-window labels now account for current lineup target attainment plus future/pick/age insulation, so an elite scoring roster with strong draft capital is not mislabeled as fading solely because the fragility component is lower.
@@ -149,4 +150,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-29 after preserving submitted starters in lineup guidance*
+*Last updated: 2026-06-29 after using market context for statless lineup players*
