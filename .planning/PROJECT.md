@@ -12,6 +12,7 @@ The system must tell you — for each of your teams — what you are, what your 
 
 ### Validated
 
+- Lineup score active slots now preserve actual Sleeper submitted starters before filling empty slots from the bench, so comparison Lineup Plan guidance no longer treats bench players like Tory Horton or Romeo Doubs as starters.
 - League comparison Title Window rankings now use sustainable title-window strength from lineup target attainment, future/pick/youth/fragility insulation, old composite context, and current lineup power, keeping the metric related to contention without duplicating Win Now.
 - Title-window labels now account for current lineup target attainment plus future/pick/age insulation, so an elite scoring roster with strong draft capital is not mislabeled as fading solely because the fragility component is lower.
 - Draft Grades now uses raw rookie feature profiles from `historical_prospect_features`, including draft capital, age, college production, efficiency, market-share proxies, and position-specific QB/RB/WR/TE signals in pick grades and rationale.
@@ -148,4 +149,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-29 after separating Title Window comparison from Win Now*
+*Last updated: 2026-06-29 after preserving submitted starters in lineup guidance*

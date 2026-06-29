@@ -301,7 +301,21 @@ class LineupEngine:
 
         non_flex_slots = [entry for entry in active_slots if not _flex_like(entry[1])]
         flex_slots = [entry for entry in active_slots if _flex_like(entry[1])]
+        for active_ordinal, (slot_index, slot) in enumerate(active_slots):
+            if active_ordinal >= len(inputs.starters):
+                continue
+            player_id = str(inputs.starters[active_ordinal] or "")
+            if not player_id or player_id in used:
+                continue
+            player_position = inputs.player_positions.get(player_id, "UNKNOWN").strip().upper()
+            if player_position not in _slot_allowed_positions(slot):
+                continue
+            used.add(player_id)
+            assigned[slot_index] = (slot, player_id, slot_index)
+
         for slot_index, slot in non_flex_slots + flex_slots:
+            if slot_index in assigned:
+                continue
             allowed_positions = _slot_allowed_positions(slot)
             best_player_id: str | None = None
             best_value = -1.0

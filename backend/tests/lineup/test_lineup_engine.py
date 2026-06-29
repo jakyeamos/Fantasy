@@ -221,6 +221,41 @@ def test_compute_all_builds_full_lineup_from_starters_plus_bench():
     assert out[1].total_lineup_score > out[2].total_lineup_score
 
 
+def test_compute_all_preserves_submitted_starters_over_higher_bench_values():
+    conn = duckdb.connect(":memory:")
+    eng = LineupEngine(conn)
+    all_in = {
+        1: _base_inputs(
+            1,
+            roster_positions=["QB", "WR", "BN"],
+            starters=["starter_qb", "starter_wr"],
+            bench=["bench_wr"],
+            weekly={"starter_qb": 18.0, "starter_wr": 9.0, "bench_wr": 20.0},
+            player_positions={
+                "starter_qb": "QB",
+                "starter_wr": "WR",
+                "bench_wr": "WR",
+            },
+        ),
+        2: _base_inputs(
+            2,
+            roster_positions=["QB", "WR", "BN"],
+            starters=["other_qb", "other_wr"],
+            bench=[],
+            weekly={"other_qb": 16.0, "other_wr": 8.0},
+            player_positions={
+                "other_qb": "QB",
+                "other_wr": "WR",
+            },
+        ),
+    }
+
+    result = eng.compute_all("league_t", all_in, scorecards=None)[1]
+
+    assert {slot.player_id for slot in result.slot_scores} == {"starter_qb", "starter_wr"}
+    assert "bench_wr" not in {slot.player_id for slot in result.slot_scores}
+
+
 def test_title_window_peak_fading_outside():
     conn = duckdb.connect(":memory:")
     eng = LineupEngine(conn)
