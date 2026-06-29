@@ -119,8 +119,9 @@ class IngestService:
                 self._normalize_player_record(player_id, player_catalog.get(player_id))
             )
 
-    async def ingest_draft_picks(self, league_id: str) -> dict[str, int]:
-        drafts_raw = await self.client.fetch_drafts(league_id)
+    async def _store_draft_pick_selections(
+        self, league_id: str, drafts_raw: list[dict[str, Any]]
+    ) -> dict[str, int]:
         rookie_pick_repo = RookiePickRepo(self.conn)
         processed_drafts = 0
         processed_selections = 0
@@ -174,6 +175,10 @@ class IngestService:
             "enriched": enriched,
             "profiles": len(roster_rows),
         }
+
+    async def ingest_draft_picks(self, league_id: str) -> dict[str, int]:
+        drafts_raw = await self.client.fetch_drafts(league_id)
+        return await self._store_draft_pick_selections(league_id, drafts_raw)
 
     async def run(self, league_id: str, run_type: str = "full") -> int:
         running = self.conn.execute(
@@ -236,6 +241,13 @@ class IngestService:
             drafts_raw = await self.client.fetch_drafts(league_id)
             draft_slots = SleeperMapper.map_draft_slots(drafts_raw, league_id)
             self.repo.upsert_draft_slots(draft_slots)
+            draft_selection_summary = await self._store_draft_pick_selections(
+                league_id, drafts_raw
+            )
+            print(
+                f"[ingest:{run_id}]   draft selections loaded: "
+                f"{draft_selection_summary['selections']}"
+            )
 
             print(f"[ingest:{run_id}] fetching NFL state...")
             latest_cursor = self._get_latest_complete_cursor(league_id)

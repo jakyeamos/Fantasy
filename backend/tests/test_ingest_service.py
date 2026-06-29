@@ -16,6 +16,8 @@ class FakeSleeperClient:
         week,
         users=None,
         players=None,
+        drafts=None,
+        draft_picks=None,
     ):
         self._league = league
         self._rosters = rosters
@@ -24,6 +26,8 @@ class FakeSleeperClient:
         self._week = week
         self._users = users or []
         self._players = players or {}
+        self._drafts = drafts or []
+        self._draft_picks = draft_picks or {}
         self._weekly_stats: dict[int, dict] = {}
 
     async def fetch_league(self, _league_id):
@@ -39,7 +43,10 @@ class FakeSleeperClient:
         return self._traded_picks
 
     async def fetch_drafts(self, _league_id):
-        return []
+        return self._drafts
+
+    async def fetch_draft_picks(self, draft_id):
+        return self._draft_picks.get(draft_id, [])
 
     async def fetch_players(self):
         return self._players
@@ -222,6 +229,58 @@ async def test_ingest_persists_waiver_fields(db, base_league, base_roster):
 
     assert roster_row == (2, 41)
     assert transaction_row == (17,)
+
+
+@pytest.mark.asyncio
+async def test_ingest_persists_draft_pick_selections(db, base_league, base_roster):
+    client = FakeSleeperClient(
+        base_league,
+        [base_roster],
+        [],
+        {},
+        week=1,
+        drafts=[
+            {
+                "draft_id": "draft_2025",
+                "season": "2025",
+                "type": "rookie",
+                "status": "complete",
+                "slot_to_roster_id": {"1": 1},
+            }
+        ],
+        draft_picks={
+            "draft_2025": [
+                {
+                    "roster_id": 1,
+                    "player_id": "4017",
+                    "pick_no": 1,
+                    "round": 1,
+                    "metadata": {"position": "QB"},
+                }
+            ]
+        },
+    )
+
+    service = IngestService(db, client)
+    await service.run("test_league_001", "full")
+
+    row = db.execute(
+        """
+        SELECT league_id, draft_id, roster_id, player_id, pick_slot, round_number, season, draft_type, position
+        FROM draft_pick_selections
+        """
+    ).fetchone()
+    assert row == (
+        "test_league_001",
+        "draft_2025",
+        1,
+        "4017",
+        1,
+        1,
+        2025,
+        "rookie",
+        "QB",
+    )
 
 
 @pytest.mark.asyncio

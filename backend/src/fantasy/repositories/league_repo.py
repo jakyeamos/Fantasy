@@ -184,7 +184,7 @@ class LeagueRepo:
                 ON CONFLICT (league_id, draft_id, roster_id) DO UPDATE SET
                     confirmed_slot = EXCLUDED.confirmed_slot,
                     status = EXCLUDED.status,
-                    ingested_at = CURRENT_TIMESTAMP
+                    ingested_at = now()
                 """,
                 [
                     row_id,
