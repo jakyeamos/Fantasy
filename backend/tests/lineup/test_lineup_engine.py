@@ -48,17 +48,26 @@ def _base_inputs(
     )
 
 
-def _scorecard(league_id: str, roster_id: int, *, fragility: float, positional_insulation: float) -> TeamScorecard:
+def _scorecard(
+    league_id: str,
+    roster_id: int,
+    *,
+    fragility: float,
+    positional_insulation: float,
+    future_value: float = 0.5,
+    pick_capital: float = 0.5,
+    age_risk: float = 0.5,
+) -> TeamScorecard:
     return TeamScorecard(
         league_id=league_id,
         roster_id=roster_id,
         win_now=0.5,
-        future_value=0.5,
+        future_value=future_value,
         depth=0.5,
-        pick_capital=0.5,
+        pick_capital=pick_capital,
         flexibility=0.5,
         fragility=fragility,
-        age_risk=0.5,
+        age_risk=age_risk,
         liquidity=0.5,
         positional_insulation=positional_insulation,
         composite=0.5,
@@ -300,6 +309,74 @@ def test_league_normalization_ceiling_spread():
 def test_title_window_threshold_constants():
     assert PEAK_WINDOW_THRESHOLD == 0.65
     assert FADING_WINDOW_THRESHOLD == 0.35
+
+
+def test_title_window_target_attainment_with_future_insulation_is_peak():
+    conn = duckdb.connect(":memory:")
+    eng = LineupEngine(conn)
+    all_in = {
+        1: _base_inputs(
+            1,
+            roster_positions=["QB", "WR", "RB", "BN", "BN"],
+            starters=["qb1", "wr1", "rb1"],
+            bench=["b1", "b2"],
+            weekly={"qb1": 26.0, "wr1": 22.0, "rb1": 20.0, "b1": 7.0, "b2": 6.0},
+            player_positions={
+                "qb1": "QB",
+                "wr1": "WR",
+                "rb1": "RB",
+                "b1": "WR",
+                "b2": "RB",
+            },
+        ),
+        2: _base_inputs(
+            2,
+            roster_positions=["QB", "WR", "RB", "BN", "BN"],
+            starters=["qb2", "wr2", "rb2"],
+            bench=["b3", "b4"],
+            weekly={"qb2": 28.0, "wr2": 14.0, "rb2": 12.0, "b3": 8.0, "b4": 7.0},
+            player_positions={
+                "qb2": "QB",
+                "wr2": "WR",
+                "rb2": "RB",
+                "b3": "WR",
+                "b4": "RB",
+            },
+        ),
+        3: _base_inputs(
+            3,
+            roster_positions=["QB", "WR", "RB", "BN", "BN"],
+            starters=["qb3", "wr3", "rb3"],
+            bench=["b5", "b6"],
+            weekly={"qb3": 18.0, "wr3": 12.0, "rb3": 10.0, "b5": 9.0, "b6": 8.0},
+            player_positions={
+                "qb3": "QB",
+                "wr3": "WR",
+                "rb3": "RB",
+                "b5": "WR",
+                "b6": "RB",
+            },
+        ),
+    }
+    scorecards = {
+        1: _scorecard(
+            "league_t",
+            1,
+            fragility=0.65,
+            positional_insulation=0.5,
+            future_value=1.0,
+            pick_capital=1.0,
+            age_risk=0.2,
+        ),
+        2: _scorecard("league_t", 2, fragility=0.0, positional_insulation=0.5),
+        3: _scorecard("league_t", 3, fragility=0.2, positional_insulation=0.5),
+    }
+
+    result = eng.compute_all("league_t", all_in, scorecards)[1]
+
+    assert result.overall_gap_to_title_target == 0.0
+    assert result.title_window_composite < PEAK_WINDOW_THRESHOLD
+    assert result.title_window_label == "Peak Window"
 
 
 def test_slot_score_position_uses_player_position_not_slot_label():

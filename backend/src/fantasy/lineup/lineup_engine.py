@@ -536,6 +536,43 @@ class LineupEngine:
             benchmark_sample_size=len(all_values),
         )
 
+    def _title_window_label(
+        self,
+        composite: float,
+        total_lineup_score: float,
+        overall_targets: SlotBenchmarkTargets,
+        scorecard: TeamScorecard | None,
+    ) -> TITLE_WINDOW_LABELS:
+        future_insulation = 0.0
+        if scorecard is not None:
+            future_insulation = max(
+                0.0,
+                min(
+                    1.0,
+                    (
+                        float(scorecard.future_value)
+                        + float(scorecard.pick_capital)
+                        + max(0.0, 1.0 - float(scorecard.age_risk))
+                    )
+                    / 3.0,
+                ),
+            )
+        clears_title_target = total_lineup_score >= overall_targets.title_target
+        clears_elite_target = total_lineup_score >= overall_targets.elite_target
+        if clears_elite_target and composite >= FADING_WINDOW_THRESHOLD:
+            return "Peak Window"
+        if (
+            clears_title_target
+            and composite >= FADING_WINDOW_THRESHOLD
+            and future_insulation >= 0.62
+        ):
+            return "Peak Window"
+        if composite >= PEAK_WINDOW_THRESHOLD:
+            return "Peak Window"
+        if composite >= FADING_WINDOW_THRESHOLD:
+            return "Fading Window"
+        return "Outside Window"
+
     def _detect_context_flags(
         self,
         league_id: str,
@@ -848,13 +885,13 @@ class LineupEngine:
             )
 
             composite = title_window_composites.get(roster_id, 0.0)
-
-            if composite >= PEAK_WINDOW_THRESHOLD:
-                label = "Peak Window"
-            elif composite >= FADING_WINDOW_THRESHOLD:
-                label = "Fading Window"
-            else:
-                label = "Outside Window"
+            scorecard = scorecards.get(roster_id) if scorecards else None
+            label = self._title_window_label(
+                composite,
+                total_lineup_score,
+                overall_targets,
+                scorecard,
+            )
 
             results[roster_id] = LineupResult(
                 league_id=league_id,

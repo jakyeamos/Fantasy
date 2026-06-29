@@ -12,6 +12,7 @@ The system must tell you — for each of your teams — what you are, what your 
 
 ### Validated
 
+- Title-window labels now account for current lineup target attainment plus future/pick/age insulation, so an elite scoring roster with strong draft capital is not mislabeled as fading solely because the fragility component is lower.
 - Draft Grades now uses raw rookie feature profiles from `historical_prospect_features`, including draft capital, age, college production, efficiency, market-share proxies, and position-specific QB/RB/WR/TE signals in pick grades and rationale.
 - Draft Grades now classifies Sleeper linear rookie drafts as rookie drafts and scores picks with rookie model rank, market rank, slot value, available-alternative gap, tier cliff, team fit, and model over/undervalue context.
 - Trade History manager filtering now shows send/receive and current replay deltas only from the selected manager's perspective, with historical at-time chrome removed from the screen.
@@ -146,4 +147,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-29 after wiring raw rookie feature profiles into Draft Grades*
+*Last updated: 2026-06-29 after correcting title-window labels for insulated elite lineups*
