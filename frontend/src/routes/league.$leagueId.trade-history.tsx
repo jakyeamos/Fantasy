@@ -63,14 +63,25 @@ function participantSummary(participant: HistoricalTradeParticipant) {
   return (
     <div className="grid gap-3 rounded-xl border border-border/40 bg-card/35 p-4 md:grid-cols-2">
       <div>
-        <p className="terminal-label text-muted-foreground">{participant.roster_name} Sent</p>
+        <p className="terminal-label text-muted-foreground">Sent</p>
         <p className="mt-2 text-sm">{assetText(participant.sends)}</p>
       </div>
       <div>
-        <p className="terminal-label text-muted-foreground">{participant.roster_name} Received</p>
+        <p className="terminal-label text-muted-foreground">Received</p>
         <p className="mt-2 text-sm">{assetText(participant.receives)}</p>
       </div>
     </div>
+  )
+}
+
+function selectedParticipant(
+  trade: HistoricalTradeEvaluationRow,
+  selectedRosterId: number | null,
+): HistoricalTradeParticipant | null {
+  if (selectedRosterId === null) return null
+  return (
+    trade.participants.find((participant) => participant.roster_id === selectedRosterId) ??
+    null
   )
 }
 
@@ -101,11 +112,22 @@ function TradeRow({
   trade,
   expanded,
   onToggle,
+  selectedRosterId,
 }: {
   trade: HistoricalTradeEvaluationRow
   expanded: boolean
   onToggle: () => void
+  selectedRosterId: number | null
 }) {
+  const focusedParticipant = selectedParticipant(trade, selectedRosterId)
+  const rowDelta = focusedParticipant
+    ? participantBalance(focusedParticipant)
+    : trade.current_best_delta
+  const rowReplayLabel = focusedParticipant
+    ? focusedParticipant.roster_name
+    : (trade.current_winner_name ?? "No clear winner")
+  const detailParticipants = focusedParticipant ? [focusedParticipant] : trade.participants
+
   return (
     <div className="rounded-xl border border-border/45 bg-card/45">
       <button
@@ -123,33 +145,29 @@ function TradeRow({
         </div>
         <div>
           <p className="terminal-label text-muted-foreground">Current Replay</p>
-          <p className="mt-1 text-sm font-semibold">
-            {trade.current_winner_name ?? "No clear winner"}
-          </p>
+          <p className="mt-1 text-sm font-semibold">{rowReplayLabel}</p>
         </div>
         <div>
-          <p className="terminal-label text-muted-foreground">Best Delta</p>
-          <p className="mt-1 font-mono text-sm">{deltaText(trade.current_best_delta)}</p>
+          <p className="terminal-label text-muted-foreground">
+            {focusedParticipant ? "Manager Delta" : "Best Delta"}
+          </p>
+          <p className="mt-1 font-mono text-sm">{deltaText(rowDelta)}</p>
         </div>
         <div className="flex items-center gap-2 md:justify-end">
-          <Badge variant={trade.at_time_status === "available" ? "secondary" : "outline"}>
-            {trade.at_time_status === "available" ? "At-time available" : "At-time unavailable"}
-          </Badge>
           {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </div>
       </button>
       {expanded ? (
         <div className="space-y-4 border-t border-border/40 p-4">
-          <p className="text-sm text-muted-foreground">{trade.at_time_note}</p>
-          {trade.participants.map((participant) => (
+          {detailParticipants.map((participant) => (
             <div key={participant.roster_id} className="space-y-3">
+              {focusedParticipant ? null : (
+                <p className="text-sm font-semibold">{participant.roster_name}</p>
+              )}
               {participantSummary(participant)}
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 <Badge variant="outline">
                   Current delta {deltaText(participantBalance(participant))}
-                </Badge>
-                <Badge variant="outline">
-                  At-time {deltaText(participant.at_time_delta)}
                 </Badge>
               </div>
               {participant.current_replay ? (
@@ -189,6 +207,7 @@ function LeagueTradeHistoryPage() {
     const rosterId = Number(managerFilter)
     return allTrades.filter((trade) => trade.participant_roster_ids.includes(rosterId))
   }, [managerFilter, query.data?.trades])
+  const selectedRosterId = managerFilter === "all" ? null : Number(managerFilter)
 
   if (query.isLoading) {
     return (
@@ -211,8 +230,8 @@ function LeagueTradeHistoryPage() {
             <p className="terminal-label text-primary/85">League Trade Audit</p>
             <CardTitle className="mt-2 text-3xl">Past Trade Evaluations</CardTitle>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              Completed Sleeper trades replayed through the current app model, with at-time
-              coverage shown only when a prior snapshot exists.
+              Completed Sleeper trades replayed through the current app model. Selecting a
+              manager frames every delta from that roster's perspective.
             </p>
           </div>
           <label className="space-y-2">
@@ -232,21 +251,17 @@ function LeagueTradeHistoryPage() {
           </label>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-border/40 bg-card/45 p-4">
               <p className="terminal-label text-muted-foreground">Trades</p>
               <p className="mt-2 font-mono text-2xl">{trades.length}</p>
             </div>
             <div className="rounded-xl border border-border/40 bg-card/45 p-4">
-              <p className="terminal-label text-muted-foreground">At-Time Coverage</p>
-              <p className="mt-2 font-mono text-2xl">
-                {trades.filter((trade) => trade.at_time_status === "available").length}
-              </p>
-            </div>
-            <div className="rounded-xl border border-border/40 bg-card/45 p-4">
-              <p className="terminal-label text-muted-foreground">Expanded</p>
+              <p className="terminal-label text-muted-foreground">Perspective</p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Rows open into full current replay dimensions.
+                {managerFilter === "all"
+                  ? "Rows show the best current replay delta across participants."
+                  : "Rows show send, receive, and delta for the selected manager only."}
               </p>
             </div>
           </div>
@@ -260,6 +275,7 @@ function LeagueTradeHistoryPage() {
               key={trade.transaction_id}
               trade={trade}
               expanded={expandedId === trade.transaction_id}
+              selectedRosterId={selectedRosterId}
               onToggle={() =>
                 setExpandedId(
                   expandedId === trade.transaction_id ? null : trade.transaction_id,
