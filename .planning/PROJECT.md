@@ -56,6 +56,7 @@ The system must tell you — for each of your teams — what you are, what your 
 - Opportunity Feed items now expose structured weekly lineup-fit evidence, render lineup-gap and stale-weekly-data badges on cards, and include a route filter for opportunities that solve current lineup gaps.
 - Command-center actions now require and render explicit acceptable-price and timing fields, so Top 5 cards consistently show action, price, timing, risk, evidence, stale-data warning, and next click.
 - Command Center now returns and renders required move-lane coverage for start/sit, waiver, trade, rookie, portfolio, and manager angles, making missing decision lanes visible instead of silent.
+- Manager-pitch trade packages now require roster-fit gating, so the Command Center skips offers that send protected scarce depth in premium formats for positions that are already sufficiently covered.
 
 ### Active
 
@@ -132,4 +133,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-28 after Command Center header controls were aligned*
+*Last updated: 2026-06-28 after manager-pitch trade packages were gated by roster construction*

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from typing import Any, Literal
 from urllib.parse import quote_plus
 
@@ -11,6 +12,17 @@ from fantasy.trade.models import TradeAsset, TradeRequest
 from fantasy.trade.trade_engine import TradeEngine
 from fantasy.trade.trade_repo import TradeRepo
 from fantasy.trends.models import OpportunityFeedItem
+
+CORE_TRADE_POSITIONS = {"QB", "RB", "WR", "TE"}
+
+
+def _loads(raw: str | None, fallback: Any) -> Any:
+    if raw is None:
+        return fallback
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return fallback
 
 
 class TradeSuggestionBuilder:
@@ -54,14 +66,22 @@ class TradeSuggestionBuilder:
         target_assets = self._roster_player_assets(league_id, target_roster_id)
         if not target_assets:
             return None
-        target = target_assets[0]
-        send_assets = self._select_send_assets(
-            league_id,
-            user_roster_id,
-            target["player_id"],
-            target["score"],
-        )
-        if not send_assets:
+        target: dict[str, Any] | None = None
+        send_assets: list[dict[str, Any]] = []
+        for candidate in target_assets:
+            candidate_send_assets = self._select_send_assets(
+                league_id,
+                user_roster_id,
+                candidate["player_id"],
+                candidate["score"],
+                receive_position=candidate["position"],
+                require_roster_fit=True,
+            )
+            if candidate_send_assets:
+                target = candidate
+                send_assets = candidate_send_assets
+                break
+        if target is None or not send_assets:
             return None
         receive_assets = [target]
         balancing = self._select_balancing_receive_asset(
@@ -368,6 +388,9 @@ class TradeSuggestionBuilder:
         user_roster_id: int,
         excluded_player_id: str,
         target_score: float | None,
+        *,
+        receive_position: str | None = None,
+        require_roster_fit: bool = False,
     ) -> list[dict[str, Any]]:
         target = target_score or 55.0
         candidates = [
@@ -375,6 +398,17 @@ class TradeSuggestionBuilder:
             for asset in self._roster_player_assets(league_id, user_roster_id)
             if asset["player_id"] != excluded_player_id
         ]
+        if require_roster_fit and receive_position is not None:
+            candidates = [
+                asset
+                for asset in candidates
+                if self._is_roster_fit_send(
+                    league_id,
+                    user_roster_id,
+                    asset,
+                    receive_position,
+                )
+            ]
         if not candidates:
             return []
         candidates.sort(key=lambda asset: (abs(asset["score"] - target * 0.82), -asset["score"]))
@@ -384,6 +418,130 @@ class TradeSuggestionBuilder:
             if extras:
                 selected.append(extras[0])
         return selected
+
+    def _is_roster_fit_send(
+        self,
+        league_id: str,
+        user_roster_id: int,
+        send_asset: dict[str, Any],
+        receive_position: str,
+    ) -> bool:
+        send_position = str(send_asset["position"]).upper()
+        target_position = receive_position.upper()
+        if target_position not in CORE_TRADE_POSITIONS:
+            return True
+        counts, requirements, roster_positions, tep = self._roster_shape(
+            league_id,
+            user_roster_id,
+        )
+        if not self._position_is_need(target_position, counts, requirements, roster_positions, tep):
+            return False
+        if send_position == target_position:
+            return True
+        if send_position not in CORE_TRADE_POSITIONS:
+            return True
+        protected_depth = self._protected_depth(send_position, requirements, roster_positions, tep)
+        return counts.get(send_position, 0) > protected_depth
+
+    def _roster_shape(
+        self,
+        league_id: str,
+        roster_id: int,
+    ) -> tuple[Counter[str], Counter[str], list[str], bool]:
+        league_row = self._conn.execute(
+            """
+            SELECT roster_positions, tep
+            FROM leagues
+            WHERE league_id = ?
+            LIMIT 1
+            """,
+            [league_id],
+        ).fetchone()
+        roster_positions = (
+            [str(position) for position in _loads(league_row[0], [])]
+            if league_row
+            else []
+        )
+        tep = bool(league_row[1]) if league_row else False
+        roster_row = self._conn.execute(
+            """
+            SELECT players, reserve, taxi
+            FROM rosters
+            WHERE league_id = ? AND roster_id = ?
+            LIMIT 1
+            """,
+            [league_id, roster_id],
+        ).fetchone()
+        player_ids: list[str] = []
+        if roster_row:
+            for raw_ids in roster_row:
+                player_ids.extend(
+                    str(player_id)
+                    for player_id in _loads(raw_ids, [])
+                    if player_id not in (None, "", 0, "0")
+                )
+        if not player_ids:
+            return Counter(), Counter(), roster_positions, tep
+        rows = self._conn.execute(
+            """
+            SELECT position
+            FROM players
+            WHERE player_id IN (SELECT UNNEST(?))
+            """,
+            [player_ids],
+        ).fetchall()
+        counts = Counter(str(row[0] or "").upper() for row in rows if row[0])
+        requirements = Counter(
+            position
+            for position in roster_positions
+            if position in CORE_TRADE_POSITIONS
+        )
+        return counts, requirements, roster_positions, tep
+
+    def _position_is_need(
+        self,
+        position: str,
+        counts: Counter[str],
+        requirements: Counter[str],
+        roster_positions: list[str],
+        tep: bool,
+    ) -> bool:
+        return counts.get(position, 0) < self._target_depth(
+            position,
+            requirements,
+            roster_positions,
+            tep,
+        )
+
+    def _target_depth(
+        self,
+        position: str,
+        requirements: Counter[str],
+        roster_positions: list[str],
+        tep: bool,
+    ) -> int:
+        fixed_starters = requirements.get(position, 0)
+        if position == "QB":
+            superflex_slots = sum(1 for slot in roster_positions if slot == "SUPER_FLEX")
+            return fixed_starters + superflex_slots + 1
+        if position == "TE":
+            return fixed_starters + (2 if tep else 1)
+        return fixed_starters + 3
+
+    def _protected_depth(
+        self,
+        position: str,
+        requirements: Counter[str],
+        roster_positions: list[str],
+        tep: bool,
+    ) -> int:
+        fixed_starters = requirements.get(position, 0)
+        if position == "QB":
+            superflex_slots = sum(1 for slot in roster_positions if slot == "SUPER_FLEX")
+            return fixed_starters + superflex_slots + 1
+        if position == "TE":
+            return fixed_starters + (2 if tep else 1)
+        return fixed_starters + 1
 
     def _select_balancing_receive_asset(
         self,
