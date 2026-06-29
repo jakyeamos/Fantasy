@@ -23,6 +23,12 @@ from fantasy.waiver.constants import (
     STALE_INGEST_HOURS,
     WAIVER_TYPE_LABELS,
 )
+from fantasy.waiver.context import (
+    clamp,
+    contextual_stash_bid_cap_pct,
+    format_direction,
+    parse_timestamp,
+)
 from fantasy.waiver.models import WaiverRecommendation, WaiverRecommendationsResponse
 
 
@@ -33,39 +39,6 @@ def _loads(raw: str | None, fallback: Any) -> Any:
         return json.loads(raw)
     except json.JSONDecodeError:
         return fallback
-
-
-def _clamp(value: float, low: float, high: float) -> float:
-    return max(low, min(high, value))
-
-
-def _parse_timestamp(raw: str | None) -> datetime | None:
-    if raw is None:
-        return None
-    text = str(raw).strip()
-    if not text:
-        return None
-    normalized = text.replace("Z", "+00:00")
-    try:
-        return datetime.fromisoformat(normalized)
-    except ValueError:
-        return None
-
-
-def _format_direction(direction_label: str) -> str:
-    return direction_label.replace("_", " ")
-
-
-def _depth_order(metadata: Any) -> int | None:
-    if not isinstance(metadata, dict):
-        return None
-    raw_order = metadata.get("depth_chart_order")
-    if raw_order is None:
-        return None
-    try:
-        return int(raw_order)
-    except (TypeError, ValueError):
-        return None
 
 
 def compute_bid_range(
@@ -83,7 +56,7 @@ def compute_bid_range(
     scarcity_adj = positional_scarcity / 100.0 * FAAB_SCARCITY_ADJ_MAX
     urgency_adj = direction_urgency * FAAB_URGENCY_ADJ_MAX
     start_adj = 0.0 if is_immediate_start else -FAAB_START_PENALTY
-    mid_pct = _clamp(
+    mid_pct = clamp(
         base_pct + scarcity_adj + urgency_adj + start_adj,
         FAAB_FLOOR_PCT,
         FAAB_CEILING_PCT,
@@ -170,8 +143,8 @@ def get_faab_state(
     remaining_faab = max(0, total_budget - waiver_budget_used)
 
     timestamps = [
-        _parse_timestamp(str(league_row[1])) if league_row and league_row[1] is not None else None,
-        _parse_timestamp(str(roster_row[2])) if roster_row and roster_row[2] is not None else None,
+        parse_timestamp(str(league_row[1])) if league_row and league_row[1] is not None else None,
+        parse_timestamp(str(roster_row[2])) if roster_row and roster_row[2] is not None else None,
     ]
     valid_timestamps = [ts for ts in timestamps if ts is not None]
     hours_since_ingest: float | None = None
@@ -454,135 +427,9 @@ class WaiverEngine:
                 score -= 6.0
         if direction_label in {"true_contender", "fragile_contender"} and avg_points is not None:
             score += min(6.0, avg_points / 2.0)
-        score = _clamp(score, 0.0, 100.0)
+        score = clamp(score, 0.0, 100.0)
         scarcity = 70.0 if position in weak_positions else 45.0 if starter_requirements.get(position, 0) else 25.0
         return score, scarcity, immediate_start
-
-    def _roster_has_position_anchor(
-        self,
-        league_id: str,
-        roster_id: int,
-        position: str,
-        candidate_adp: float | None,
-    ) -> bool:
-        roster_row = self._conn.execute(
-            """
-            SELECT players, reserve, taxi
-            FROM rosters
-            WHERE league_id = ? AND roster_id = ?
-            LIMIT 1
-            """,
-            [league_id, roster_id],
-        ).fetchone()
-        if roster_row is None:
-            return False
-        player_ids: list[str] = []
-        for raw_ids in roster_row:
-            player_ids.extend(
-                str(player_id)
-                for player_id in _loads(raw_ids, [])
-                if player_id not in (None, "", 0, "0")
-            )
-        if not player_ids:
-            return False
-        rows = self._conn.execute(
-            """
-            WITH adp AS (
-                SELECT player_id, MIN(adp) AS adp
-                FROM player_adp_baseline
-                GROUP BY player_id
-            ),
-            values AS (
-                SELECT player_id, MAX(lens_market) AS lens_market
-                FROM player_values
-                WHERE league_id = ?
-                GROUP BY player_id
-            )
-            SELECT MIN(adp.adp), MAX(values.lens_market)
-            FROM players p
-            LEFT JOIN adp ON adp.player_id = p.player_id
-            LEFT JOIN values ON values.player_id = p.player_id
-            WHERE p.player_id IN (SELECT UNNEST(?))
-              AND COALESCE(p.position, '') = ?
-            """,
-            [league_id, player_ids, position],
-        ).fetchone()
-        if rows is None or (rows[0] is None and rows[1] is None):
-            return False
-        best_adp = float(rows[0]) if rows[0] is not None else None
-        best_market = float(rows[1]) if rows[1] is not None else None
-        if best_market is not None and best_market >= 0.62:
-            return True
-        return (
-            best_adp is not None
-            and best_adp <= 80.0
-            and (candidate_adp is None or candidate_adp >= best_adp + 75.0)
-        )
-
-    def _same_team_position_blocked(
-        self,
-        player: dict[str, Any],
-        candidate_adp: float | None,
-    ) -> bool:
-        team = player.get("team")
-        position = str(player["position"])
-        if team is None:
-            return False
-        rows = self._conn.execute(
-            """
-            WITH adp AS (
-                SELECT player_id, MIN(adp) AS adp
-                FROM player_adp_baseline
-                GROUP BY player_id
-            )
-            SELECT p.player_id, adp.adp, p.metadata_blob
-            FROM players p
-            LEFT JOIN adp ON adp.player_id = p.player_id
-            WHERE p.player_id != ?
-              AND COALESCE(p.team, '') = ?
-              AND COALESCE(p.position, '') = ?
-            """,
-            [player["player_id"], team, position],
-        ).fetchall()
-        candidate_order = _depth_order(player.get("metadata"))
-        for _, blocker_adp, metadata_blob in rows:
-            blocker_order = _depth_order(_loads(metadata_blob, {}))
-            if blocker_order is not None and (
-                candidate_order is None or blocker_order < candidate_order
-            ):
-                return True
-            if (
-                candidate_adp is not None
-                and blocker_adp is not None
-                and float(blocker_adp) <= candidate_adp - 75.0
-            ):
-                return True
-        return False
-
-    def _contextual_stash_bid_cap_pct(
-        self,
-        *,
-        league_id: str,
-        roster_id: int,
-        player: dict[str, Any],
-        weak_positions: set[str],
-        is_immediate_start: bool,
-        adp: float | None,
-    ) -> float | None:
-        if is_immediate_start:
-            return None
-        position = str(player["position"])
-        cap_pct: float | None = None
-        if position not in weak_positions and self._roster_has_position_anchor(
-            league_id,
-            roster_id,
-            position,
-            adp,
-        ):
-            cap_pct = 0.05
-        if self._same_team_position_blocked(player, adp):
-            cap_pct = min(cap_pct if cap_pct is not None else 0.08, 0.05)
-        return cap_pct
 
     def _urgency_label(
         self,
@@ -684,7 +531,8 @@ class WaiverEngine:
                     positional_scarcity,
                     is_immediate_start,
                 )
-                cap_pct = self._contextual_stash_bid_cap_pct(
+                cap_pct = contextual_stash_bid_cap_pct(
+                    self._conn,
                     league_id=league_id,
                     roster_id=roster_id,
                     player=player,
@@ -709,7 +557,7 @@ class WaiverEngine:
                 player_score,
             )
             rationale = (
-                f"{player['player_name']} fits a {_format_direction(direction_label)} build "
+                f"{player['player_name']} fits a {format_direction(direction_label)} build "
                 f"and addresses {player['position']} depth."
             )
             drop_candidate = drop_candidates[0] if drop_candidates else None
