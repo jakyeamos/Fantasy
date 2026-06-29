@@ -33,6 +33,24 @@ def _asset_market_value(value: dict[str, Any]) -> float:
     return max(float(value.get("lens_market") or 0.0), 0.0)
 
 
+def _lens_value(value: dict[str, Any], key: str, fallback: float) -> float:
+    raw = value.get(key)
+    return fallback if raw is None else max(float(raw), 0.0)
+
+
+def _asset_context_value(value: dict[str, Any]) -> float:
+    market = _asset_market_value(value)
+    return (
+        market * 0.35
+        + _lens_value(value, "lens_team_fit", market) * 0.20
+        + _lens_value(value, "lens_direction", market) * 0.15
+        + _lens_value(value, "lens_insulation", market) * 0.12
+        + _lens_value(value, "lens_production", market) * 0.08
+        + _lens_value(value, "comp_positional_scarcity", market) * 0.06
+        + _lens_value(value, "comp_market_liquidity", market) * 0.04
+    )
+
+
 class TradeEngine:
     def __init__(self, conn: duckdb.DuckDBPyConnection):
         self._conn = conn
@@ -234,8 +252,9 @@ class TradeEngine:
             resolved.append(player_rows.get(asset.player_id, fallback))
         return resolved
 
-    def _adjusted_package_value(self, values: list[dict[str, Any]]) -> float:
-        sorted_values = sorted((_asset_market_value(value) for value in values), reverse=True)
+    def _adjusted_package_value(self, values: list[dict[str, Any]], *, context: bool) -> float:
+        value_fn = _asset_context_value if context else _asset_market_value
+        sorted_values = sorted((value_fn(value) for value in values), reverse=True)
         adjusted = 0.0
         for index, market_value in enumerate(sorted_values):
             if index == 0:
@@ -256,17 +275,33 @@ class TradeEngine:
     ) -> TradeBalance:
         sent_raw = sum(_asset_market_value(value) for value in sending_values)
         received_raw = sum(_asset_market_value(value) for value in receiving_values)
-        sent_adjusted = self._adjusted_package_value(sending_values)
-        received_adjusted = self._adjusted_package_value(receiving_values)
+        sent_market_adjusted = self._adjusted_package_value(sending_values, context=False)
+        received_market_adjusted = self._adjusted_package_value(receiving_values, context=False)
+        sent_adjusted = self._adjusted_package_value(sending_values, context=True)
+        received_adjusted = self._adjusted_package_value(receiving_values, context=True)
         baseline = max(sent_adjusted, received_adjusted, 0.01)
         delta = received_adjusted - sent_adjusted
         raw_total = sent_raw + received_raw
-        discounted_total = (sent_raw - sent_adjusted) + (received_raw - received_adjusted)
-        note = (
-            "Adjusted for package concentration: lower-value add-ons have diminishing trade leverage."
-            if raw_total > 0 and discounted_total / raw_total >= 0.08
-            else "Adjusted value is close to raw market value because the package is concentrated."
+        discounted_total = (sent_raw - sent_market_adjusted) + (
+            received_raw - received_market_adjusted
         )
+        context_gap = abs(
+            (received_adjusted - sent_adjusted)
+            - (received_market_adjusted - sent_market_adjusted)
+        )
+        notes: list[str] = []
+        if raw_total > 0 and discounted_total / raw_total >= 0.08:
+            notes.append(
+                "Package concentration discounts lower-value add-ons instead of treating bench bulk as elite value."
+            )
+        if context_gap >= 0.03:
+            notes.append(
+                "App context differs from consensus after team fit, direction, insulation, production, scarcity, and liquidity lenses."
+            )
+        if not notes:
+            notes.append(
+                "App context is close to consensus because the package is concentrated and the local lenses agree with market."
+            )
         return TradeBalance(
             sent_raw_value=round(sent_raw, 4),
             received_raw_value=round(received_raw, 4),
@@ -274,7 +309,7 @@ class TradeEngine:
             received_adjusted_value=round(received_adjusted, 4),
             net_adjusted_delta=round(delta, 4),
             fairness_score=_clamp_score(50.0 + (delta / baseline) * 50.0),
-            package_quality_note=note,
+            package_quality_note=" ".join(notes),
         )
 
     def _score_market_fairness(self, balance: TradeBalance) -> DimensionScore:
@@ -283,10 +318,10 @@ class TradeEngine:
         score = _clamp_score(50.0 + (delta / baseline) * 50.0)
         direction = "more" if delta > 0 else "less" if delta < 0 else "the same"
         reasoning = (
-            f"You receive {abs(round((delta / baseline) * 100, 1))}% {direction} adjusted market value than you send. "
+            f"You receive {abs(round((delta / baseline) * 100, 1))}% {direction} app-adjusted value than you send. "
             f"{balance.package_quality_note}"
             if delta != 0
-            else f"Both sides are roughly even on adjusted market value. {balance.package_quality_note}"
+            else f"Both sides are roughly even on app-adjusted value. {balance.package_quality_note}"
         )
         return DimensionScore(score=score, confidence="HIGH", reasoning=reasoning)
 

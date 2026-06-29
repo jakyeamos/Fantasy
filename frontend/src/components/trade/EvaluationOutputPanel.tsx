@@ -49,7 +49,7 @@ function TradeBalanceSeesaw({ evaluation }: { evaluation: TradeEvaluation }) {
           </p>
         </div>
         <div className="text-right">
-          <p className="terminal-label text-muted-foreground">Adjusted Fairness</p>
+          <p className="terminal-label text-muted-foreground">App-Adjusted Fairness</p>
           <p className="font-mono text-xl text-foreground">{score.toFixed(0)}</p>
         </div>
       </div>
@@ -77,19 +77,19 @@ function TradeBalanceSeesaw({ evaluation }: { evaluation: TradeEvaluation }) {
           <div className="rounded-lg border border-border/35 bg-background/35 p-3">
             <p className="terminal-label text-muted-foreground">You Send</p>
             <p className="mt-1 font-mono text-foreground">
-              {formatTradeValue(sentAdjusted)} adjusted
+              {formatTradeValue(sentAdjusted)} app adjusted
             </p>
             <p className="text-xs text-muted-foreground">
-              {formatTradeValue(sentRaw)} raw market value
+              {formatTradeValue(sentRaw)} consensus market value
             </p>
           </div>
           <div className="rounded-lg border border-border/35 bg-background/35 p-3">
             <p className="terminal-label text-muted-foreground">You Receive</p>
             <p className="mt-1 font-mono text-foreground">
-              {formatTradeValue(receivedAdjusted)} adjusted
+              {formatTradeValue(receivedAdjusted)} app adjusted
             </p>
             <p className="text-xs text-muted-foreground">
-              {formatTradeValue(receivedRaw)} raw market value
+              {formatTradeValue(receivedRaw)} consensus market value
             </p>
           </div>
         </div>

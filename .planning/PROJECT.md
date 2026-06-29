@@ -12,6 +12,7 @@ The system must tell you — for each of your teams — what you are, what your 
 
 ### Validated
 
+- Trade Lab balance now separates consensus market value from app-adjusted value, with the seesaw using team fit, direction, insulation, production, scarcity, liquidity, and package concentration rather than consensus alone.
 - App-wide decorative backlighting is removed from the global background, cards, primary buttons, active trade panels, popovers, and sheets while preserving borders and focus treatment.
 - Trade Lab evaluations now include an adjusted trade-balance seesaw that discounts loose end-of-bench package pieces, so bulk depth does not equal elite value even when raw market totals match.
 - Trade Lab now preserves full top-move trade CTA query params even when the router parses numeric-looking ids, and older name-only trade links resolve the target player into the appropriate send/receive side.
@@ -139,4 +140,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-29 after removing app backlighting*
+*Last updated: 2026-06-29 after separating Trade Lab app-adjusted value from consensus*

@@ -45,16 +45,86 @@ def test_trade_balance_discounts_bulk_depth_against_elite_asset(trade_seed_data)
             lens_insulation, lens_team_fit, lens_direction
         )
         VALUES (
-            ?, 'league_x', ?, ?, 0.4, 0.4, 0.4, 0.5, 0.4, 0.4,
-            0.4, 0.4, 0.4, 0.4, 0.4, 0.5, 0.4, ?, 0.4, 0.4, 0.4
+            ?, 'league_x', ?, ?, ?, ?, 0.4, 0.5, ?, ?,
+            ?, 0.4, 0.4, 0.4, 0.4, 0.5, ?, ?, ?, ?, ?
         )
         """,
         [
-            (9101, 1, "depth_trade_1", 0.25),
-            (9102, 1, "depth_trade_2", 0.25),
-            (9103, 1, "depth_trade_3", 0.25),
-            (9104, 1, "depth_trade_4", 0.25),
-            (9105, 2, "elite_trade_asset", 1.0),
+            (
+                9101,
+                1,
+                "depth_trade_1",
+                0.35,
+                0.35,
+                0.35,
+                0.35,
+                0.35,
+                0.35,
+                0.25,
+                0.35,
+                0.35,
+                0.35,
+            ),
+            (
+                9102,
+                1,
+                "depth_trade_2",
+                0.35,
+                0.35,
+                0.35,
+                0.35,
+                0.35,
+                0.35,
+                0.25,
+                0.35,
+                0.35,
+                0.35,
+            ),
+            (
+                9103,
+                1,
+                "depth_trade_3",
+                0.35,
+                0.35,
+                0.35,
+                0.35,
+                0.35,
+                0.35,
+                0.25,
+                0.35,
+                0.35,
+                0.35,
+            ),
+            (
+                9104,
+                1,
+                "depth_trade_4",
+                0.35,
+                0.35,
+                0.35,
+                0.35,
+                0.35,
+                0.35,
+                0.25,
+                0.35,
+                0.35,
+                0.35,
+            ),
+            (
+                9105,
+                2,
+                "elite_trade_asset",
+                0.95,
+                0.95,
+                0.95,
+                0.95,
+                0.95,
+                0.95,
+                1.0,
+                0.95,
+                0.95,
+                0.95,
+            ),
         ],
     )
 
@@ -77,7 +147,80 @@ def test_trade_balance_discounts_bulk_depth_against_elite_asset(trade_seed_data)
     assert evaluation.trade_balance.sent_raw_value == evaluation.trade_balance.received_raw_value
     assert evaluation.trade_balance.sent_adjusted_value < evaluation.trade_balance.received_adjusted_value
     assert evaluation.market_fairness.score > 60
-    assert "diminishing trade leverage" in evaluation.market_fairness.reasoning
+    assert "bench bulk" in evaluation.market_fairness.reasoning
+
+
+def test_trade_balance_can_diverge_from_equal_consensus_values(trade_seed_data):
+    trade_seed_data.executemany(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES (?, ?, ?, 'TST', 24, '{}')
+        """,
+        [
+            ("context_send_qb", "Context Send QB", "QB"),
+            ("context_receive_rb", "Context Receive RB", "RB"),
+        ],
+    )
+    trade_seed_data.executemany(
+        """
+        INSERT INTO player_values (
+            id, league_id, roster_id, player_id,
+            comp_current_production, comp_short_term, comp_role_stability,
+            comp_age_curve, comp_insulation, comp_market_liquidity,
+            comp_positional_scarcity, comp_fragility, comp_ceiling, comp_floor,
+            comp_rerollability, comp_contract, lens_production, lens_market,
+            lens_insulation, lens_team_fit, lens_direction
+        )
+        VALUES (
+            ?, 'league_x', ?, ?, ?, 0.5, 0.5, 0.5, ?, ?,
+            ?, 0.4, 0.5, 0.5, 0.5, 0.5, ?, 0.60, ?, ?, ?
+        )
+        """,
+        [
+            (
+                9201,
+                1,
+                "context_send_qb",
+                0.45,
+                0.45,
+                0.45,
+                0.45,
+                0.45,
+                0.45,
+                0.45,
+                0.45,
+            ),
+            (
+                9202,
+                2,
+                "context_receive_rb",
+                0.75,
+                0.78,
+                0.70,
+                0.82,
+                0.75,
+                0.78,
+                0.82,
+                0.80,
+            ),
+        ],
+    )
+
+    evaluation = TradeEngine(trade_seed_data).evaluate(
+        TradeRequest(
+            league_id="league_x",
+            user_roster_id=1,
+            counterparty_roster_id=2,
+            user_sends=[TradeAsset(asset_type="player", player_id="context_send_qb")],
+            user_receives=[TradeAsset(asset_type="player", player_id="context_receive_rb")],
+        )
+    )
+
+    assert evaluation.trade_balance is not None
+    assert evaluation.trade_balance.sent_raw_value == evaluation.trade_balance.received_raw_value
+    assert evaluation.trade_balance.received_adjusted_value > evaluation.trade_balance.sent_adjusted_value
+    assert evaluation.market_fairness.score > 60
+    assert "App context differs from consensus" in evaluation.market_fairness.reasoning
 
 
 def test_dimension_scores(trade_seed_data):
