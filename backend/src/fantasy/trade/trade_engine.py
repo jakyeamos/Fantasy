@@ -17,6 +17,7 @@ from fantasy.trade.models import (
     DimensionScore,
     StrategicDistinction,
     ThirdPartyTradeEvaluation,
+    TradeBalance,
     TradeAsset,
     TradeEvaluation,
     TradeRequest,
@@ -26,6 +27,10 @@ from fantasy.trade.trade_repo import TradeRepo
 
 def _clamp_score(value: float) -> float:
     return round(max(0.0, min(100.0, value)), 2)
+
+
+def _asset_market_value(value: dict[str, Any]) -> float:
+    return max(float(value.get("lens_market") or 0.0), 0.0)
 
 
 class TradeEngine:
@@ -229,26 +234,61 @@ class TradeEngine:
             resolved.append(player_rows.get(asset.player_id, fallback))
         return resolved
 
-    def _score_market_fairness(
-        self, sending_values: list[dict[str, Any]], receiving_values: list[dict[str, Any]]
-    ) -> DimensionScore:
-        sent = sum(float(value.get("lens_market") or 0.0) for value in sending_values)
-        received = sum(float(value.get("lens_market") or 0.0) for value in receiving_values)
-        baseline = max(sent, received, 0.01)
-        delta = received - sent
-        score = _clamp_score(50.0 + (delta / baseline) * 50.0)
-        confidence = (
-            "HIGH"
-            if all(value.get("lens_market") is not None for value in sending_values + receiving_values)
-            else "LOW"
+    def _adjusted_package_value(self, values: list[dict[str, Any]]) -> float:
+        sorted_values = sorted((_asset_market_value(value) for value in values), reverse=True)
+        adjusted = 0.0
+        for index, market_value in enumerate(sorted_values):
+            if index == 0:
+                weight = 1.0
+            elif index == 1:
+                weight = 0.7
+            elif index == 2:
+                weight = 0.45
+            else:
+                weight = 0.2
+            adjusted += market_value * weight
+        return adjusted
+
+    def _trade_balance(
+        self,
+        sending_values: list[dict[str, Any]],
+        receiving_values: list[dict[str, Any]],
+    ) -> TradeBalance:
+        sent_raw = sum(_asset_market_value(value) for value in sending_values)
+        received_raw = sum(_asset_market_value(value) for value in receiving_values)
+        sent_adjusted = self._adjusted_package_value(sending_values)
+        received_adjusted = self._adjusted_package_value(receiving_values)
+        baseline = max(sent_adjusted, received_adjusted, 0.01)
+        delta = received_adjusted - sent_adjusted
+        raw_total = sent_raw + received_raw
+        discounted_total = (sent_raw - sent_adjusted) + (received_raw - received_adjusted)
+        note = (
+            "Adjusted for package concentration: lower-value add-ons have diminishing trade leverage."
+            if raw_total > 0 and discounted_total / raw_total >= 0.08
+            else "Adjusted value is close to raw market value because the package is concentrated."
         )
+        return TradeBalance(
+            sent_raw_value=round(sent_raw, 4),
+            received_raw_value=round(received_raw, 4),
+            sent_adjusted_value=round(sent_adjusted, 4),
+            received_adjusted_value=round(received_adjusted, 4),
+            net_adjusted_delta=round(delta, 4),
+            fairness_score=_clamp_score(50.0 + (delta / baseline) * 50.0),
+            package_quality_note=note,
+        )
+
+    def _score_market_fairness(self, balance: TradeBalance) -> DimensionScore:
+        baseline = max(balance.sent_adjusted_value, balance.received_adjusted_value, 0.01)
+        delta = balance.net_adjusted_delta
+        score = _clamp_score(50.0 + (delta / baseline) * 50.0)
         direction = "more" if delta > 0 else "less" if delta < 0 else "the same"
         reasoning = (
-            f"You receive {abs(round((delta / baseline) * 100, 1))}% {direction} market value than you send."
+            f"You receive {abs(round((delta / baseline) * 100, 1))}% {direction} adjusted market value than you send. "
+            f"{balance.package_quality_note}"
             if delta != 0
-            else "Both sides are roughly even on market value."
+            else f"Both sides are roughly even on adjusted market value. {balance.package_quality_note}"
         )
-        return DimensionScore(score=score, confidence=confidence, reasoning=reasoning)
+        return DimensionScore(score=score, confidence="HIGH", reasoning=reasoning)
 
     def _score_roster_fit(
         self,
@@ -444,7 +484,8 @@ class TradeEngine:
             direction_label,
             target_roster_id=request.user_roster_id,
         )
-        market_fairness = self._score_market_fairness(sending_values, receiving_values)
+        trade_balance = self._trade_balance(sending_values, receiving_values)
+        market_fairness = self._score_market_fairness(trade_balance)
         roster_fit = self._score_roster_fit(sending_values, receiving_values, request)
         direction_fit = self._score_direction_fit(sending_values, receiving_values, direction)
         timing_quality = self._score_timing_quality(sending_values, receiving_values)
@@ -493,6 +534,7 @@ class TradeEngine:
             liquidity_delta=liquidity_delta,
             manager_exploit_quality=manager_exploit_quality,
             strategic_distinction=strategic_distinction,
+            trade_balance=trade_balance,
             third_party_evaluations=third_party_evaluations or None,
         )
         evaluation.recommendation_cards = self._card_engine.build_trade_card(

@@ -327,6 +327,16 @@ export interface ThirdPartyTradeEvaluation {
   market_fairness: DimensionScore
 }
 
+export interface TradeBalance {
+  sent_raw_value: number
+  received_raw_value: number
+  sent_adjusted_value: number
+  received_adjusted_value: number
+  net_adjusted_delta: number
+  fairness_score: number
+  package_quality_note: string
+}
+
 export interface RerouteResult {
   reroute_type: "better_target" | "better_package" | "picks_buyer"
   headline: string
@@ -491,6 +501,7 @@ export interface TradeEvaluation {
   strategic_distinction: StrategicDistinction
   reroutes?: RerouteResult[] | null
   package?: PackageBuilderResult | null
+  trade_balance?: TradeBalance | null
   third_party_evaluations?: ThirdPartyTradeEvaluation[] | null
   recommendation_context?: RecommendationContext | null
   recommendation_cards?: RecommendationCard[] | null

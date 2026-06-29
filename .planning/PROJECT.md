@@ -12,6 +12,7 @@ The system must tell you — for each of your teams — what you are, what your 
 
 ### Validated
 
+- Trade Lab evaluations now include an adjusted trade-balance seesaw that discounts loose end-of-bench package pieces, so bulk depth does not equal elite value even when raw market totals match.
 - Trade Lab now preserves full top-move trade CTA query params even when the router parses numeric-looking ids, and older name-only trade links resolve the target player into the appropriate send/receive side.
 - Waiver FAAB ranges now cap non-starter stash bids when the roster already has a strong same-position anchor or the candidate is blocked by a better same-team positional player, preventing Theo Johnson-style TE depth from commanding priority FAAB behind Loveland.
 - Valuation and trade logic now share a positional context model that accounts for league lineup demand, TEP/superflex settings, replacement baselines, tier-cliff scarcity, and roster surplus/deficit, so elite scarce assets require a roster-improving return while discounted same-position QB edges remain actionable.
@@ -137,4 +138,4 @@ The system must tell you — for each of your teams — what you are, what your 
 | Opinionated recommendations with visible sub-scores | System must not stop at dashboards — ranked recommendations with explanations are a first-class output | — Pending |
 
 ---
-*Last updated: 2026-06-29 after fixing Trade Lab top-move prefill links*
+*Last updated: 2026-06-29 after adding adjusted Trade Lab balance*

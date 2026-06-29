@@ -53,6 +53,18 @@ class ThirdPartyTradeEvaluation(BaseModel):
     market_fairness: DimensionScore
 
 
+class TradeBalance(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    sent_raw_value: float
+    received_raw_value: float
+    sent_adjusted_value: float
+    received_adjusted_value: float
+    net_adjusted_delta: float
+    fairness_score: float
+    package_quality_note: str
+
+
 class RerouteResult(BaseModel):
     model_config = ConfigDict(frozen=False)
 
@@ -106,6 +118,7 @@ class TradeEvaluation(BaseModel):
     strategic_distinction: StrategicDistinction
     reroutes: list[RerouteResult] | None = None
     package: PackageBuilderResult | None = None
+    trade_balance: TradeBalance | None = None
     third_party_evaluations: list[ThirdPartyTradeEvaluation] | None = None
     recommendation_context: RecommendationContext | None = None
     recommendation_cards: list[RecommendationCard] | None = None

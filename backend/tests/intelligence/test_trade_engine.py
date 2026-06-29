@@ -17,6 +17,67 @@ def test_evaluate_trade(trade_seed_data):
     evaluation = engine.evaluate(_request())
     assert evaluation.market_fairness.score >= 0
     assert evaluation.manager_exploit_quality.reasoning
+    assert evaluation.trade_balance is not None
+
+
+def test_trade_balance_discounts_bulk_depth_against_elite_asset(trade_seed_data):
+    trade_seed_data.executemany(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES (?, ?, 'WR', 'TST', 24, '{}')
+        """,
+        [
+            ("depth_trade_1", "Depth Trade 1"),
+            ("depth_trade_2", "Depth Trade 2"),
+            ("depth_trade_3", "Depth Trade 3"),
+            ("depth_trade_4", "Depth Trade 4"),
+            ("elite_trade_asset", "Elite Trade Asset"),
+        ],
+    )
+    trade_seed_data.executemany(
+        """
+        INSERT INTO player_values (
+            id, league_id, roster_id, player_id,
+            comp_current_production, comp_short_term, comp_role_stability,
+            comp_age_curve, comp_insulation, comp_market_liquidity,
+            comp_positional_scarcity, comp_fragility, comp_ceiling, comp_floor,
+            comp_rerollability, comp_contract, lens_production, lens_market,
+            lens_insulation, lens_team_fit, lens_direction
+        )
+        VALUES (
+            ?, 'league_x', ?, ?, 0.4, 0.4, 0.4, 0.5, 0.4, 0.4,
+            0.4, 0.4, 0.4, 0.4, 0.4, 0.5, 0.4, ?, 0.4, 0.4, 0.4
+        )
+        """,
+        [
+            (9101, 1, "depth_trade_1", 0.25),
+            (9102, 1, "depth_trade_2", 0.25),
+            (9103, 1, "depth_trade_3", 0.25),
+            (9104, 1, "depth_trade_4", 0.25),
+            (9105, 2, "elite_trade_asset", 1.0),
+        ],
+    )
+
+    evaluation = TradeEngine(trade_seed_data).evaluate(
+        TradeRequest(
+            league_id="league_x",
+            user_roster_id=1,
+            counterparty_roster_id=2,
+            user_sends=[
+                TradeAsset(asset_type="player", player_id="depth_trade_1"),
+                TradeAsset(asset_type="player", player_id="depth_trade_2"),
+                TradeAsset(asset_type="player", player_id="depth_trade_3"),
+                TradeAsset(asset_type="player", player_id="depth_trade_4"),
+            ],
+            user_receives=[TradeAsset(asset_type="player", player_id="elite_trade_asset")],
+        )
+    )
+
+    assert evaluation.trade_balance is not None
+    assert evaluation.trade_balance.sent_raw_value == evaluation.trade_balance.received_raw_value
+    assert evaluation.trade_balance.sent_adjusted_value < evaluation.trade_balance.received_adjusted_value
+    assert evaluation.market_fairness.score > 60
+    assert "diminishing trade leverage" in evaluation.market_fairness.reasoning
 
 
 def test_dimension_scores(trade_seed_data):
