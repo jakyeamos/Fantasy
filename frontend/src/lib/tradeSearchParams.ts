@@ -22,27 +22,37 @@ function numberParam(value: unknown): number | undefined {
   return undefined
 }
 
-function stringParam(value: unknown): string | undefined {
-  return typeof value === "string" ? value : undefined
+function rawStringParam(key: string): string | undefined {
+  if (typeof window === "undefined") {
+    return undefined
+  }
+  return new URLSearchParams(window.location.search).get(key) ?? undefined
+}
+
+function stringParam(search: Record<string, unknown>, key: string): string | undefined {
+  const value = search[key]
+  if (typeof value === "string") return value
+  if (typeof value === "number") return rawStringParam(key) ?? String(value)
+  return undefined
 }
 
 export function validateTradeSearch(
   search: Record<string, unknown>,
 ): TradeRouteSearch {
   return {
-    leagueId: stringParam(search.leagueId),
+    leagueId: stringParam(search, "leagueId"),
     userRosterId: numberParam(search.userRosterId),
     counterpartyRosterId: numberParam(search.counterpartyRosterId),
-    targetPlayerId: stringParam(search.targetPlayerId),
-    targetPlayerName: stringParam(search.targetPlayerName),
-    targetPlayerPosition: stringParam(search.targetPlayerPosition),
+    targetPlayerId: stringParam(search, "targetPlayerId"),
+    targetPlayerName: stringParam(search, "targetPlayerName"),
+    targetPlayerPosition: stringParam(search, "targetPlayerPosition"),
     targetPlayerRosterId: numberParam(search.targetPlayerRosterId),
-    sendPlayerId: stringParam(search.sendPlayerId),
-    sendPlayerName: stringParam(search.sendPlayerName),
-    sendPlayerPosition: stringParam(search.sendPlayerPosition),
-    receivePlayerId: stringParam(search.receivePlayerId),
-    receivePlayerName: stringParam(search.receivePlayerName),
-    receivePlayerPosition: stringParam(search.receivePlayerPosition),
+    sendPlayerId: stringParam(search, "sendPlayerId"),
+    sendPlayerName: stringParam(search, "sendPlayerName"),
+    sendPlayerPosition: stringParam(search, "sendPlayerPosition"),
+    receivePlayerId: stringParam(search, "receivePlayerId"),
+    receivePlayerName: stringParam(search, "receivePlayerName"),
+    receivePlayerPosition: stringParam(search, "receivePlayerPosition"),
   }
 }
 
@@ -60,4 +70,17 @@ export function searchPlayerAsset(
     player_name: playerName,
     player_position: playerPosition ?? null,
   }
+}
+
+export function nameOnlyPrefillText(search: TradeRouteSearch): string | null {
+  if (!search.targetPlayerId && search.targetPlayerName) {
+    return search.targetPlayerName
+  }
+  if (!search.receivePlayerId && search.receivePlayerName) {
+    return search.receivePlayerName
+  }
+  if (!search.sendPlayerId && search.sendPlayerName) {
+    return search.sendPlayerName
+  }
+  return null
 }

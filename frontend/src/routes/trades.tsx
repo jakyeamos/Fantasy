@@ -39,7 +39,7 @@ import {
   type ThirdPartyTradeDraft,
 } from "@/lib/tradeRouteHelpers"
 import { textToneClasses } from "@/lib/ui-tokens"
-import { validateTradeSearch } from "@/lib/tradeSearchParams"
+import { nameOnlyPrefillText, validateTradeSearch } from "@/lib/tradeSearchParams"
 import { useTradePrefill } from "@/lib/useTradePrefill"
 
 async function fetchJson<T>(path: string) {
@@ -71,6 +71,11 @@ function TradeEvaluatorPage() {
   const [userReceives, setUserReceives] = useState<TradeAsset[]>([])
   const leaguesQuery = useQuery(dashboardSummaryOptions)
   const leagueOptions = leaguesQuery.data ?? []
+  const inferredLeagueId =
+    search.leagueId ??
+    leagueOptions.find((option) => option.user_roster_id === search.userRosterId)
+      ?.league_id ??
+    ""
   const selectedLeague = useMemo(
     () => leagueOptions.find((option) => option.league_id === leagueId) ?? null,
     [leagueId, leagueOptions],
@@ -105,6 +110,62 @@ function TradeEvaluatorPage() {
     setUserSends,
     userRosterId,
   })
+  const nameOnlyPrefill = nameOnlyPrefillText(search)
+
+  useEffect(() => {
+    if (!search.leagueId && inferredLeagueId && inferredLeagueId !== leagueId) {
+      setLeagueId(inferredLeagueId)
+    }
+  }, [inferredLeagueId, leagueId, search.leagueId])
+
+  const nameOnlyPrefillQuery = useQuery({
+    queryKey: ["trade", "prefill", "name", leagueId, nameOnlyPrefill],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        league_id: leagueId,
+        q: nameOnlyPrefill ?? "",
+      })
+      return fetchJson<PlayerSearchResult[]>(`/trade/players/search?${params.toString()}`)
+    },
+    enabled:
+      Boolean(nameOnlyPrefill) &&
+      !prefilledPlayerAsset &&
+      !prefilledSendAsset &&
+      !prefilledReceiveAsset &&
+      leagueId.trim().length > 0,
+  })
+
+  useEffect(() => {
+    const targetName = nameOnlyPrefill?.toLowerCase()
+    if (!targetName || userRosterId <= 0) {
+      return
+    }
+    const resolved = (nameOnlyPrefillQuery.data ?? []).find(
+      (player) => player.full_name.toLowerCase() === targetName,
+    )
+    if (!resolved) {
+      return
+    }
+    const asset = toPlayerAsset(resolved)
+    if (search.sendPlayerName && !search.receivePlayerName && !search.targetPlayerName) {
+      setUserSends((current) => appendUniqueAsset(current, asset))
+      setQueryTarget({ kind: "user", bucket: "send" })
+      return
+    }
+    if (resolved.roster_id !== userRosterId) {
+      setCounterpartyRosterId(resolved.roster_id)
+    }
+    setUserReceives((current) => appendUniqueAsset(current, asset))
+    setQueryTarget({ kind: "user", bucket: "receive" })
+  }, [
+    nameOnlyPrefill,
+    nameOnlyPrefillQuery.data,
+    search.receivePlayerName,
+    search.sendPlayerName,
+    search.targetPlayerName,
+    setCounterpartyRosterId,
+    userRosterId,
+  ])
 
   useEffect(() => {
     if (rostersQuery.isLoading) {
