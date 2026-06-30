@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: implementing
-stopped_at: Edge Radar refresh pipeline completed
-last_updated: "2026-06-29T00:00:00-04:00"
+stopped_at: Silent fallback degradation metadata surfaced
+last_updated: "2026-06-29T20:54:31-04:00"
 progress:
   total_phases: 21
   completed_phases: 16
@@ -102,6 +102,9 @@ Recent decisions affecting current work:
 - [Edge Radar]: Similar-player evidence freshness now tracks global player_metadata and team_context domains, surfaces stale warnings in Opportunity Feed and Command Center, and exposes refresh actions for those evidence sources.
 - [Backend Verification]: `uv run pytest` from `backend/` passed 501 tests after Edge Radar discovery-layer integration.
 - [Backend Verification]: `uv run pytest` from `backend/` passed 524 tests after refresh-pipeline Edge Radar source and downstream cache integration.
+- [Code Quality]: Player backfill catalog degradation, pick class-strength fallback, and trade static pick valuation fallback now emit logging and response/domain metadata instead of silently changing recommendation quality.
+- [Backend Verification]: `uv run pytest` from `backend/` passed 548 tests after surfacing refresh/pick/trade degradation metadata.
+- [Frontend Verification]: `pnpm build` from `frontend/` passed after updating API response types for degradation metadata.
 
 ### Pending Todos
 
@@ -111,11 +114,10 @@ Recent decisions affecting current work:
 
 - [Phase 8]: Research is complete, but external dependencies (`scikit-learn`, `nflreadpy`, `scipy`) and the ETL/model pipeline are still the highest execution-risk area.
 - [Schema]: Dual schema management remains for tests/runtime compatibility (`startup_tasks.py` plus `conftest.py`), but the normal local launcher now runs Alembic before backend boot. Direct `uvicorn` usage still requires a manual `alembic upgrade heads`.
-- [Code Quality]: Silent exception swallowing in `pick_engine._load_class_strength_signal`, `trade_engine._build_pick_proxy`, and `ingest_service._backfill_roster_players` — all use bare `except Exception: pass/return 0.0` with no logging. Failures are invisible in production.
 - [Code Quality]: `command_center.py` is over the local changed-line readiness size gate (656 nonblank lines after Edge Radar adapter wiring). The adapter is small, but the file should be split by action lane before further Command Center expansion.
 
 ## Session Continuity
 
-Last session: 2026-06-29T00:00:00-04:00
-Stopped at: Edge Radar refresh pipeline completed and verified with `uv run pytest`
+Last session: 2026-06-29T20:54:31-04:00
+Stopped at: Silent fallback degradation metadata surfaced and verified with `uv run pytest` plus `pnpm build`
 Resume file: .planning/STATE.md
