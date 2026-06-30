@@ -61,6 +61,11 @@ class FakeSleeperClient:
         return {"week": self._week, "season": "2025"}
 
 
+class CatalogFailingSleeperClient(FakeSleeperClient):
+    async def fetch_players(self):
+        raise RuntimeError("player catalog unavailable")
+
+
 @pytest.fixture
 def base_roster():
     return {
@@ -328,6 +333,36 @@ async def test_ingest_backfills_roster_players(db, base_league, base_roster):
         ("4663", "Player Two", "RB"),
         ("6945", "6945", None),
     ]
+
+
+@pytest.mark.asyncio
+async def test_ingest_records_player_backfill_catalog_degradation(
+    db,
+    base_league,
+    base_roster,
+    caplog,
+):
+    client = CatalogFailingSleeperClient(
+        base_league,
+        [base_roster],
+        [],
+        {},
+        week=1,
+    )
+
+    service = IngestService(db, client)
+    run_id = await service.run("test_league_001", "full")
+
+    cursor_json = db.execute(
+        "SELECT cursor_json FROM ingest_runs WHERE id = ?",
+        [run_id],
+    ).fetchone()[0]
+    assert "player_backfill_catalog_unavailable" in cursor_json
+    assert "player catalog unavailable" in cursor_json
+    assert any(
+        "player backfill catalog unavailable" in record.message
+        for record in caplog.records
+    )
 
 
 @pytest.mark.asyncio

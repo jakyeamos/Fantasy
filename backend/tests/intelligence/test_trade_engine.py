@@ -316,6 +316,41 @@ def test_rebuild_pick_proxy_supports_current_labels(trade_seed_data):
     assert one_year_punt["lens_direction"] > retool["lens_direction"]
 
 
+def test_pick_valuation_fallback_is_exposed_on_trade_evaluation(trade_seed_data, caplog):
+    engine = TradeEngine(trade_seed_data)
+
+    def _raise_pick_value(*args, **kwargs):
+        raise RuntimeError("draft order rule unavailable")
+
+    engine._repo.get_pick_value = _raise_pick_value
+
+    evaluation = engine.evaluate(
+        TradeRequest(
+            league_id="league_x",
+            user_roster_id=1,
+            counterparty_roster_id=2,
+            user_sends=[TradeAsset(asset_type="player", player_id="wr1")],
+            user_receives=[
+                TradeAsset(
+                    asset_type="pick",
+                    pick_owner_roster_id=2,
+                    pick_year=2026,
+                    pick_round=1,
+                )
+            ],
+        )
+    )
+
+    assert evaluation.degradation_reasons == [
+        "pick_valuation_fallback: 2026 round 1 valued with static market table because draft order rule unavailable"
+    ]
+    assert "static pick fallback" in evaluation.market_fairness.reasoning
+    assert any(
+        "pick valuation unavailable" in record.message
+        for record in caplog.records
+    )
+
+
 def test_roster_fit_rewards_surplus_to_deficit_trade(trade_seed_data):
     trade_seed_data.executemany(
         """

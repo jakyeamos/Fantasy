@@ -512,6 +512,35 @@ def test_compute_with_neutral_class_strength_keeps_timed_value_unadjusted(db):
     assert result.rule_citation == "Using: Inverse standings · Playoff teams by finish"
 
 
+def test_compute_marks_class_strength_degradation_when_loader_fails(db, monkeypatch, caplog):
+    engine = _build_engine(db, repo=_FakeRepo(class_strength=None), month=4)
+    pick = TradeAsset(asset_type="pick", pick_owner_roster_id=1, pick_year=2026, pick_round=1)
+
+    class _FailingRookieEngine:
+        def __init__(self, conn):
+            assert conn is db
+
+        def compute_class_strength(self, league_id: str) -> float:
+            assert league_id == "league_x"
+            raise RuntimeError("rookie board missing")
+
+    monkeypatch.setattr(
+        "fantasy.rookie.rookie_engine.RookieEngine",
+        _FailingRookieEngine,
+    )
+
+    result = engine.compute(pick, "league_x")
+
+    assert result.class_strength_signal == 0.0
+    assert result.degradation_reasons == [
+        "class_strength_unavailable: rookie board missing"
+    ]
+    assert any(
+        "class strength unavailable" in record.message
+        for record in caplog.records
+    )
+
+
 def test_compute_future_year_pick_applies_discount(db):
     engine = _build_engine(db, repo=_FakeRepo(season=2026), month=4)
     current_pick = TradeAsset(asset_type="pick", pick_owner_roster_id=1, pick_year=2026, pick_round=1)

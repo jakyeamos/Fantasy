@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from fantasy.context.models import RecommendationContext
 from fantasy.recommendation.models import RecommendationCard
@@ -122,6 +122,7 @@ class TradeEvaluation(BaseModel):
     third_party_evaluations: list[ThirdPartyTradeEvaluation] | None = None
     recommendation_context: RecommendationContext | None = None
     recommendation_cards: list[RecommendationCard] | None = None
+    degradation_reasons: list[str] = Field(default_factory=list)
 
 
 class TradeRequest(BaseModel):

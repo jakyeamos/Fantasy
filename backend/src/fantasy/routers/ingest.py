@@ -5,7 +5,7 @@ from typing import Any
 
 import duckdb
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from fantasy.context.constants import GLOBAL_FRESHNESS_LEAGUE_ID
 from fantasy.context.context_repo import ContextRepo
@@ -30,6 +30,7 @@ class IngestRunResponse(BaseModel):
     run_id: int
     league_id: str
     status: str
+    degradation_warnings: list[str] = Field(default_factory=list)
 
 
 class IngestStatusResponse(BaseModel):
@@ -38,6 +39,7 @@ class IngestStatusResponse(BaseModel):
     last_run_at: str | None
     gap_count: int
     gaps: list[dict[str, Any]]
+    degradation_warnings: list[str] = Field(default_factory=list)
 
 
 class AdpBaselineRefreshResponse(BaseModel):
@@ -98,6 +100,20 @@ class LeagueRefreshPipelineResponse(BaseModel):
     team_context: TeamContextRefreshResponse
     player_metadata: PlayerMetadataRefreshResponse
     artifacts: LeagueArtifactRefreshSummary
+    degradation_warnings: list[str] = Field(default_factory=list)
+
+
+def _degradation_warnings_from_cursor(cursor_json: str | None) -> list[str]:
+    if not cursor_json:
+        return []
+    try:
+        cursor = json.loads(cursor_json)
+    except json.JSONDecodeError:
+        return []
+    warnings = cursor.get("degradation_warnings") if isinstance(cursor, dict) else None
+    if not isinstance(warnings, list):
+        return []
+    return [str(warning) for warning in warnings]
 
 
 def _resolve_adp_refresh_profile(
@@ -234,9 +250,18 @@ async def trigger_ingest(
             detail={"detail": "ingest_in_progress", "league_id": league_id},
         ) from exc
 
-    row = conn.execute("SELECT status FROM ingest_runs WHERE id = ?", [run_id]).fetchone()
+    row = conn.execute(
+        "SELECT status, cursor_json FROM ingest_runs WHERE id = ?",
+        [run_id],
+    ).fetchone()
     status = row[0] if row else "complete"
-    return IngestRunResponse(run_id=run_id, league_id=league_id, status=status)
+    cursor_json = row[1] if row else None
+    return IngestRunResponse(
+        run_id=run_id,
+        league_id=league_id,
+        status=status,
+        degradation_warnings=_degradation_warnings_from_cursor(cursor_json),
+    )
 
 
 @router.post("/{league_id}/refresh-pipeline", response_model=LeagueRefreshPipelineResponse)
@@ -256,8 +281,12 @@ async def refresh_league_pipeline(
             detail={"detail": "ingest_in_progress", "league_id": league_id},
         ) from exc
 
-    row = conn.execute("SELECT status FROM ingest_runs WHERE id = ?", [run_id]).fetchone()
+    row = conn.execute(
+        "SELECT status, cursor_json FROM ingest_runs WHERE id = ?",
+        [run_id],
+    ).fetchone()
     sleeper_status = row[0] if row else "complete"
+    degradation_warnings = _degradation_warnings_from_cursor(row[1] if row else None)
 
     resolved_num_qbs, resolved_num_teams, resolved_ppr = _resolve_adp_refresh_profile(
         conn,
@@ -326,6 +355,7 @@ async def refresh_league_pipeline(
             updated_rows=player_metadata_summary.updated_rows,
         ),
         artifacts=LeagueArtifactRefreshSummary(**artifact_summary),
+        degradation_warnings=degradation_warnings,
     )
 
 
@@ -383,7 +413,7 @@ def get_ingest_status(
 ) -> IngestStatusResponse:
     row = conn.execute(
         """
-        SELECT status, completed_at, gaps_json
+        SELECT status, completed_at, gaps_json, cursor_json
         FROM ingest_runs
         WHERE league_id = ?
         ORDER BY started_at DESC
@@ -399,6 +429,7 @@ def get_ingest_status(
             last_run_at=None,
             gap_count=0,
             gaps=[],
+            degradation_warnings=[],
         )
 
     try:
@@ -412,4 +443,5 @@ def get_ingest_status(
         last_run_at=row[1].isoformat() if row[1] else None,
         gap_count=len(gaps),
         gaps=gaps,
+        degradation_warnings=_degradation_warnings_from_cursor(row[3]),
     )

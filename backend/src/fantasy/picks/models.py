@@ -77,6 +77,7 @@ class PickValuationContext(BaseModel):
 
     # Pre-computed demand factor for the target manager (0.0–1.0)
     target_manager_demand_factor: float = Field(default=0.5, ge=0.0, le=1.0)
+    degradation_reasons: list[str] = Field(default_factory=list)
 
 
 class PickValue(BaseModel):
@@ -100,3 +101,4 @@ class PickValue(BaseModel):
             "None = rule not configured; frontend renders blocked state per D-02."
         ),
     )
+    degradation_reasons: list[str] = Field(default_factory=list)

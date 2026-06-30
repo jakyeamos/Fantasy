@@ -72,6 +72,7 @@ export interface LeagueRefreshPipelineResponse {
   run_id: number
   run_type: "full" | "incremental"
   sleeper_status: string
+  degradation_warnings: string[]
   adp: AdpBaselineRefreshResponse
   draft_capital: DraftCapitalRefreshSummary
   team_context: TeamContextRefreshResponse
@@ -505,6 +506,7 @@ export interface TradeEvaluation {
   third_party_evaluations?: ThirdPartyTradeEvaluation[] | null
   recommendation_context?: RecommendationContext | null
   recommendation_cards?: RecommendationCard[] | null
+  degradation_reasons: string[]
 }
 
 export interface TradeSuggestion {
@@ -731,6 +733,7 @@ export interface PickValue {
   years_out: number
   computed_at: string
   rule_citation: string | null
+  degradation_reasons: string[]
 }
 
 export interface RuleScanEntry {

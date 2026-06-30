@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 import duckdb
@@ -20,11 +21,19 @@ from fantasy.rookie_pick.rookie_pick_engine import RookiePickProfileEngine
 from fantasy.rookie_pick.rookie_pick_repo import RookiePickRepo
 from fantasy.snapshots.snapshot_service import SnapshotService
 
+logger = logging.getLogger(__name__)
+
+
 class IngestService:
     def __init__(self, conn: duckdb.DuckDBPyConnection, client: SleeperClient):
         self.conn = conn
         self.client = client
         self.repo = LeagueRepo(conn)
+        self.degradation_warnings: list[str] = []
+
+    def _record_degradation(self, warning: str) -> None:
+        self.degradation_warnings.append(warning)
+        logger.warning(warning.replace("_", " "))
 
     def _next_run_id(self) -> int:
         row = self.conn.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM ingest_runs").fetchone()
@@ -111,8 +120,23 @@ class IngestService:
         if callable(fetch_players):
             try:
                 player_catalog = dict(await fetch_players())
-            except Exception:
+            except Exception as exc:
                 player_catalog = {}
+                self._record_degradation(
+                    "player_backfill_catalog_unavailable: "
+                    f"{len(missing_player_ids)} roster player(s) missing from local players table; "
+                    f"using ID-only placeholders because Sleeper player catalog fetch failed: {exc}"
+                )
+
+        placeholder_player_ids = [
+            player_id for player_id in missing_player_ids if player_id not in player_catalog
+        ]
+        if placeholder_player_ids:
+            self._record_degradation(
+                "player_backfill_placeholders: "
+                f"{len(placeholder_player_ids)} roster player(s) inserted with ID-only metadata; "
+                "rerun ingest after the Sleeper player catalog is available."
+            )
 
         for player_id in missing_player_ids:
             self.repo.upsert_player(
@@ -214,6 +238,7 @@ class IngestService:
         return await self._store_draft_pick_selections(league_id, drafts_raw)
 
     async def run(self, league_id: str, run_type: str = "full") -> int:
+        self.degradation_warnings = []
         running = self.conn.execute(
             "SELECT COUNT(*) FROM ingest_runs WHERE league_id = ? AND status = 'running'",
             [league_id],
@@ -363,7 +388,12 @@ class IngestService:
                 expected_years=[season_number],
             )
 
-            cursor_json = json.dumps({"max_week_fetched": max_week_fetched})
+            cursor_json = json.dumps(
+                {
+                    "max_week_fetched": max_week_fetched,
+                    "degradation_warnings": self.degradation_warnings,
+                }
+            )
             gaps_json = json.dumps([gap.model_dump() for gap in gaps])
 
             self.conn.execute(

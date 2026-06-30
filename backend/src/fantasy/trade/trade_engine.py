@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import duckdb
@@ -23,6 +24,8 @@ from fantasy.trade.models import (
     TradeRequest,
 )
 from fantasy.trade.trade_repo import TradeRepo
+
+logger = logging.getLogger(__name__)
 
 
 def _clamp_score(value: float) -> float:
@@ -56,6 +59,12 @@ class TradeEngine:
         self._conn = conn
         self._repo = TradeRepo(conn)
         self._card_engine = RecommendationCardEngine(conn)
+        self._degradation_reasons: list[str] = []
+
+    def _record_degradation(self, reason: str, log_message: str) -> None:
+        if reason not in self._degradation_reasons:
+            self._degradation_reasons.append(reason)
+        logger.warning(log_message)
 
     def _extract_player_ids(self, assets: list[TradeAsset]) -> list[str]:
         return [
@@ -71,6 +80,8 @@ class TradeEngine:
         league_id: str | None = None,
         target_roster_id: int | None = None,
     ) -> dict[str, Any]:
+        fallback_reason: str | None = None
+        pick_label = f"{asset.pick_year or 'unknown'} round {asset.pick_round or 'unknown'}"
         if (
             league_id is not None
             and asset.pick_owner_roster_id is not None
@@ -103,12 +114,30 @@ class TradeEngine:
                     "lens_production": 0.0,
                     "pick_value": pick_value,
                 }
-            except Exception:
-                pass
+            except Exception as exc:
+                fallback_reason = (
+                    f"pick_valuation_fallback: {pick_label} valued with static market table "
+                    f"because {exc}"
+                )
+                self._record_degradation(
+                    fallback_reason,
+                    "pick valuation unavailable for %s in league %s; using static pick fallback: %s"
+                    % (pick_label, league_id, exc),
+                )
+        else:
+            fallback_reason = (
+                f"pick_valuation_fallback: {pick_label} valued with static market table "
+                "because required pick identity is incomplete"
+            )
+            self._record_degradation(
+                fallback_reason,
+                "pick valuation unavailable for %s; using static pick fallback because required pick identity is incomplete"
+                % pick_label,
+            )
 
         base = PICK_MARKET_VALUES.get(int(asset.pick_round or 4), 0.05)
         direction_bonus = 0.25 if direction_label in REBUILD_DIRECTION_LABELS else -0.10
-        return {
+        proxy = {
             "player_id": None,
             "full_name": f"{asset.pick_year} Round {asset.pick_round}",
             "position": "PICK",
@@ -122,7 +151,11 @@ class TradeEngine:
             "lens_team_fit": 0.45,
             "lens_direction": max(0.0, min(1.0, 0.55 + direction_bonus)),
             "lens_production": 0.0,
+            "valuation_source": "static_pick_fallback",
         }
+        if fallback_reason is not None:
+            proxy["degradation_reason"] = fallback_reason
+        return proxy
 
     def _score_third_party_trades(
         self,
@@ -297,6 +330,13 @@ class TradeEngine:
         if context_gap >= 0.03:
             notes.append(
                 "App context differs from consensus after team fit, direction, insulation, production, scarcity, and liquidity lenses."
+            )
+        if any(
+            value.get("valuation_source") == "static_pick_fallback"
+            for value in sending_values + receiving_values
+        ):
+            notes.append(
+                "static pick fallback was used for at least one pick because full pick valuation was unavailable."
             )
         if not notes:
             notes.append(
@@ -508,6 +548,7 @@ class TradeEngine:
         *,
         include_recommendation_cards: bool = True,
     ) -> TradeEvaluation:
+        self._degradation_reasons = []
         direction = self._repo.get_team_direction(request.league_id, request.user_roster_id)
         direction_label = direction["primary_label"] if direction is not None else "roster plan"
         sending_values = self._resolve_assets(
@@ -576,6 +617,7 @@ class TradeEngine:
             strategic_distinction=strategic_distinction,
             trade_balance=trade_balance,
             third_party_evaluations=third_party_evaluations or None,
+            degradation_reasons=self._degradation_reasons,
         )
         if include_recommendation_cards:
             evaluation.recommendation_cards = self._card_engine.build_trade_card(

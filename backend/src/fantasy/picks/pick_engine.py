@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import logging
 from typing import Callable
 
 import duckdb
@@ -33,6 +34,8 @@ from fantasy.picks.models import (
 )
 from fantasy.picks.pick_repo import PickRepo
 from fantasy.trade.models import TradeAsset
+
+logger = logging.getLogger(__name__)
 
 _RULE_UNSET = object()
 
@@ -240,17 +243,23 @@ class PickEngine:
         self._repo = PickRepo(conn)
         self._now = now_fn or (lambda: datetime.now(timezone.utc))
 
-    def _load_class_strength_signal(self, league_id: str) -> float:
+    def _load_class_strength_signal(self, league_id: str) -> tuple[float, list[str]]:
         cached = self._repo.get_class_strength_signal(league_id)
         if cached is not None:
-            return cached
+            return cached, []
 
         try:
             from fantasy.rookie.rookie_engine import RookieEngine
 
-            return RookieEngine(self._conn).compute_class_strength(league_id)
-        except Exception:
-            return 0.0
+            return RookieEngine(self._conn).compute_class_strength(league_id), []
+        except Exception as exc:
+            reason = f"class_strength_unavailable: {exc}"
+            logger.warning(
+                "class strength unavailable for league %s; using neutral class strength: %s",
+                league_id,
+                exc,
+            )
+            return 0.0, [reason]
 
     def _build_context(
         self,
@@ -261,7 +270,7 @@ class PickEngine:
     ) -> PickValuationContext:
         if draft_order_rule is _RULE_UNSET:
             draft_order_rule = self._repo.get_draft_order_rule(league_id)
-        class_strength_signal = self._load_class_strength_signal(league_id)
+        class_strength_signal, degradation_reasons = self._load_class_strength_signal(league_id)
         demand_factor = (
             self._repo.get_manager_demand_factor(target_manager_id, league_id)
             if target_manager_id is not None
@@ -273,6 +282,7 @@ class PickEngine:
             draft_order_rule=draft_order_rule,
             class_strength_signal=class_strength_signal,
             target_manager_demand_factor=demand_factor,
+            degradation_reasons=degradation_reasons,
         )
 
     def _blocked_pick_value(
@@ -386,6 +396,7 @@ class PickEngine:
             years_out=years_out,
             computed_at=self._now(),
             rule_citation=rule_citation,
+            degradation_reasons=context.degradation_reasons,
         )
 
     def compute(

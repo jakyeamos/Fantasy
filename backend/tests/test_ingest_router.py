@@ -335,6 +335,7 @@ def test_refresh_league_pipeline_runs_all_offseason_refresh_steps(monkeypatch, d
             "waiver_recommendation_count": 12,
             "snapshot_count": 1,
         },
+        "degradation_warnings": [],
     }
     assert calls == [
         ("sleeper_client", "enter"),
