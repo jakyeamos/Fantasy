@@ -1,32 +1,54 @@
 {
   "version": 1,
   "coveragePaths": [
+    "coverage.lcov",
     "coverage/lcov.info",
     "coverage/coverage-final.json",
     ".nyc_output/coverage.json",
-    "coverage.lcov",
     "lcov.info",
     "coverage.out"
   ],
   "coverageFormat": "auto",
-  "coverageAdapters": [
+  "coverageAdapters": [],
+  "qualityAdapters": [
     {
-      "name": "backend-lcov",
-      "command": "true",
-      "coveragePath": "coverage.lcov",
-      "coverageFormat": "lcov"
+      "name": "anti-slop",
+      "command": "anti-slop gate --files {changedFiles} --mode block --format pre-cr",
+      "required": true
+    },
+    {
+      "name": "frontend-build",
+      "command": "pnpm --dir frontend build",
+      "required": true
+    },
+    {
+      "name": "frontend-render-smoke",
+      "command": "pnpm --dir frontend test:render",
+      "required": true
+    },
+    {
+      "name": "frontend-dead-code",
+      "command": "pnpm --dir frontend audit:dead-code",
+      "required": true
     }
   ],
   "threshold": 80,
   "surfaces": {
     "covered": [
-      "backend/src/fantasy/trends/models.py",
-      "backend/src/fantasy/trends/opportunity_engine.py",
-      "backend/src/fantasy/routers/opportunities.py"
+      "backend/src/fantasy/actions/**",
+      "backend/src/fantasy/routers/actions.py",
+      "backend/src/fantasy/routers/dashboard.py",
+      "backend/src/fantasy/routers/intelligence.py",
+      "backend/src/fantasy/routers/leagues.py"
     ],
     "ignored": [
+      ".aios/**",
       ".planning/**",
+      ".quality-runner/**",
+      "backend/alembic/**",
       "backend/tests/**",
+      "coverage.lcov",
+      "data/**",
       "frontend/**"
     ],
     "unsupported": []
@@ -36,5 +58,5 @@
     "security": true,
     "checklist": true
   },
-  "testCommand": "uv run --project backend pytest backend/tests/trends/test_opportunity_engine.py backend/tests/test_opportunities_router.py --cov=fantasy.trends.models --cov=fantasy.trends.opportunity_engine --cov=fantasy.routers.opportunities --cov-report=lcov --cov-report=term"
+  "testCommand": "uv run --project backend pytest backend/tests/test_command_center_acceptance.py backend/tests/test_command_center_trades.py backend/tests/test_dashboard_router.py backend/tests/test_intelligence_router.py --cov=fantasy.actions.command_center --cov=fantasy.actions.manager_actions --cov=fantasy.actions.ranking --cov=fantasy.actions.rookie_actions --cov=fantasy.actions.trade_suggestions --cov=fantasy.actions.weekly_risk --cov=fantasy.routers.actions --cov=fantasy.routers.dashboard --cov=fantasy.routers.intelligence --cov=fantasy.routers.leagues --cov-report=lcov --cov-report=term"
 }

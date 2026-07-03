@@ -5,7 +5,7 @@ nextStep: "Load curated dense player metrics such as YPRR, route participation, 
 blockers:
   - "Schema changes still require Alembic, startup compat shims, and test bootstrap updates in parallel."
   - "New tables still depend on a manual `alembic upgrade head` step because there is no startup migration runner."
-lastUpdated: "2026-07-02"
+lastUpdated: "2026-07-03"
 tags:
   - fantasy-football
   - fastapi
@@ -35,3 +35,4 @@ Schema management is split across Alembic migrations, startup compatibility shim
 - 2026-06-28: Added `PlayerMetadataRefreshService` and `POST /ingest/player-metadata/refresh` to derive target share, carry share, weekly usage, year-over-year role growth, and FantasyCalc trend movement into `players.metadata_blob`.
 - 2026-06-28: Added dense player metadata CSV import support plus `POST /ingest/player-metadata/import-csv`, allowing sourced metrics such as YPRR, route participation, snap share, first-read share, and alignment to feed Edge Radar similarity without fabricating unavailable data.
 - 2026-07-02: Added standard frontend quality gate scripts for formatting, lint/typecheck, dead-code audit, smoke, and pre-PR checks so Quality Runner can detect the repo-owned JavaScript gates.
+- 2026-07-03: Realigned `.pre-cr.json` from the old opportunities-only backend slice to current Command Center/action/league route coverage, with frontend build, render-smoke, dead-code, and anti-slop adapters exposed through Pre-CR.
