@@ -1,12 +1,21 @@
 from __future__ import annotations
 
+import argparse
 import csv
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import duckdb
+
+from fantasy.config import REPO_ROOT
+from fantasy.db.connection import close_connection, get_write_connection
+
+DENSE_PLAYER_METADATA_CSV_PATH = (
+    REPO_ROOT / "data" / "edge_radar" / "player_dense_metadata.csv"
+)
 
 
 @dataclass(frozen=True)
@@ -68,7 +77,7 @@ def _safe_float(value: object) -> float:
 
 def import_player_metadata_csv(
     conn: duckdb.DuckDBPyConnection,
-    csv_path: str | Path,
+    csv_path: str | Path = DENSE_PLAYER_METADATA_CSV_PATH,
 ) -> PlayerMetadataImportSummary:
     source_rows = 0
     matched_rows = 0
@@ -77,7 +86,7 @@ def import_player_metadata_csv(
         reader = csv.DictReader(handle)
         for raw in reader:
             source_rows += 1
-            player_id = str(raw.get("player_id") or "").strip()
+            player_id = _resolve_player_id(conn, raw)
             if not player_id:
                 continue
             existing = conn.execute(
@@ -107,6 +116,43 @@ def import_player_metadata_csv(
         updated_rows=updated_rows,
         unmatched_rows=source_rows - matched_rows,
     )
+
+
+def _resolve_player_id(
+    conn: duckdb.DuckDBPyConnection,
+    raw: dict[str, str],
+) -> str:
+    player_id = str(raw.get("player_id") or "").strip()
+    if player_id:
+        exists = conn.execute(
+            "SELECT 1 FROM players WHERE player_id = ?",
+            [player_id],
+        ).fetchone()
+        if exists is not None:
+            return player_id
+
+    player_name = str(raw.get("player_name") or raw.get("full_name") or "").strip()
+    if not player_name:
+        return ""
+    matches = conn.execute(
+        """
+        SELECT player_id
+        FROM players
+        WHERE lower(full_name) = lower(?)
+        ORDER BY player_id
+        LIMIT 2
+        """,
+        [player_name],
+    ).fetchall()
+    if len(matches) != 1:
+        return ""
+    return str(matches[0][0])
+
+
+def import_curated_dense_player_metadata(
+    conn: duckdb.DuckDBPyConnection,
+) -> PlayerMetadataImportSummary:
+    return import_player_metadata_csv(conn, DENSE_PLAYER_METADATA_CSV_PATH)
 
 
 def _metadata_updates_from_row(raw: dict[str, str]) -> dict[str, Any]:
@@ -245,9 +291,41 @@ class PlayerMetadataRefreshService:
         }
 
 
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Import curated dense Edge Radar player metadata into DuckDB."
+    )
+    parser.add_argument(
+        "--csv-path",
+        type=Path,
+        default=DENSE_PLAYER_METADATA_CSV_PATH,
+        help=f"CSV path to import. Defaults to {DENSE_PLAYER_METADATA_CSV_PATH}.",
+    )
+    args = parser.parse_args(argv)
+
+    conn = get_write_connection()
+    try:
+        summary = import_player_metadata_csv(conn, args.csv_path)
+    finally:
+        close_connection(conn)
+
+    print(
+        "Imported dense player metadata: "
+        f"{summary.updated_rows}/{summary.source_rows} rows updated "
+        f"({summary.unmatched_rows} unmatched)."
+    )
+    return 0
+
+
 __all__ = [
+    "DENSE_PLAYER_METADATA_CSV_PATH",
     "PlayerMetadataImportSummary",
     "PlayerMetadataRefreshService",
     "PlayerMetadataRefreshSummary",
+    "import_curated_dense_player_metadata",
     "import_player_metadata_csv",
 ]
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

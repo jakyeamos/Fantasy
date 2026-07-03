@@ -189,6 +189,41 @@ def test_import_player_metadata_csv_route_loads_dense_metrics(monkeypatch, db):
     assert calls == ["/tmp/dense.csv"]
 
 
+def test_import_player_metadata_csv_route_uses_default_curated_path(monkeypatch, db):
+    calls: list[str] = []
+
+    def _fake_import(conn):
+        assert conn is db
+        calls.append("default")
+        return PlayerMetadataImportSummary(
+            source_rows=4,
+            matched_rows=4,
+            updated_rows=4,
+            unmatched_rows=0,
+        )
+
+    monkeypatch.setattr(
+        "fantasy.routers.ingest.import_curated_dense_player_metadata",
+        _fake_import,
+    )
+
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _unexpected_read_conn
+    app.dependency_overrides[get_write_db_conn] = _override_conn(db)
+    client = TestClient(app)
+
+    response = client.post("/ingest/player-metadata/import-csv")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "source_rows": 4,
+        "matched_rows": 4,
+        "updated_rows": 4,
+        "unmatched_rows": 0,
+    }
+    assert calls == ["default"]
+
+
 def test_refresh_league_pipeline_runs_all_offseason_refresh_steps(monkeypatch, db):
     db.execute(
         """

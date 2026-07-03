@@ -60,3 +60,26 @@ Notes:
   `num_qbs`, `num_teams`, `ppr`.
 - The refresh is safety-guarded: if zero players match local IDs, the existing
   ADP baseline is left unchanged.
+
+## Dense Player Metadata CSV
+
+Edge Radar reads curated route/usage fields from
+`data/edge_radar/player_dense_metadata.csv` by default. Import the repo-owned
+CSV into local DuckDB with:
+
+```bash
+cd backend
+uv run python -m fantasy.edge_radar.player_metadata
+```
+
+or through the API:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/ingest/player-metadata/import-csv"
+```
+
+Use `csv_path` when importing a different export:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/ingest/player-metadata/import-csv?csv_path=/absolute/path/to/player_dense_metadata.csv"
+```

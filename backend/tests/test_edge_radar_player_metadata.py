@@ -5,6 +5,7 @@ import json
 from fantasy.edge_radar.engine import EdgeRadarEngine
 from fantasy.edge_radar.player_metadata import (
     PlayerMetadataRefreshService,
+    import_curated_dense_player_metadata,
     import_player_metadata_csv,
 )
 
@@ -56,6 +57,97 @@ def test_import_player_metadata_csv_loads_sourced_dense_metrics(db, tmp_path):
         source.source: source for source in EdgeRadarEngine(db).build().source_health
     }
     assert health_by_source["player_dense_metadata"].status == "ready"
+
+
+def test_import_curated_dense_player_metadata_uses_default_repo_path(
+    monkeypatch,
+    db,
+    tmp_path,
+):
+    db.execute(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES ('wr1', 'WR One', 'WR', 'SEA', 24, '{}')
+        """
+    )
+    csv_path = tmp_path / "player_dense_metadata.csv"
+    csv_path.write_text(
+        "\n".join(
+            [
+                (
+                    "player_id,player_name,yprr,route_participation,snap_share,"
+                    "first_read_share,source,notes"
+                ),
+                "wr1,WR One,2.4,0.86,0.78,0.22,manual_research,default import",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "fantasy.edge_radar.player_metadata.DENSE_PLAYER_METADATA_CSV_PATH",
+        csv_path,
+    )
+
+    summary = import_curated_dense_player_metadata(db)
+
+    metadata = json.loads(
+        db.execute(
+            "SELECT metadata_blob FROM players WHERE player_id = 'wr1'"
+        ).fetchone()[0]
+    )
+    assert summary.updated_rows == 1
+    assert metadata["yards_per_route_run"] == 2.4
+    assert metadata["route_participation"] == 0.86
+    assert metadata["snap_share"] == 0.78
+    assert metadata["first_read_target_share"] == 0.22
+
+
+def test_import_player_metadata_csv_falls_back_to_unique_player_name(db, tmp_path):
+    db.execute(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES ('wr1', 'WR One', 'WR', 'SEA', 24, '{}')
+        """
+    )
+    csv_path = tmp_path / "dense_player_metadata.csv"
+    csv_path.write_text(
+        "\n".join(
+            [
+                (
+                    "player_id,player_name,yprr,route_participation,snap_share,"
+                    "first_read_share,source,notes"
+                ),
+                "provider_wr1,WR One,2.4,0.86,0.78,0.22,manual_research,name match",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    summary = import_player_metadata_csv(db, csv_path)
+
+    metadata = json.loads(
+        db.execute(
+            "SELECT metadata_blob FROM players WHERE player_id = 'wr1'"
+        ).fetchone()[0]
+    )
+    assert summary.matched_rows == 1
+    assert summary.updated_rows == 1
+    assert metadata["yards_per_route_run"] == 2.4
+
+
+def test_edge_radar_dense_metadata_health_requires_all_dense_markers(db):
+    db.execute(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES ('wr1', 'WR One', 'WR', 'SEA', 24, '{"yards_per_route_run":2.4}')
+        """
+    )
+
+    health_by_source = {
+        source.source: source for source in EdgeRadarEngine(db).build().source_health
+    }
+
+    assert health_by_source["player_dense_metadata"].status == "missing"
 
 
 def test_player_metadata_refresh_derives_usage_growth_and_market_signals(db):

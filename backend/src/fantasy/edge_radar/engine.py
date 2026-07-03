@@ -425,6 +425,7 @@ class EdgeRadarEngine:
                     '"snap_share"',
                     '"first_read_target_share"',
                 ),
+                require_all_markers=True,
             ),
             SourceHealth(
                 source="api_key_sources",
@@ -466,8 +467,10 @@ class EdgeRadarEngine:
         *,
         source: str,
         required_markers: tuple[str, ...],
+        require_all_markers: bool = False,
     ) -> SourceHealth:
-        clauses = " OR ".join("metadata_blob LIKE ?" for _ in required_markers)
+        operator = " AND " if require_all_markers else " OR "
+        clauses = operator.join("metadata_blob LIKE ?" for _ in required_markers)
         try:
             row = self._conn.execute(
                 f"""

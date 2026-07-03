@@ -12,6 +12,7 @@ from fantasy.context.context_repo import ContextRepo
 from fantasy.context.freshness_service import FreshnessService
 from fantasy.edge_radar.player_metadata import (
     PlayerMetadataRefreshService,
+    import_curated_dense_player_metadata,
     import_player_metadata_csv,
 )
 from fantasy.edge_radar.team_context import TeamContextRefreshService
@@ -217,10 +218,14 @@ def refresh_player_metadata(
     response_model=PlayerMetadataImportResponse,
 )
 def import_player_metadata(
-    csv_path: str = Query(min_length=1),
+    csv_path: str | None = Query(default=None, min_length=1),
     conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
 ) -> PlayerMetadataImportResponse:
-    summary = import_player_metadata_csv(conn, csv_path)
+    summary = (
+        import_curated_dense_player_metadata(conn)
+        if csv_path is None
+        else import_player_metadata_csv(conn, csv_path)
+    )
     FreshnessService(ContextRepo(conn)).mark_refreshed(
         GLOBAL_FRESHNESS_LEAGUE_ID,
         "player_metadata",
