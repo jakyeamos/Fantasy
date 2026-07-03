@@ -64,8 +64,9 @@ Notes:
 ## Dense Player Metadata CSV
 
 Edge Radar reads curated route/usage fields from
-`data/edge_radar/player_dense_metadata.csv` by default. Import the repo-owned
-CSV into local DuckDB with:
+`data/edge_radar/player_dense_metadata.csv` by default. The committed file is
+header-only until real sourced metrics are curated. Import the repo-owned CSV
+into local DuckDB with:
 
 ```bash
 cd backend

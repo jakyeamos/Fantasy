@@ -2,6 +2,9 @@
 
 `player_dense_metadata.csv` is the default local import source for dense player
 role metrics that are not available from Sleeper or weekly box-score loaders.
+It is intentionally committed with only a header until real sourced values are
+curated. Do not add example or estimated rows here; Edge Radar source health
+should stay missing until this file contains validated metrics.
 
 Import it with either:
 
@@ -31,4 +34,7 @@ Expected columns:
 - `notes`
 
 Edge Radar reports `player_dense_metadata` as ready after at least one imported
-player has YPRR, route participation, snap share, and first-read share.
+player has YPRR, route participation, snap share, and first-read share. If the
+file is header-only, importing it should update zero rows and leave that source
+missing unless dense metadata already exists in the local database from another
+validated import.
