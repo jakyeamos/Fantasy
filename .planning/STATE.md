@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: implementing
-stopped_at: Silent fallback degradation metadata surfaced
-last_updated: "2026-06-29T20:54:31-04:00"
+stopped_at: Curated dense player metadata CSV import path wired and verified
+last_updated: "2026-07-03T15:52:41-04:00"
 progress:
   total_phases: 21
   completed_phases: 16
@@ -100,11 +100,15 @@ Recent decisions affecting current work:
 - [Edge Radar]: EdgeRadarEngine computes buy_low, buy_high, sell_high, sell_low, and waiver_pickup discoveries from player value vs market price deltas and cached waiver boards; CommandCenterEngine consumes the top discoveries as existing CommandAction rows.
 - [Edge Radar]: Similarity evidence is first-class on player discoveries: same/similar position profiles are scored by age, value profile, team, and metadata-backed offensive system/head coach/offensive coordinator when present, then summarized with public weekly fantasy outcomes.
 - [Edge Radar]: Similar-player evidence freshness now tracks global player_metadata and team_context domains, surfaces stale warnings in Opportunity Feed and Command Center, and exposes refresh actions for those evidence sources.
+- [Edge Radar]: Curated dense player metadata now has a repo-owned default CSV at `data/edge_radar/player_dense_metadata.csv`; `/ingest/player-metadata/import-csv` imports that path when `csv_path` is omitted, and `python -m fantasy.edge_radar.player_metadata` provides the same local import path.
+- [Edge Radar]: `player_dense_metadata` source health now requires one player row to include YPRR, route participation, snap share, and first-read share together before reporting ready.
 - [Backend Verification]: `uv run pytest` from `backend/` passed 501 tests after Edge Radar discovery-layer integration.
 - [Backend Verification]: `uv run pytest` from `backend/` passed 524 tests after refresh-pipeline Edge Radar source and downstream cache integration.
 - [Code Quality]: Player backfill catalog degradation, pick class-strength fallback, and trade static pick valuation fallback now emit logging and response/domain metadata instead of silently changing recommendation quality.
 - [Backend Verification]: `uv run pytest` from `backend/` passed 548 tests after surfacing refresh/pick/trade degradation metadata.
 - [Frontend Verification]: `pnpm build` from `frontend/` passed after updating API response types for degradation metadata.
+- [Backend Verification]: Focused Edge Radar/ingest verification passed 24 tests. Local `python -m fantasy.edge_radar.player_metadata` imported 4/4 curated dense rows into `data/fantasy.duckdb`, and Edge Radar source health reported `player_dense_metadata` ready with 4 enriched players.
+- [Backend Verification]: Full `uv run pytest` currently reports 551 passed and 1 unrelated deterministic failure in `tests/trends/test_opportunity_engine.py::test_buy_target_solving_lineup_gap_outranks_larger_raw_gap`.
 
 ### Pending Todos
 
