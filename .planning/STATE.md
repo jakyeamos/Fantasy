@@ -57,6 +57,7 @@ Plan: Edge Radar discovery layer
 
 ### Roadmap Evolution
 
+- 2026-07-04: Phase 22 planned: QR remediation: fantasy from QR run qr-fleet-continue-20260704-fantasy.
 - Phase 21 added: player value trends and market inefficiency trade suggestions
 - Phase 21 executed end to end: trend engine, opportunity feed route, opportunity feed UI, and dashboard entry points
 - Edge Radar inserted as a backend discovery/intelligence layer after Phase 21 to rank opportunities by delta from public market and feed existing decision surfaces instead of creating another primary UX destination

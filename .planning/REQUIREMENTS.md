@@ -299,3 +299,6 @@
 ---
 *Requirements defined: 2026-03-11*
 *Last updated: 2026-03-29 — Format-Specific Intelligence requirements formalized (FS-01, FS-02, FS-04); Phase 11 taxi manual exceptions gap closure executed; v1.1 Helpfulness Overhaul requirements retained*
+## QR Remediation Requirements
+
+- [ ] **QR-FANTASY**: Resolve the Quality Runner advisory clusters from run qr-fleet-continue-20260704-fantasy for fantasy without changing intended behavior, then verify with focused repo checks and a post-remediation QR comparison.

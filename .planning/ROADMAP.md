@@ -460,6 +460,22 @@ Plans:
 - [x] 21-06-PLAN.md — Frontend: OpportunityFeedPage + all card sub-components
 - [x] 21-07-PLAN.md — Dashboard: Opportunities stat tile + View Opportunities navigation link
 
+### Phase 22: QR remediation: fantasy
+
+
+
+**Goal:** Resolve Quality Runner findings for fantasy using cluster-oriented, behavior-preserving remediation from run qr-fleet-continue-20260704-fantasy.
+**Requirements**: QR-FANTASY
+**Depends on:** Phase 21
+**Plans:** 2 plans
+
+Plans:
+- [ ] 22-01-PLAN.md - Primary QR cluster remediation
+- [ ] 22-02-PLAN.md - Additional QR cluster remediation
+
+**Cross-cutting constraints:**
+- The post-remediation QR run records no unresolved regression for this plan scope.
+
 ---
 
 ## Progress

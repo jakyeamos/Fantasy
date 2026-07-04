@@ -36,3 +36,9 @@ Schema management is split across Alembic migrations, startup compatibility shim
 - 2026-06-28: Added dense player metadata CSV import support plus `POST /ingest/player-metadata/import-csv`, allowing sourced metrics such as YPRR, route participation, snap share, first-read share, and alignment to feed Edge Radar similarity without fabricating unavailable data.
 - 2026-07-02: Added standard frontend quality gate scripts for formatting, lint/typecheck, dead-code audit, smoke, and pre-PR checks so Quality Runner can detect the repo-owned JavaScript gates.
 - 2026-07-03: Realigned `.pre-cr.json` from the old opportunities-only backend slice to current Command Center/action/league route coverage, with frontend build, render-smoke, dead-code, and anti-slop adapters exposed through Pre-CR.
+
+## QR Remediation Planning
+
+## QR Remediation Planning
+
+- 2026-07-04: Added GSD Phase 22 for QR remediation from qr-fleet-continue-20260704-fantasy; 2 plan(s) created from fantasy.md. Execution has not started.
