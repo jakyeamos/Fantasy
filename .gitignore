@@ -16,3 +16,8 @@ data/*.duckdb
 # Local AI OS generated audit/review artifacts
 .aios/
 .quality-runner/
+
+# Generated / cache / audit output
+.turbo/
+.firecrawl/
+.pytest_cache/
