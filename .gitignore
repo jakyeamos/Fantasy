@@ -21,3 +21,4 @@ data/*.duckdb
 .turbo/
 .firecrawl/
 .pytest_cache/
+.agents/
