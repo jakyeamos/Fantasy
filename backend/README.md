@@ -84,3 +84,13 @@ Use `csv_path` when importing a different export:
 ```bash
 curl -X POST "http://127.0.0.1:8000/ingest/player-metadata/import-csv?csv_path=/absolute/path/to/player_dense_metadata.csv"
 ```
+# Fantasy-agent verification
+
+Run backend tests, frontend quality gates, migration-head validation, diff
+validation, and live capability checks through one machine-readable boundary:
+
+```bash
+uv run fantasy-agent-check --json
+```
+
+The report preserves `passed`, `degraded`, `unavailable`, and `failed` states.

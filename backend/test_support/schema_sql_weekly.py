@@ -132,6 +132,38 @@ WEEKLY_SCHEMA_SQL = [
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS decision_feedback (
+        id INTEGER PRIMARY KEY,
+        decision_id VARCHAR NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        league_id VARCHAR NOT NULL,
+        roster_id INTEGER NOT NULL,
+        packet_version VARCHAR NOT NULL,
+        recommendation_action VARCHAR NOT NULL,
+        confidence DOUBLE NOT NULL,
+        event_type VARCHAR NOT NULL DEFAULT 'feedback',
+        action_taken VARCHAR,
+        outcome VARCHAR,
+        outcome_score DOUBLE,
+        follow_up_at TIMESTAMP,
+        resolution_state VARCHAR NOT NULL DEFAULT 'awaiting_action',
+        notes VARCHAR,
+        packet_json VARCHAR NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS decision_calibration_runs (
+        id INTEGER PRIMARY KEY,
+        run_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        model_name VARCHAR NOT NULL,
+        model_version VARCHAR NOT NULL,
+        season VARCHAR NOT NULL,
+        sample_size INTEGER NOT NULL,
+        metrics_json VARCHAR NOT NULL,
+        notes VARCHAR
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS historical_prospect_features (
         player_id VARCHAR NOT NULL,
         draft_year INTEGER NOT NULL,
@@ -297,6 +329,24 @@ WEEKLY_SCHEMA_SQL = [
         fantasycalc_trend30 DOUBLE,
         adp_baseline DOUBLE,
         UNIQUE (player_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_refresh_runs (
+        id INTEGER PRIMARY KEY,
+        run_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        source VARCHAR NOT NULL,
+        num_qbs INTEGER NOT NULL,
+        num_teams INTEGER NOT NULL,
+        ppr DOUBLE NOT NULL,
+        status VARCHAR NOT NULL,
+        source_rows INTEGER,
+        matched_rows INTEGER,
+        matched_unique_rows INTEGER,
+        unmatched_rows INTEGER,
+        market_value_rows INTEGER,
+        coverage_ratio DOUBLE,
+        error_detail VARCHAR
     )
     """,
     """

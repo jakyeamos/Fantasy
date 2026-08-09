@@ -28,6 +28,14 @@ dependencies = [
   "nflreadpy>=0.1.0",
 ]
 
+[project.scripts]
+fantasy-context = "fantasy.agent_context:main"
+fantasy-advise = "fantasy.advisor:main"
+fantasy-capabilities = "fantasy.capabilities:main"
+fantasy-feedback = "fantasy.decision.feedback_cli:main"
+fantasy-calibrate = "fantasy.decision.calibration_cli:main"
+fantasy-agent-check = "fantasy.agent_verification:main"
+
 [project.optional-dependencies]
 dev = [
   "pytest>=8",
