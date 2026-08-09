@@ -23,6 +23,8 @@ It is marked private in `package.json` and is intended for workspace use rather 
 
 - `pnpm dev` - `vite`
 - `pnpm build` - `tsc --noEmit && vite build`
+- `pnpm format` - checked Prettier formatting
+- `pnpm browser:smoke` - bounded Playwright route, interaction, and state smoke
 - `pnpm preview` - `vite preview`
 
 ## Development Notes
@@ -32,4 +34,6 @@ Use `pnpm` from the containing workspace to install dependencies and run scripts
 
 ## Verification
 
-There is no local verification command documented in this directory yet; use the parent workspace checks when available.
+The browser smoke harness uses explicit DOM readiness rather than Vite's
+persistent-HMR `networkidle` state. It also checks empty, stale, degraded, and
+error opportunity fixtures through `?smokeState=` routes.
