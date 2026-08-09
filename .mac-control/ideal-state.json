@@ -1,0 +1,249 @@
+{
+  "schema": "mac-control-task-manifest/v1",
+  "repository_id": "repo-d1440a82f24b147f",
+  "repository_name": "Fantasy",
+  "applicability": "applicable",
+  "applicability_reason": "Fantasy exposes runnable React/Vite frontend UI; this manifest records its supported user-facing workflow catalog while live and measured evidence remain outstanding.",
+  "app": {
+    "name": "Fantasy web application"
+  },
+  "criteria": {
+    "stable_identity": true,
+    "correct_semantics": true,
+    "observable_state": true,
+    "useful_hierarchy": true,
+    "efficient_navigation": true,
+    "verifiable_outcomes": true,
+    "route_flexibility": true,
+    "stable_change_behavior": true
+  },
+  "tasks": [
+    {
+      "task_id": "inspect-league-dashboard",
+      "stable_target_id": "fantasy.league.dashboard",
+      "hierarchy": "fantasy > league > dashboard",
+      "semantic_action": "focus the league dashboard",
+      "observable_postcondition": "League identity, roster context, warnings, and overview panels are readable",
+      "observable_states": [
+        "enabled",
+        "focused",
+        "selected",
+        "expanded",
+        "visible",
+        "loading",
+        "completed"
+      ],
+      "navigation_strategy": "semantic target lookup by stable identifier, accessible role, and label; use semantic scrolling when the target is offscreen",
+      "eligible_routes": [
+        "accessibility",
+        "keyboard",
+        "scrolling"
+      ],
+      "selected_route": "accessibility",
+      "change_states": [
+        "loading",
+        "modal",
+        "disabled",
+        "permission_unavailable"
+      ],
+      "accessibility": {
+        "identifier": "fantasy.league.dashboard",
+        "label": "League overview",
+        "role": "AXWebArea",
+        "required_actions": [
+          "AXFocus"
+        ]
+      }
+    },
+    {
+      "task_id": "compare-league",
+      "stable_target_id": "fantasy.league.comparison",
+      "hierarchy": "fantasy > league > comparison",
+      "semantic_action": "open League Comparison",
+      "observable_postcondition": "Comparison workspace and state are readable",
+      "observable_states": [
+        "enabled",
+        "focused",
+        "selected",
+        "expanded",
+        "visible",
+        "loading",
+        "completed"
+      ],
+      "navigation_strategy": "semantic target lookup by stable identifier, accessible role, and label; use semantic scrolling when the target is offscreen",
+      "eligible_routes": [
+        "accessibility",
+        "keyboard",
+        "scrolling"
+      ],
+      "selected_route": "accessibility",
+      "change_states": [
+        "loading",
+        "modal",
+        "disabled",
+        "permission_unavailable"
+      ],
+      "accessibility": {
+        "identifier": "fantasy.league.comparison",
+        "label": "League Comparison",
+        "role": "AXLink",
+        "required_actions": [
+          "AXFocus",
+          "AXPress"
+        ]
+      }
+    },
+    {
+      "task_id": "review-waivers",
+      "stable_target_id": "fantasy.league.waivers",
+      "hierarchy": "fantasy > league > waivers",
+      "semantic_action": "open the waiver wire",
+      "observable_postcondition": "Waiver intelligence, player rows, and actions are readable",
+      "observable_states": [
+        "enabled",
+        "focused",
+        "selected",
+        "expanded",
+        "visible",
+        "loading",
+        "completed"
+      ],
+      "navigation_strategy": "semantic target lookup by stable identifier, accessible role, and label; use semantic scrolling when the target is offscreen",
+      "eligible_routes": [
+        "accessibility",
+        "keyboard",
+        "scrolling"
+      ],
+      "selected_route": "accessibility",
+      "change_states": [
+        "loading",
+        "modal",
+        "disabled",
+        "permission_unavailable"
+      ],
+      "accessibility": {
+        "identifier": "fantasy.league.waivers",
+        "label": "Waiver Wire",
+        "role": "AXLink",
+        "required_actions": [
+          "AXFocus",
+          "AXPress"
+        ]
+      }
+    },
+    {
+      "task_id": "review-roster-moves",
+      "stable_target_id": "fantasy.league.roster-moves",
+      "hierarchy": "fantasy > league > roster-moves",
+      "semantic_action": "open Roster Moves",
+      "observable_postcondition": "Roster hygiene suggestions and move states are readable",
+      "observable_states": [
+        "enabled",
+        "focused",
+        "selected",
+        "expanded",
+        "visible",
+        "loading",
+        "completed"
+      ],
+      "navigation_strategy": "semantic target lookup by stable identifier, accessible role, and label; use semantic scrolling when the target is offscreen",
+      "eligible_routes": [
+        "accessibility",
+        "keyboard",
+        "scrolling"
+      ],
+      "selected_route": "accessibility",
+      "change_states": [
+        "loading",
+        "modal",
+        "disabled",
+        "permission_unavailable"
+      ],
+      "accessibility": {
+        "identifier": "fantasy.league.roster-moves",
+        "label": "Roster Moves",
+        "role": "AXLink",
+        "required_actions": [
+          "AXFocus",
+          "AXPress"
+        ]
+      }
+    },
+    {
+      "task_id": "inspect-rookie-board",
+      "stable_target_id": "fantasy.league.rookie-board",
+      "hierarchy": "fantasy > league > rookie-board",
+      "semantic_action": "open Rookie Board",
+      "observable_postcondition": "Rookie tiers, sort controls, and player evidence are readable",
+      "observable_states": [
+        "enabled",
+        "focused",
+        "selected",
+        "expanded",
+        "visible",
+        "loading",
+        "completed"
+      ],
+      "navigation_strategy": "semantic target lookup by stable identifier, accessible role, and label; use semantic scrolling when the target is offscreen",
+      "eligible_routes": [
+        "accessibility",
+        "keyboard",
+        "scrolling"
+      ],
+      "selected_route": "accessibility",
+      "change_states": [
+        "loading",
+        "modal",
+        "disabled",
+        "permission_unavailable"
+      ],
+      "accessibility": {
+        "identifier": "fantasy.league.rookie-board",
+        "label": "Rookie Board",
+        "role": "AXLink",
+        "required_actions": [
+          "AXFocus",
+          "AXPress"
+        ]
+      }
+    },
+    {
+      "task_id": "analyze-opportunities",
+      "stable_target_id": "fantasy.opportunities",
+      "hierarchy": "fantasy > opportunities",
+      "semantic_action": "open Opportunities",
+      "observable_postcondition": "Opportunity cards, filters, and suggested actions are readable",
+      "observable_states": [
+        "enabled",
+        "focused",
+        "selected",
+        "expanded",
+        "visible",
+        "loading",
+        "completed"
+      ],
+      "navigation_strategy": "semantic target lookup by stable identifier, accessible role, and label; use semantic scrolling when the target is offscreen",
+      "eligible_routes": [
+        "accessibility",
+        "keyboard",
+        "scrolling"
+      ],
+      "selected_route": "accessibility",
+      "change_states": [
+        "loading",
+        "modal",
+        "disabled",
+        "permission_unavailable"
+      ],
+      "accessibility": {
+        "identifier": "fantasy.opportunities",
+        "label": "Opportunities",
+        "role": "AXLink",
+        "required_actions": [
+          "AXFocus",
+          "AXPress"
+        ]
+      }
+    }
+  ]
+}
