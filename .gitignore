@@ -21,4 +21,8 @@ data/*.duckdb
 .turbo/
 .firecrawl/
 .pytest_cache/
-.agents/
+# Keep repo-owned agent context portable; ignore non-document agent artifacts.
+.agents/*
+!.agents/context/
+.agents/context/*
+!.agents/context/*.md
