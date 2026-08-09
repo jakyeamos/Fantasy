@@ -81,35 +81,6 @@ Recent decisions affecting current work:
 - [Phase 11]: Hygiene output ordering is deterministic: consolidate, cut, stash, taxi.
 - [Phase 11]: Kept title-window labels as strict literal unions in frontend types to mirror backend contracts.
 - [Phase 11]: Used the DraftOrderRule-style summary/edit flow for TaxiConfigForm to maintain league settings UX consistency.
-- [Phase 11]: Consolidation rows explicitly surface counterparty manager name and keep the Evaluate This Package CTA.
-- [Phase 11]: Overview route keeps new lineup and hygiene panels roster-gated while preserving existing panel stack.
-- [Phase 21]: `player_trends` is persisted through valuation write-through and read via a dedicated trends package.
-- [Phase 21]: Opportunity ranking is gap magnitude first, confidence second; low-confidence opportunities still surface when the gap is large enough.
-- [Phase 21]: Veteran decline signals can still convert to buy suggestions when the user has contender contexts on the board.
-- [Frontend]: Player rankings ownership is actionable: owner names link to manager dossiers, and row-level trade evaluation links preserve league/active roster context while seeding the selected player into the correct trade bucket.
-- [Refresh]: Manual league refresh now runs one full offseason pipeline: Sleeper ingest, FantasyCalc ADP refresh, 2026 actual draft-capital refresh, rookie-board rebuild, and artifact/snapshot recompute.
-- [Refresh]: Manual league refresh and dev auto-refresh now update Edge Radar team context, dense player metadata freshness, player values/trends, waiver recommendation caches, manager profiles, and snapshots before `/opportunities` or Command Center reads cached side tables.
-- [Refresh]: Actual draft-capital refresh marks both draft_capital and landing_spots freshness domains so rookie-board UI no longer serves stale offseason warnings after a successful manual refresh.
-- [DuckDB]: Local FastAPI requests reuse one process-level DuckDB file connection to avoid same-process file-handle conflicts during post-refresh query invalidation.
-- [Trade Evaluator]: The primary "You Receive" asset picker now scopes blank player search to the selected counterparty roster, so rostered players from that manager are browsable and evaluable again. Third-party receive buckets remain league-wide to preserve multi-team sidecar modeling.
-- [Opportunity Feed]: Cards emit and render concrete CTAs. Buy/sell opportunities open the trade evaluator preseeded with league/user roster/player owner context when resolvable; hold/fallback opportunities route to manager dossiers or player rankings.
-- [Market Gap Surfacing]: RookiePlayer and HygieneSuggestion responses now carry `model_vs_market_gap` from the shared recommendation-card market-gap engine, and the rookie board / hygiene rows reuse existing MarketGapPanel and MarketGapBadge components.
-- [Local Startup]: `./dev.sh` is the primary local launcher. It blocks on `.venv/bin/alembic upgrade heads` from `backend/` before starting uvicorn, which covers both current 021 Alembic heads and keeps the workflow repo-local against `data/fantasy.duckdb`.
-- [Trade Evaluator]: Multi-team trades now return `third_party_evaluations` with sidecar market fairness scores. Reroutes and package builder are no longer suppressed for multi-team requests when the primary counterparty path is otherwise evaluable.
-- [Backend Verification]: `uv run pytest` from `backend/` now loads `pytest-asyncio` via the uv dev dependency group and passes 476 tests after baseline direction confidence/transition-contender calibration and DuckDB `player_trends` upsert timestamp repair.
-- [Frontend Tokens]: Shared semantic UI tokens now cover success, warning, attention, info, strategy, destructive, season badges, shadows, label text sizes, and label tracking. Feature components consume `frontend/src/lib/ui-tokens.ts` instead of direct Tailwind palette/arbitrary color classes.
-- [Edge Radar]: EdgeRadarEngine computes buy_low, buy_high, sell_high, sell_low, and waiver_pickup discoveries from player value vs market price deltas and cached waiver boards; CommandCenterEngine consumes the top discoveries as existing CommandAction rows.
-- [Edge Radar]: Similarity evidence is first-class on player discoveries: same/similar position profiles are scored by age, value profile, team, and metadata-backed offensive system/head coach/offensive coordinator when present, then summarized with public weekly fantasy outcomes.
-- [Edge Radar]: Similar-player evidence freshness now tracks global player_metadata and team_context domains, surfaces stale warnings in Opportunity Feed and Command Center, and exposes refresh actions for those evidence sources.
-- [Edge Radar]: Curated dense player metadata now has a repo-owned default CSV at `data/edge_radar/player_dense_metadata.csv`; `/ingest/player-metadata/import-csv` imports that path when `csv_path` is omitted, and `python -m fantasy.edge_radar.player_metadata` provides the same local import path. The committed CSV is header-only until real sourced dense metrics are curated.
-- [Edge Radar]: `player_dense_metadata` source health now requires one player row to include YPRR, route participation, snap share, and first-read share together before reporting ready.
-- [Backend Verification]: `uv run pytest` from `backend/` passed 501 tests after Edge Radar discovery-layer integration.
-- [Backend Verification]: `uv run pytest` from `backend/` passed 524 tests after refresh-pipeline Edge Radar source and downstream cache integration.
-- [Code Quality]: Player backfill catalog degradation, pick class-strength fallback, and trade static pick valuation fallback now emit logging and response/domain metadata instead of silently changing recommendation quality.
-- [Backend Verification]: `uv run pytest` from `backend/` passed 548 tests after surfacing refresh/pick/trade degradation metadata.
-- [Frontend Verification]: `pnpm build` from `frontend/` passed after updating API response types for degradation metadata.
-- [Backend Verification]: Focused Edge Radar/ingest verification passed 24 tests. After removing unsourced seed rows and clearing the local seed metadata import, local `python -m fantasy.edge_radar.player_metadata` imported 0/0 rows and Edge Radar source health reported `player_dense_metadata` missing, avoiding false readiness.
-- [Backend Verification]: Full `uv run pytest` currently reports 551 passed and 1 unrelated deterministic failure in `tests/trends/test_opportunity_engine.py::test_buy_target_solving_lineup_gap_outranks_larger_raw_gap`.
 
 ### Pending Todos
 
