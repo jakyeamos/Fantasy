@@ -21,6 +21,9 @@ data/*.duckdb
 .turbo/
 .firecrawl/
 .pytest_cache/
+# Disposable nested worktrees and local evidence exports are not repository content.
+.worktrees/
+outputs/
 # Keep repo-owned agent context portable; ignore non-document agent artifacts.
 .agents/*
 !.agents/context/
