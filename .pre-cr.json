@@ -1,5 +1,10 @@
 {
   "version": 1,
+  "hook": {
+    "rules": {
+      "typescript-any": "warn"
+    }
+  },
   "coveragePaths": [
     "coverage.lcov",
     "coverage/lcov.info",

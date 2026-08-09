@@ -35,115 +35,115 @@ const TradesRoute = TradesRouteImport.update({
   id: '/trades',
   path: '/trades',
   getParentRoute: () => rootRouteImport,
-} as any) // quality-gate: allow any: TanStack Router generated route metadata
+} as any)
 const ResearchRoute = ResearchRouteImport.update({
   id: '/research',
   path: '/research',
   getParentRoute: () => rootRouteImport,
-} as any) // quality-gate: allow any: TanStack Router generated route metadata
+} as any)
 const PortfolioRoute = PortfolioRouteImport.update({
   id: '/portfolio',
   path: '/portfolio',
   getParentRoute: () => rootRouteImport,
-} as any) // quality-gate: allow any: TanStack Router generated route metadata
+} as any)
 const OpportunitiesRoute = OpportunitiesRouteImport.update({
   id: '/opportunities',
   path: '/opportunities',
   getParentRoute: () => rootRouteImport,
-} as any) // quality-gate: allow any: TanStack Router generated route metadata
+} as any)
 const OperationsRoute = OperationsRouteImport.update({
   id: '/operations',
   path: '/operations',
   getParentRoute: () => rootRouteImport,
-} as any) // quality-gate: allow any: TanStack Router generated route metadata
+} as any)
 const LeaguesRoute = LeaguesRouteImport.update({
   id: '/leagues',
   path: '/leagues',
   getParentRoute: () => rootRouteImport,
-} as any) // quality-gate: allow any: TanStack Router generated route metadata
+} as any)
 const DraftRoomRoute = DraftRoomRouteImport.update({
   id: '/draft-room',
   path: '/draft-room',
   getParentRoute: () => rootRouteImport,
-} as any) // quality-gate: allow any: TanStack Router generated route metadata
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any) // quality-gate: allow any: TanStack Router generated route metadata
+} as any)
 const LeagueLeagueIdRoute = LeagueLeagueIdRouteImport.update({
   id: '/league/$leagueId',
   path: '/league/$leagueId',
   getParentRoute: () => rootRouteImport,
-} as any) // quality-gate: allow any: TanStack Router generated route metadata
+} as any)
 const LeagueLeagueIdWaiversRoute = LeagueLeagueIdWaiversRouteImport.update({
   id: '/waivers',
   path: '/waivers',
   getParentRoute: () => LeagueLeagueIdRoute,
-} as any) // quality-gate: allow any: TanStack Router generated route metadata
+} as any)
 const LeagueLeagueIdTradeHistoryRoute =
   LeagueLeagueIdTradeHistoryRouteImport.update({
     id: '/trade-history',
     path: '/trade-history',
     getParentRoute: () => LeagueLeagueIdRoute,
-  } as any) // quality-gate: allow any: TanStack Router generated route metadata
+  } as any)
 const LeagueLeagueIdStartupRoute = LeagueLeagueIdStartupRouteImport.update({
   id: '/startup',
   path: '/startup',
   getParentRoute: () => LeagueLeagueIdRoute,
-} as any) // quality-gate: allow any: TanStack Router generated route metadata
+} as any)
 const LeagueLeagueIdRosterMovesRoute =
   LeagueLeagueIdRosterMovesRouteImport.update({
     id: '/roster-moves',
     path: '/roster-moves',
     getParentRoute: () => LeagueLeagueIdRoute,
-  } as any) // quality-gate: allow any: TanStack Router generated route metadata
+  } as any)
 const LeagueLeagueIdRookieBoardRoute =
   LeagueLeagueIdRookieBoardRouteImport.update({
     id: '/rookie-board',
     path: '/rookie-board',
     getParentRoute: () => LeagueLeagueIdRoute,
-  } as any) // quality-gate: allow any: TanStack Router generated route metadata
+  } as any)
 const LeagueLeagueIdPlayerRankingsRoute =
   LeagueLeagueIdPlayerRankingsRouteImport.update({
     id: '/player-rankings',
     path: '/player-rankings',
     getParentRoute: () => LeagueLeagueIdRoute,
-  } as any) // quality-gate: allow any: TanStack Router generated route metadata
+  } as any)
 const LeagueLeagueIdOrphanIntakeRoute =
   LeagueLeagueIdOrphanIntakeRouteImport.update({
     id: '/orphan-intake',
     path: '/orphan-intake',
     getParentRoute: () => LeagueLeagueIdRoute,
-  } as any) // quality-gate: allow any: TanStack Router generated route metadata
+  } as any)
 const LeagueLeagueIdManagersRoute = LeagueLeagueIdManagersRouteImport.update({
   id: '/managers',
   path: '/managers',
   getParentRoute: () => LeagueLeagueIdRoute,
-} as any) // quality-gate: allow any: TanStack Router generated route metadata
+} as any)
 const LeagueLeagueIdLeagueOpsRoute = LeagueLeagueIdLeagueOpsRouteImport.update({
   id: '/league-ops',
   path: '/league-ops',
   getParentRoute: () => LeagueLeagueIdRoute,
-} as any) // quality-gate: allow any: TanStack Router generated route metadata
+} as any)
 const LeagueLeagueIdDraftGradesRoute =
   LeagueLeagueIdDraftGradesRouteImport.update({
     id: '/draft-grades',
     path: '/draft-grades',
     getParentRoute: () => LeagueLeagueIdRoute,
-  } as any) // quality-gate: allow any: TanStack Router generated route metadata
+  } as any)
 const LeagueLeagueIdComparisonRoute =
   LeagueLeagueIdComparisonRouteImport.update({
     id: '/comparison',
     path: '/comparison',
     getParentRoute: () => LeagueLeagueIdRoute,
-} as any) // quality-gate: allow any: TanStack Router generated route metadata
+  } as any)
 const LeagueLeagueIdManagersManagerIdRoute =
   LeagueLeagueIdManagersManagerIdRouteImport.update({
     id: '/$managerId',
     path: '/$managerId',
     getParentRoute: () => LeagueLeagueIdManagersRoute,
-  } as any) // quality-gate: allow any: TanStack Router generated route metadata
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
