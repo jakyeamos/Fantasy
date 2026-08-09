@@ -43,8 +43,8 @@ function DraftRoomPage() {
           <p className="terminal-label text-primary/85">Live pick guidance</p>
           <CardTitle className="mt-2 text-3xl">Draft Room</CardTitle>
           <p className="mt-2 text-sm text-muted-foreground">
-            Load a league and pick slot to get a use-versus-trade verdict plus the
-            best player available in abstract.
+            Load a league and pick slot to get a use-versus-trade verdict plus
+            the best player available in abstract.
           </p>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
@@ -108,20 +108,30 @@ function DraftRoomPage() {
             </CardHeader>
             <CardContent className="grid gap-3 text-sm leading-6 text-muted-foreground md:grid-cols-3">
               <p>
-                <span className="font-semibold text-foreground">Selected pick:</span>{" "}
+                <span className="font-semibold text-foreground">
+                  Selected pick:
+                </span>{" "}
                 {query.data.pick_slot_display}
               </p>
               <p>
-                <span className="font-semibold text-foreground">Trade-back line:</span>{" "}
-                {query.data.trade_back_line ?? query.data.trade_verdict.reasoning}
+                <span className="font-semibold text-foreground">
+                  Trade-back line:
+                </span>{" "}
+                {query.data.trade_back_line ??
+                  query.data.trade_verdict.reasoning}
               </p>
               <p>
-                <span className="font-semibold text-foreground">Expected tier:</span>{" "}
-                {query.data.expected_available_tier ?? "Use board tier at the slot."}
+                <span className="font-semibold text-foreground">
+                  Expected tier:
+                </span>{" "}
+                {query.data.expected_available_tier ??
+                  "Use board tier at the slot."}
               </p>
               {query.data.avoid_at_cost?.length ? (
                 <p className="md:col-span-3">
-                  <span className="font-semibold text-foreground">Avoid at cost:</span>{" "}
+                  <span className="font-semibold text-foreground">
+                    Avoid at cost:
+                  </span>{" "}
                   {query.data.avoid_at_cost.join(", ")}
                 </p>
               ) : null}

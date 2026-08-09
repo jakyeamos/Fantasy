@@ -26,7 +26,9 @@ export function SuggestedOfferStartCard({
   return (
     <Card className="border-primary/25 bg-primary/5">
       <CardHeader>
-        <p className="terminal-label text-primary/85">Suggested Offer Starting Point</p>
+        <p className="terminal-label text-primary/85">
+          Suggested Offer Starting Point
+        </p>
         <CardTitle className="text-xl">
           {prefilledPlayerAsset
             ? `Build around ${prefilledPlayerAsset.player_name}`
@@ -60,7 +62,9 @@ export function SuggestedOfferStartCard({
             liquid player, pick, or tier-down package.
           </p>
           <p>
-            <span className="font-semibold text-foreground">Receive shape:</span>{" "}
+            <span className="font-semibold text-foreground">
+              Receive shape:
+            </span>{" "}
             target player plus optional balancing asset.
           </p>
           <p>
@@ -95,7 +99,9 @@ export function CoreDealBoard({
   return (
     <Card className="border-primary/25">
       <CardHeader>
-        <CardTitle>{userRosterName ? `${userRosterName} • Your Team` : "Your Team View"}</CardTitle>
+        <CardTitle>
+          {userRosterName ? `${userRosterName} • Your Team` : "Your Team View"}
+        </CardTitle>
         <p className="mt-2 text-sm text-muted-foreground">
           Build your send and receive package from your roster’s perspective.
         </p>
@@ -105,7 +111,9 @@ export function CoreDealBoard({
           title="You Send"
           subtitle="Assets leaving your roster."
           buttonLabel="Add to Send Side"
-          isActive={queryTarget.kind === "user" && queryTarget.bucket === "send"}
+          isActive={
+            queryTarget.kind === "user" && queryTarget.bucket === "send"
+          }
           assets={userSends}
           leagueId={leagueId}
           pickValuesByKey={pickValuesByKey}
@@ -116,11 +124,15 @@ export function CoreDealBoard({
           title="You Receive"
           subtitle="Assets you gain from the full deal."
           buttonLabel="Add to Receive Side"
-          isActive={queryTarget.kind === "user" && queryTarget.bucket === "receive"}
+          isActive={
+            queryTarget.kind === "user" && queryTarget.bucket === "receive"
+          }
           assets={userReceives}
           leagueId={leagueId}
           pickValuesByKey={pickValuesByKey}
-          onSelect={() => onSetActiveTarget({ kind: "user", bucket: "receive" })}
+          onSelect={() =>
+            onSetActiveTarget({ kind: "user", bucket: "receive" })
+          }
           onRemove={(index) => onRemoveUserAsset("receive", index)}
         />
       </CardContent>
@@ -162,7 +174,9 @@ export function ThirdPartyTradeCards({
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="terminal-label text-muted-foreground">Multi-Team Legs</p>
+          <p className="terminal-label text-muted-foreground">
+            Multi-Team Legs
+          </p>
           <p className="text-sm text-muted-foreground">
             Track what each extra roster sends into and receives from the deal.
           </p>
@@ -171,7 +185,8 @@ export function ThirdPartyTradeCards({
       <div className="grid gap-4 xl:grid-cols-2">
         {trades.map((trade, index) => {
           const isActiveTrade =
-            queryTarget.kind === "third-party" && queryTarget.tradeId === trade.clientId
+            queryTarget.kind === "third-party" &&
+            queryTarget.tradeId === trade.clientId
 
           return (
             <Card
@@ -190,11 +205,15 @@ export function ThirdPartyTradeCards({
                       : `Third Team ${index + 1}`}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Score this participant&apos;s send and receive leg for package and
-                    reroute explanations.
+                    Score this participant&apos;s send and receive leg for
+                    package and reroute explanations.
                   </p>
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => onRemoveTrade(trade.clientId)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onRemoveTrade(trade.clientId)}
+                >
                   Remove
                 </Button>
               </CardHeader>
@@ -211,7 +230,9 @@ export function ThirdPartyTradeCards({
                   options={rosterOptions}
                   placeholder="Select the extra team"
                   emptyLabel={
-                    leagueId.trim().length > 0 ? "No rosters available" : "Select a league first"
+                    leagueId.trim().length > 0
+                      ? "No rosters available"
+                      : "Select a league first"
                   }
                 />
                 <div className="grid gap-4 md:grid-cols-2">
@@ -352,11 +373,18 @@ export function TradeAssetSearchCard({
           </div>
         ) : null}
 
-        {trimmedQuery.length >= 2 && playerSearchSuccess && !playerResults?.length ? (
-          <p className="text-sm text-muted-foreground">No players matched this target.</p>
+        {trimmedQuery.length >= 2 &&
+        playerSearchSuccess &&
+        !playerResults?.length ? (
+          <p className="text-sm text-muted-foreground">
+            No players matched this target.
+          </p>
         ) : null}
 
-        {activeRosterId && playerSearchSuccess && trimmedQuery.length === 0 && !playerResults?.length ? (
+        {activeRosterId &&
+        playerSearchSuccess &&
+        trimmedQuery.length === 0 &&
+        !playerResults?.length ? (
           <p className="text-sm text-muted-foreground">
             No roster players were available for this team.
           </p>
@@ -373,7 +401,8 @@ export function TradeAssetSearchCard({
                   size="sm"
                   onClick={() => onAddPick(pick)}
                 >
-                  {pick.current_owner_name}&apos;s {pick.pick_year} R{pick.round}
+                  {pick.current_owner_name}&apos;s {pick.pick_year} R
+                  {pick.round}
                 </Button>
               ))}
             </div>

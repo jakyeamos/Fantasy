@@ -16,7 +16,9 @@ export function SnapshotComparisonSheet({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const [selectedAnchor, setSelectedAnchor] = useState<SnapshotAnchor | null>(null)
+  const [selectedAnchor, setSelectedAnchor] = useState<SnapshotAnchor | null>(
+    null,
+  )
 
   useEffect(() => {
     if (!open) {
@@ -57,7 +59,10 @@ export function SnapshotComparisonSheet({
       >
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <h2 id="snapshot-comparison-title" className="text-lg font-semibold">
+            <h2
+              id="snapshot-comparison-title"
+              className="text-lg font-semibold"
+            >
               Compare to Snapshot
             </h2>
             <p className="text-sm text-muted-foreground">

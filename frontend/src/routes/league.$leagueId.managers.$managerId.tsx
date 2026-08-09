@@ -57,7 +57,9 @@ function ManagerDossierPlaceholderPage() {
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
               <div>
-                <p className="terminal-label text-muted-foreground">Manager dossier</p>
+                <p className="terminal-label text-muted-foreground">
+                  Manager dossier
+                </p>
                 <CardTitle className="mt-2 text-3xl">
                   {profile.manager_name ?? `Roster ${profile.roster_id}`}
                 </CardTitle>
@@ -70,7 +72,9 @@ function ManagerDossierPlaceholderPage() {
             </div>
             <div
               className={`rounded-xl border px-4 py-3 text-sm ${
-                profile.low_confidence ? "opacity-75 text-muted-foreground" : "text-muted-foreground"
+                profile.low_confidence
+                  ? "opacity-75 text-muted-foreground"
+                  : "text-muted-foreground"
               }`}
             >
               <span className="terminal-label">Exploitability</span>{" "}
@@ -109,7 +113,8 @@ function ManagerDossierPlaceholderPage() {
         <div className="rounded-xl border border-destructive/25 bg-destructive/10 p-4 text-destructive">
           <p className="terminal-label">Low confidence</p>
           <p className="mt-2 text-sm">
-            Based on {profile.evidence_count} trades (minimum 10 for reliable profiling). Treat all conclusions with skepticism.
+            Based on {profile.evidence_count} trades (minimum 10 for reliable
+            profiling). Treat all conclusions with skepticism.
           </p>
         </div>
       ) : null}

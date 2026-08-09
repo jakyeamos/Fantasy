@@ -25,7 +25,9 @@ export function StartupDraftContextCard({
         <p className="font-headline text-2xl font-extrabold tracking-tight">
           {formatModelLabel(context.direction_label)}
         </p>
-        <p className="text-sm leading-6 text-muted-foreground">{context.build_template_hint}</p>
+        <p className="text-sm leading-6 text-muted-foreground">
+          {context.build_template_hint}
+        </p>
       </CardContent>
     </Card>
   )

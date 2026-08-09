@@ -1,4 +1,21 @@
-export type DirectionReadBand = "Clear" | "Leaning" | "Hybrid" | "Tentative" | "--"
+export type DirectionReadBand =
+  | "Clear"
+  | "Leaning"
+  | "Hybrid"
+  | "Tentative"
+  | "--"
+
+export interface HealthResponse {
+  status: "ok"
+  service: string
+}
+
+export interface ReadyResponse {
+  status: "ready"
+  service: string
+  database: string
+  required_tables: string[]
+}
 
 export interface DashboardLeagueSummary {
   league_id: string
@@ -391,7 +408,12 @@ export type GapClassification =
   | "market_right_model_cautious"
   | "league_specific_opportunity"
 
-export type HorizonLabel = "immediate" | "this_week" | "30_days" | "offseason" | "next_season"
+export type HorizonLabel =
+  | "immediate"
+  | "this_week"
+  | "30_days"
+  | "offseason"
+  | "next_season"
 
 export type ConfidenceLabel = "HIGH" | "MEDIUM" | "LOW"
 
@@ -433,6 +455,14 @@ export interface RecommendationCard {
   trend_result: TrendResult | null
   cta_label: string
   cta_destination: string
+  trigger_event_ids: string[]
+  changed_since: string | null
+  impact_summary: {
+    affected_asset_ids?: string[]
+    before?: Record<string, unknown>
+    after?: Record<string, unknown>
+    deltas?: Record<string, number>
+  } | null
 }
 
 export interface CommandAction {

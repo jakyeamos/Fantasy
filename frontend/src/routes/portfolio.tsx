@@ -41,12 +41,19 @@ function PortfolioPage() {
 
   const leagueColumns = useMemo(() => {
     const leagueNameById = new Map(
-      (dashboardQuery.data ?? []).map((league) => [league.league_id, league.league_name]),
+      (dashboardQuery.data ?? []).map((league) => [
+        league.league_id,
+        league.league_name,
+      ]),
     )
     const ids =
       dashboardQuery.data?.map((league) => league.league_id) ??
       Array.from(
-        new Set((exposureQuery.data?.exposure ?? []).flatMap((row) => row.owned_in_leagues)),
+        new Set(
+          (exposureQuery.data?.exposure ?? []).flatMap(
+            (row) => row.owned_in_leagues,
+          ),
+        ),
       )
 
     return ids
@@ -58,7 +65,9 @@ function PortfolioPage() {
   }, [dashboardQuery.data, exposureQuery.data?.exposure])
   const exposureRows = exposureQuery.data?.exposure ?? []
   const correlatedRisk = exposureQuery.data?.correlated_risk ?? []
-  const concentratedRows = exposureRows.filter((row) => row.league_count >= 3).length
+  const concentratedRows = exposureRows.filter(
+    (row) => row.league_count >= 3,
+  ).length
 
   return (
     <div className="space-y-8">
@@ -110,17 +119,23 @@ function PortfolioPage() {
           <Card key={item.label}>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between gap-3">
-                <div className={`rounded-lg border border-border/40 bg-card/50 p-2 ${item.tone}`}>
+                <div
+                  className={`rounded-lg border border-border/40 bg-card/50 p-2 ${item.tone}`}
+                >
                   <item.icon className="size-4" />
                 </div>
-                <span className="terminal-label text-muted-foreground">{item.label}</span>
+                <span className="terminal-label text-muted-foreground">
+                  {item.label}
+                </span>
               </div>
             </CardHeader>
             <CardContent>
               <p className="font-headline text-3xl font-extrabold tracking-tight">
                 {item.value}
               </p>
-              <p className="mt-2 text-sm text-muted-foreground">{item.helper}</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {item.helper}
+              </p>
             </CardContent>
           </Card>
         ))}
@@ -130,8 +145,8 @@ function PortfolioPage() {
         <CardHeader>
           <CardTitle>Player Exposure</CardTitle>
           <p className="mt-2 text-sm text-muted-foreground">
-            Audit ownership overlap by league, then review hedge notes and team-level
-            correlation underneath the matrix.
+            Audit ownership overlap by league, then review hedge notes and
+            team-level correlation underneath the matrix.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -155,7 +170,9 @@ function PortfolioPage() {
         {healthQuery.isLoading ? (
           <Skeleton className="h-4 w-48 rounded" />
         ) : (
-          <span>{formatLongDate(healthQuery.data?.last_recalibrated_at ?? null)}</span>
+          <span>
+            {formatLongDate(healthQuery.data?.last_recalibrated_at ?? null)}
+          </span>
         )}
       </div>
     </div>

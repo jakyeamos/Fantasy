@@ -27,10 +27,17 @@ export function TimingBadge({
 }) {
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <span className={cn("w-fit rounded px-2 py-1 text-xs font-medium", CLASSES[label])}>
+      <span
+        className={cn(
+          "w-fit rounded px-2 py-1 text-xs font-medium",
+          CLASSES[label],
+        )}
+      >
         {LABELS[label]}
       </span>
-      {showReasoning ? <span className="text-xs text-muted-foreground">{reasoning}</span> : null}
+      {showReasoning ? (
+        <span className="text-xs text-muted-foreground">{reasoning}</span>
+      ) : null}
     </div>
   )
 }

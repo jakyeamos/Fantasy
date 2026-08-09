@@ -68,7 +68,9 @@ export function RecommendationCard({
             </p>
             <p className="text-base font-semibold">{card.headline}</p>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              <span className="font-medium text-foreground">One-sentence action:</span>{" "}
+              <span className="font-medium text-foreground">
+                One-sentence action:
+              </span>{" "}
               {card.action}
             </p>
           </div>
@@ -79,12 +81,16 @@ export function RecommendationCard({
         </div>
 
         <div className="space-y-1">
-          <p className="terminal-label text-muted-foreground">What I Would Do</p>
+          <p className="terminal-label text-muted-foreground">
+            What I Would Do
+          </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
             {card.why_summary}
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            <span className="font-medium text-foreground">Acceptable price:</span>{" "}
+            <span className="font-medium text-foreground">
+              Acceptable price:
+            </span>{" "}
             {acceptablePrice(card)}
           </p>
         </div>
@@ -136,7 +142,9 @@ export function RecommendationCard({
             {card.why_summary}
           </p>
           <p>
-            <span className="font-medium text-foreground">What would make this wrong:</span>{" "}
+            <span className="font-medium text-foreground">
+              What would make this wrong:
+            </span>{" "}
             {card.downside_of_inaction}
           </p>
           <p>

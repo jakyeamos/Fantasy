@@ -19,8 +19,12 @@ export function RerouteSheet({
         <div className="mb-6 flex items-start justify-between gap-3">
           <div>
             <p className="terminal-label text-primary/85">Alternative Paths</p>
-            <p className="mt-2 font-headline text-2xl font-bold">Better Options</p>
-            <p className="text-xs text-muted-foreground">Participant-scoped reroute paths</p>
+            <p className="mt-2 font-headline text-2xl font-bold">
+              Better Options
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Participant-scoped reroute paths
+            </p>
           </div>
           <Button variant="ghost" onClick={onClose}>
             Close
@@ -41,7 +45,9 @@ export function RerouteSheet({
                     </p>
                   ) : null}
                   <p className="text-sm font-semibold">{reroute.headline}</p>
-                  <p className="text-sm italic text-muted-foreground">{reroute.reasoning}</p>
+                  <p className="text-sm italic text-muted-foreground">
+                    {reroute.reasoning}
+                  </p>
                 </CardContent>
               </Card>
             ))}

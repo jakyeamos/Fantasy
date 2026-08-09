@@ -44,13 +44,16 @@ export function SnapshotStatus({
       if (!leagueId) {
         throw new Error("Choose a league before refreshing league data.")
       }
-      const response = await fetch(`/api/ingest/${leagueId}/refresh-pipeline?run_type=incremental&draft_year=2026`, {
-        method: "POST",
-      })
+      const response = await fetch(
+        `/api/ingest/${leagueId}/refresh-pipeline?run_type=incremental&draft_year=2026`,
+        {
+          method: "POST",
+        },
+      )
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as
-          | { detail?: string | { detail?: string } }
-          | null
+        const payload = (await response.json().catch(() => null)) as {
+          detail?: string | { detail?: string }
+        } | null
         const detail =
           typeof payload?.detail === "string"
             ? payload.detail
@@ -63,17 +66,27 @@ export function SnapshotStatus({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
         queryClient.invalidateQueries({ queryKey: ["snapshots"] }),
-        queryClient.invalidateQueries({ queryKey: ["snapshot-anchors", leagueId] }),
-        queryClient.invalidateQueries({ queryKey: ["snapshot-diff", leagueId] }),
+        queryClient.invalidateQueries({
+          queryKey: ["snapshot-anchors", leagueId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["snapshot-diff", leagueId],
+        }),
         queryClient.invalidateQueries({ queryKey: ["picks"] }),
         queryClient.invalidateQueries({ queryKey: ["rookie-board", leagueId] }),
         queryClient.invalidateQueries({ queryKey: ["draft-room", leagueId] }),
-        queryClient.invalidateQueries({ queryKey: ["prospects", "model-outputs", leagueId] }),
-        queryClient.invalidateQueries({ queryKey: ["context", "freshness", leagueId] }),
+        queryClient.invalidateQueries({
+          queryKey: ["prospects", "model-outputs", leagueId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["context", "freshness", leagueId],
+        }),
         queryClient.invalidateQueries({ queryKey: ["opportunities"] }),
         queryClient.invalidateQueries({ queryKey: ["portfolio"] }),
         queryClient.invalidateQueries({ queryKey: ["intelligence"] }),
-        queryClient.invalidateQueries({ queryKey: ["startup-context", leagueId] }),
+        queryClient.invalidateQueries({
+          queryKey: ["startup-context", leagueId],
+        }),
       ])
     },
   })

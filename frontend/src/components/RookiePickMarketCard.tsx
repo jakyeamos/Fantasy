@@ -27,9 +27,7 @@ export function RookiePickMarketCard({
 }: RookiePickMarketCardProps) {
   const tendency = topTendency(positionalTendency)
   const tendencyLabel =
-    tendency && tendency[1] > 0.05
-      ? `${tendency[0]}-heavy`
-      : "Balanced"
+    tendency && tendency[1] > 0.05 ? `${tendency[0]}-heavy` : "Balanced"
 
   return (
     <Card>

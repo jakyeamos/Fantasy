@@ -11,7 +11,10 @@ const CONFIDENCE_CLASS: Record<ConfidenceLabel, string> = {
 
 export function ConfidenceBadge({ label }: { label: ConfidenceLabel }) {
   return (
-    <Badge variant="outline" className={cn("font-mono text-label-sm", CONFIDENCE_CLASS[label])}>
+    <Badge
+      variant="outline"
+      className={cn("font-mono text-label-sm", CONFIDENCE_CLASS[label])}
+    >
       {label}
     </Badge>
   )

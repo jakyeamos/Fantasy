@@ -28,7 +28,11 @@ function StartupPage() {
     )
   }
 
-  if (startupQuery.isError || !startupQuery.data || !startupQuery.data.startup_mode_available) {
+  if (
+    startupQuery.isError ||
+    !startupQuery.data ||
+    !startupQuery.data.startup_mode_available
+  ) {
     return (
       <Card className="border-dashed border-border/45">
         <CardHeader>
@@ -37,8 +41,8 @@ function StartupPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm leading-6 text-muted-foreground">
-            Startup draft mode only appears when the league draft is still in `pre_draft` or
-            `drafting`.
+            Startup draft mode only appears when the league draft is still in
+            `pre_draft` or `drafting`.
           </p>
         </CardContent>
       </Card>
@@ -52,7 +56,9 @@ function StartupPage() {
         context={startupQuery.data}
       />
       <StartupPickValuationList picks={startupQuery.data.pick_valuations} />
-      <StartupBuildTemplatePanel buildTemplate={startupQuery.data.build_template} />
+      <StartupBuildTemplatePanel
+        buildTemplate={startupQuery.data.build_template}
+      />
     </div>
   )
 }

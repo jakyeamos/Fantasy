@@ -22,7 +22,8 @@ export function AnchorSelector({
   if (query.isError) {
     return (
       <p className="text-xs text-muted-foreground">
-        Snapshot anchors unavailable. Check that the backend is running, then refresh.
+        Snapshot anchors unavailable. Check that the backend is running, then
+        refresh.
       </p>
     )
   }
@@ -30,7 +31,8 @@ export function AnchorSelector({
   if (!query.data?.length) {
     return (
       <p className="text-xs text-muted-foreground">
-        No snapshot anchors available. Snapshots are labeled automatically on trades and large roster changes.
+        No snapshot anchors available. Snapshots are labeled automatically on
+        trades and large roster changes.
       </p>
     )
   }

@@ -28,7 +28,8 @@ export function TierGroup({
             selectedSlot={selectedSlot}
             isAvailableAtSlot={
               selectedSlot
-                ? (player.available_probability_by_slot[selectedSlot] ?? 0) >= AVAILABILITY_THRESHOLD
+                ? (player.available_probability_by_slot[selectedSlot] ?? 0) >=
+                  AVAILABILITY_THRESHOLD
                 : false
             }
           />

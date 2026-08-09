@@ -16,7 +16,9 @@ export function RecommendationCardList({
     )
   }
 
-  const orderedCards = [...cards].sort((left, right) => left.priority_rank - right.priority_rank)
+  const orderedCards = [...cards].sort(
+    (left, right) => left.priority_rank - right.priority_rank,
+  )
 
   return (
     <div className="space-y-3">

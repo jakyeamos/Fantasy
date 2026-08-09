@@ -21,9 +21,16 @@ const GAP_CLASS: Record<GapClassification, string> = {
   league_specific_opportunity: badgeToneClasses.primary,
 }
 
-export function MarketGapBadge({ classification }: { classification: GapClassification }) {
+export function MarketGapBadge({
+  classification,
+}: {
+  classification: GapClassification
+}) {
   return (
-    <Badge variant="outline" className={cn("text-label-sm", GAP_CLASS[classification])}>
+    <Badge
+      variant="outline"
+      className={cn("text-label-sm", GAP_CLASS[classification])}
+    >
       {GAP_LABEL[classification]}
     </Badge>
   )

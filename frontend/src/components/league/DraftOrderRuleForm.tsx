@@ -14,7 +14,10 @@ const basisLabels: Record<LeagueDraftOrderRule["non_playoff_basis"], string> = {
   max_points_for: "Max points for",
 }
 
-const playoffOrderingLabels: Record<LeagueDraftOrderRule["playoff_ordering"], string> = {
+const playoffOrderingLabels: Record<
+  LeagueDraftOrderRule["playoff_ordering"],
+  string
+> = {
   by_finish: "By playoff finish",
   by_record: "By regular-season record",
   by_points_for: "By regular-season points for",
@@ -31,11 +34,15 @@ export function DraftOrderRuleForm({ leagueId }: { leagueId: string }) {
   const ruleQuery = useQuery(draftOrderRuleOptions(leagueId))
   const rule = ruleQuery.data?.rule ?? null
   const [editing, setEditing] = useState(false)
-  const [basis, setBasis] = useState<LeagueDraftOrderRule["non_playoff_basis"] | "">("")
+  const [basis, setBasis] = useState<
+    LeagueDraftOrderRule["non_playoff_basis"] | ""
+  >("")
   const [playoffOrdering, setPlayoffOrdering] = useState<
     LeagueDraftOrderRule["playoff_ordering"] | ""
   >("")
-  const [tiebreaker, setTiebreaker] = useState<LeagueDraftOrderRule["tiebreaker"] | "">("")
+  const [tiebreaker, setTiebreaker] = useState<
+    LeagueDraftOrderRule["tiebreaker"] | ""
+  >("")
 
   useEffect(() => {
     if (editing) return
@@ -51,7 +58,8 @@ export function DraftOrderRuleForm({ leagueId }: { leagueId: string }) {
   }, [editing, rule])
 
   const saveMutation = useMutation({
-    mutationFn: (nextRule: LeagueDraftOrderRule) => saveDraftOrderRule(leagueId, nextRule),
+    mutationFn: (nextRule: LeagueDraftOrderRule) =>
+      saveDraftOrderRule(leagueId, nextRule),
     onSuccess: async (data) => {
       queryClient.setQueryData(["picks", leagueId, "draft-order-rule"], data)
       await queryClient.invalidateQueries({ queryKey: ["picks", leagueId] })
@@ -59,7 +67,8 @@ export function DraftOrderRuleForm({ leagueId }: { leagueId: string }) {
     },
   })
 
-  const allFieldsFilled = basis !== "" && playoffOrdering !== "" && tiebreaker !== ""
+  const allFieldsFilled =
+    basis !== "" && playoffOrdering !== "" && tiebreaker !== ""
   const showSummary = rule !== null && !editing
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -79,7 +88,9 @@ export function DraftOrderRuleForm({ leagueId }: { leagueId: string }) {
           <CardTitle>Draft Order Rule</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">Loading league draft-order settings...</p>
+          <p className="text-sm text-muted-foreground">
+            Loading league draft-order settings...
+          </p>
         </CardContent>
       </Card>
     )
@@ -105,7 +116,9 @@ export function DraftOrderRuleForm({ leagueId }: { leagueId: string }) {
             {basisLabels[rule.non_playoff_basis]}
           </p>
           <p>
-            <span className="text-muted-foreground">Playoff team ordering:</span>{" "}
+            <span className="text-muted-foreground">
+              Playoff team ordering:
+            </span>{" "}
             {playoffOrderingLabels[rule.playoff_ordering]}
           </p>
           <p>
@@ -122,14 +135,16 @@ export function DraftOrderRuleForm({ leagueId }: { leagueId: string }) {
       <CardHeader>
         <CardTitle>Draft Order Rule</CardTitle>
         <p className="mt-2 text-sm text-muted-foreground">
-          Pick values stay blocked until this league&apos;s draft-order rule is fully configured.
+          Pick values stay blocked until this league&apos;s draft-order rule is
+          fully configured.
         </p>
       </CardHeader>
       <CardContent>
         <form className="space-y-6" onSubmit={handleSubmit}>
           {ruleQuery.isError ? (
             <p className="rounded-lg border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              The current rule could not be loaded. You can still save a new one.
+              The current rule could not be loaded. You can still save a new
+              one.
             </p>
           ) : null}
 
@@ -144,7 +159,9 @@ export function DraftOrderRuleForm({ leagueId }: { leagueId: string }) {
                   onChange={() => setBasis("inverse_standings")}
                 />
                 <div className="space-y-1">
-                  <span className="text-sm font-semibold">Inverse standings</span>
+                  <span className="text-sm font-semibold">
+                    Inverse standings
+                  </span>
                   <p className="text-xs text-muted-foreground">
                     Worst record gets the earliest draft slot.
                   </p>
@@ -160,7 +177,8 @@ export function DraftOrderRuleForm({ leagueId }: { leagueId: string }) {
                 <div className="space-y-1">
                   <span className="text-sm font-semibold">Max points for</span>
                   <p className="text-xs text-muted-foreground">
-                    Lower season-long points for gets the earlier non-playoff slot.
+                    Lower season-long points for gets the earlier non-playoff
+                    slot.
                   </p>
                 </div>
               </label>
@@ -174,7 +192,9 @@ export function DraftOrderRuleForm({ leagueId }: { leagueId: string }) {
               value={playoffOrdering}
               onChange={(event) =>
                 setPlayoffOrdering(
-                  event.target.value as LeagueDraftOrderRule["playoff_ordering"] | "",
+                  event.target.value as
+                    | LeagueDraftOrderRule["playoff_ordering"]
+                    | "",
                 )
               }
               className="h-11 w-full rounded-lg border border-border bg-card px-3 text-sm"
@@ -182,7 +202,9 @@ export function DraftOrderRuleForm({ leagueId }: { leagueId: string }) {
               <option value="">Select playoff ordering</option>
               <option value="by_finish">By playoff finish</option>
               <option value="by_record">By regular-season record</option>
-              <option value="by_points_for">By regular-season points for</option>
+              <option value="by_points_for">
+                By regular-season points for
+              </option>
             </select>
           </div>
 
@@ -192,7 +214,9 @@ export function DraftOrderRuleForm({ leagueId }: { leagueId: string }) {
               id="tiebreaker"
               value={tiebreaker}
               onChange={(event) =>
-                setTiebreaker(event.target.value as LeagueDraftOrderRule["tiebreaker"] | "")
+                setTiebreaker(
+                  event.target.value as LeagueDraftOrderRule["tiebreaker"] | "",
+                )
               }
               className="h-11 w-full rounded-lg border border-border bg-card px-3 text-sm"
             >
@@ -204,8 +228,15 @@ export function DraftOrderRuleForm({ leagueId }: { leagueId: string }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <Button type="submit" disabled={!allFieldsFilled || saveMutation.isPending}>
-              {saveMutation.isPending ? "Saving..." : rule ? "Save Changes" : "Save Rule"}
+            <Button
+              type="submit"
+              disabled={!allFieldsFilled || saveMutation.isPending}
+            >
+              {saveMutation.isPending
+                ? "Saving..."
+                : rule
+                  ? "Save Changes"
+                  : "Save Rule"}
             </Button>
             {rule ? (
               <Button
@@ -220,7 +251,9 @@ export function DraftOrderRuleForm({ leagueId }: { leagueId: string }) {
               </Button>
             ) : null}
             {saveMutation.isError ? (
-              <p className="text-sm text-destructive">Failed to save the draft-order rule.</p>
+              <p className="text-sm text-destructive">
+                Failed to save the draft-order rule.
+              </p>
             ) : null}
           </div>
         </form>

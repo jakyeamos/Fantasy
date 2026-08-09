@@ -28,7 +28,9 @@ export function SupportingFactorRow({ factor }: { factor: SupportingFactor }) {
           {factor.magnitude}
         </span>
       </div>
-      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{factor.explanation}</p>
+      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+        {factor.explanation}
+      </p>
     </div>
   )
 }

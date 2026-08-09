@@ -19,7 +19,9 @@ export const Route = createFileRoute("/league/$leagueId/rookie-board")({
 function RookieBoardPage() {
   const { leagueId } = Route.useParams()
   const [slot, setSlot] = useState("1.01")
-  const [sortBy, setSortBy] = useState<"tier" | "adp_divergence" | "hit_rate">("tier")
+  const [sortBy, setSortBy] = useState<"tier" | "adp_divergence" | "hit_rate">(
+    "tier",
+  )
   const query = useQuery(rookieBoardOptions(leagueId))
   const prospectQuery = useQuery(prospectModelOutputsOptions(leagueId))
 
@@ -38,7 +40,8 @@ function RookieBoardPage() {
   )
 
   const prospectMap = useMemo(
-    () => new Map((prospectQuery.data ?? []).map((item) => [item.player_id, item])),
+    () =>
+      new Map((prospectQuery.data ?? []).map((item) => [item.player_id, item])),
     [prospectQuery.data],
   )
 
@@ -56,7 +59,10 @@ function RookieBoardPage() {
       const leftOutput = prospectMap.get(left.player_id)
       const rightOutput = prospectMap.get(right.player_id)
       if (sortBy === "adp_divergence") {
-        return (rightOutput?.overvalue_magnitude ?? -1) - (leftOutput?.overvalue_magnitude ?? -1)
+        return (
+          (rightOutput?.overvalue_magnitude ?? -1) -
+          (leftOutput?.overvalue_magnitude ?? -1)
+        )
       }
       return hitRateWeight(rightOutput) - hitRateWeight(leftOutput)
     })
@@ -109,11 +115,15 @@ function RookieBoardPage() {
             </select>
           </label>
           <label className="space-y-2">
-            <span className="terminal-label text-muted-foreground">Sort board</span>
+            <span className="terminal-label text-muted-foreground">
+              Sort board
+            </span>
             <select
               value={sortBy}
               onChange={(event) =>
-                setSortBy(event.target.value as "tier" | "adp_divergence" | "hit_rate")
+                setSortBy(
+                  event.target.value as "tier" | "adp_divergence" | "hit_rate",
+                )
               }
               className="h-11 rounded-lg border border-border bg-card px-3 text-sm"
             >
@@ -159,7 +169,9 @@ function RookieBoardPage() {
                 isModelLoading={prospectQuery.isLoading}
                 selectedSlot={slot}
                 isAvailableAtSlot={
-                  slot ? (player.available_probability_by_slot[slot] ?? 0) >= 0.5 : false
+                  slot
+                    ? (player.available_probability_by_slot[slot] ?? 0) >= 0.5
+                    : false
                 }
               />
             ))}

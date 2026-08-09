@@ -6,7 +6,9 @@ export function RadioGroup({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div role="radiogroup" className={cn("grid gap-2", className)} {...props} />
+  return (
+    <div role="radiogroup" className={cn("grid gap-2", className)} {...props} />
+  )
 }
 
 export const RadioGroupItem = React.forwardRef<

@@ -1,9 +1,18 @@
-import { useEffect, useMemo, useRef, type Dispatch, type SetStateAction } from "react"
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  type Dispatch,
+  type SetStateAction,
+} from "react"
 
 import type { TradeAsset } from "@/api/types"
 import type { QueryTarget } from "@/lib/tradeAssetSearch"
 import { appendUniqueAsset } from "@/lib/tradeRouteHelpers"
-import { searchPlayerAsset, type TradeRouteSearch } from "@/lib/tradeSearchParams"
+import {
+  searchPlayerAsset,
+  type TradeRouteSearch,
+} from "@/lib/tradeSearchParams"
 
 export function useTradePrefill({
   search,
@@ -34,7 +43,11 @@ export function useTradePrefill({
         search.targetPlayerName,
         search.targetPlayerPosition,
       ),
-    [search.targetPlayerId, search.targetPlayerName, search.targetPlayerPosition],
+    [
+      search.targetPlayerId,
+      search.targetPlayerName,
+      search.targetPlayerPosition,
+    ],
   )
   const prefilledSendAsset = useMemo(
     () =>
@@ -52,7 +65,11 @@ export function useTradePrefill({
         search.receivePlayerName,
         search.receivePlayerPosition,
       ),
-    [search.receivePlayerId, search.receivePlayerName, search.receivePlayerPosition],
+    [
+      search.receivePlayerId,
+      search.receivePlayerName,
+      search.receivePlayerPosition,
+    ],
   )
   const prefillTargetRosterId =
     search.targetPlayerRosterId ?? search.counterpartyRosterId ?? 0
@@ -92,10 +109,14 @@ export function useTradePrefill({
 
       prefillKeyRef.current = prefillKey
       if (prefilledSendAsset) {
-        setUserSends((current) => appendUniqueAsset(current, prefilledSendAsset))
+        setUserSends((current) =>
+          appendUniqueAsset(current, prefilledSendAsset),
+        )
       }
       if (prefilledReceiveAsset) {
-        setUserReceives((current) => appendUniqueAsset(current, prefilledReceiveAsset))
+        setUserReceives((current) =>
+          appendUniqueAsset(current, prefilledReceiveAsset),
+        )
       }
       if (counterpartyRosterId > 0) {
         setQueryTarget({ kind: "user", bucket: "receive" })
@@ -119,13 +140,17 @@ export function useTradePrefill({
 
     prefillKeyRef.current = prefillKey
     if (prefillTargetRosterId === userRosterId) {
-      setUserSends((current) => appendUniqueAsset(current, prefilledPlayerAsset))
+      setUserSends((current) =>
+        appendUniqueAsset(current, prefilledPlayerAsset),
+      )
       setQueryTarget({ kind: "user", bucket: "send" })
       return
     }
 
     setCounterpartyRosterId(prefillTargetRosterId)
-    setUserReceives((current) => appendUniqueAsset(current, prefilledPlayerAsset))
+    setUserReceives((current) =>
+      appendUniqueAsset(current, prefilledPlayerAsset),
+    )
     setQueryTarget({ kind: "user", bucket: "receive" })
   }, [
     counterpartyRosterId,

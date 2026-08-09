@@ -39,7 +39,10 @@ import {
   type ThirdPartyTradeDraft,
 } from "@/lib/tradeRouteHelpers"
 import { textToneClasses } from "@/lib/ui-tokens"
-import { nameOnlyPrefillText, validateTradeSearch } from "@/lib/tradeSearchParams"
+import {
+  nameOnlyPrefillText,
+  validateTradeSearch,
+} from "@/lib/tradeSearchParams"
 import { useTradePrefill } from "@/lib/useTradePrefill"
 
 async function fetchJson<T>(path: string) {
@@ -59,7 +62,9 @@ function TradeEvaluatorPage() {
   const [counterpartyRosterId, setCounterpartyRosterId] = useState(
     search.counterpartyRosterId ?? 0,
   )
-  const [thirdPartyTrades, setThirdPartyTrades] = useState<ThirdPartyTradeDraft[]>([])
+  const [thirdPartyTrades, setThirdPartyTrades] = useState<
+    ThirdPartyTradeDraft[]
+  >([])
   const [queryText, setQueryText] = useState("")
   const [queryTarget, setQueryTarget] = useState<QueryTarget>({
     kind: "user",
@@ -73,25 +78,32 @@ function TradeEvaluatorPage() {
   const leagueOptions = leaguesQuery.data ?? []
   const inferredLeagueId =
     search.leagueId ??
-    leagueOptions.find((option) => option.user_roster_id === search.userRosterId)
-      ?.league_id ??
+    leagueOptions.find(
+      (option) => option.user_roster_id === search.userRosterId,
+    )?.league_id ??
     ""
   const selectedLeague = useMemo(
     () => leagueOptions.find((option) => option.league_id === leagueId) ?? null,
     [leagueId, leagueOptions],
   )
-  const userRosterId = search.userRosterId ?? selectedLeague?.user_roster_id ?? 0
+  const userRosterId =
+    search.userRosterId ?? selectedLeague?.user_roster_id ?? 0
   const rostersQuery = useQuery({
     queryKey: ["trade", "rosters", leagueId],
     queryFn: () => {
       const params = new URLSearchParams({ league_id: leagueId })
-      return fetchJson<TradeRosterResult[]>(`/trade/rosters?${params.toString()}`)
+      return fetchJson<TradeRosterResult[]>(
+        `/trade/rosters?${params.toString()}`,
+      )
     },
     enabled: leagueId.trim().length > 0,
   })
   const rosterOptions = rostersQuery.data ?? []
   const rosterNameById = useMemo(
-    () => new Map(rosterOptions.map((option) => [option.roster_id, option.roster_name])),
+    () =>
+      new Map(
+        rosterOptions.map((option) => [option.roster_id, option.roster_name]),
+      ),
     [rosterOptions],
   )
   const counterpartyOptions = useMemo(
@@ -100,16 +112,16 @@ function TradeEvaluatorPage() {
   )
   const { prefilledPlayerAsset, prefilledSendAsset, prefilledReceiveAsset } =
     useTradePrefill({
-    search,
-    leagueId,
-    counterpartyRosterId,
-    setCounterpartyRosterId,
-    setLeagueId,
-    setQueryTarget,
-    setUserReceives,
-    setUserSends,
-    userRosterId,
-  })
+      search,
+      leagueId,
+      counterpartyRosterId,
+      setCounterpartyRosterId,
+      setLeagueId,
+      setQueryTarget,
+      setUserReceives,
+      setUserSends,
+      userRosterId,
+    })
   const nameOnlyPrefill = nameOnlyPrefillText(search)
 
   useEffect(() => {
@@ -125,7 +137,9 @@ function TradeEvaluatorPage() {
         league_id: leagueId,
         q: nameOnlyPrefill ?? "",
       })
-      return fetchJson<PlayerSearchResult[]>(`/trade/players/search?${params.toString()}`)
+      return fetchJson<PlayerSearchResult[]>(
+        `/trade/players/search?${params.toString()}`,
+      )
     },
     enabled:
       Boolean(nameOnlyPrefill) &&
@@ -147,7 +161,11 @@ function TradeEvaluatorPage() {
       return
     }
     const asset = toPlayerAsset(resolved)
-    if (search.sendPlayerName && !search.receivePlayerName && !search.targetPlayerName) {
+    if (
+      search.sendPlayerName &&
+      !search.receivePlayerName &&
+      !search.targetPlayerName
+    ) {
       setUserSends((current) => appendUniqueAsset(current, asset))
       setQueryTarget({ kind: "user", bucket: "send" })
       return
@@ -181,7 +199,9 @@ function TradeEvaluatorPage() {
 
     if (
       !search.counterpartyRosterId &&
-      !counterpartyOptions.some((option) => option.roster_id === counterpartyRosterId)
+      !counterpartyOptions.some(
+        (option) => option.roster_id === counterpartyRosterId,
+      )
     ) {
       setCounterpartyRosterId(counterpartyOptions[0]?.roster_id ?? 0)
     }
@@ -194,12 +214,16 @@ function TradeEvaluatorPage() {
 
   const activeThirdParty =
     queryTarget.kind === "third-party"
-      ? thirdPartyTrades.find((trade) => trade.clientId === queryTarget.tradeId) ?? null
+      ? (thirdPartyTrades.find(
+          (trade) => trade.clientId === queryTarget.tradeId,
+        ) ?? null)
       : null
 
   const activeThirdPartyIndex =
     queryTarget.kind === "third-party"
-      ? thirdPartyTrades.findIndex((trade) => trade.clientId === queryTarget.tradeId)
+      ? thirdPartyTrades.findIndex(
+          (trade) => trade.clientId === queryTarget.tradeId,
+        )
       : -1
 
   const activeRosterId = resolveTradeAssetRosterId({
@@ -210,15 +234,21 @@ function TradeEvaluatorPage() {
   })
 
   const searchNeedsRoster = queryTarget.bucket === "send"
-  const hasScopedRoster = !searchNeedsRoster || Boolean(activeRosterId && activeRosterId > 0)
+  const hasScopedRoster =
+    !searchNeedsRoster || Boolean(activeRosterId && activeRosterId > 0)
   const canSearchAssets = leagueId.trim().length > 0 && hasScopedRoster
   const activeRosterName =
-    activeRosterId && activeRosterId > 0 ? rosterNameById.get(activeRosterId) : undefined
+    activeRosterId && activeRosterId > 0
+      ? rosterNameById.get(activeRosterId)
+      : undefined
   const userRosterName =
-    userRosterId > 0 ? rosterNameById.get(userRosterId) ?? `Roster ${userRosterId}` : null
+    userRosterId > 0
+      ? (rosterNameById.get(userRosterId) ?? `Roster ${userRosterId}`)
+      : null
   const counterpartyRosterName =
     counterpartyRosterId > 0
-      ? rosterNameById.get(counterpartyRosterId) ?? `Roster ${counterpartyRosterId}`
+      ? (rosterNameById.get(counterpartyRosterId) ??
+        `Roster ${counterpartyRosterId}`)
       : null
 
   const searchTitle =
@@ -230,16 +260,15 @@ function TradeEvaluatorPage() {
         ? `Add to Third Team ${activeThirdPartyIndex + 1} Send Side`
         : `Add to Third Team ${activeThirdPartyIndex + 1} Receive Side`
 
-  const searchDescription =
-    !hasScopedRoster
-      ? leagueId.trim().length === 0
-        ? "Select a league to start building the trade."
-        : queryTarget.kind === "user"
-          ? "Your team could not be identified for this league."
-          : "Select a roster for this extra team before searching its outgoing assets."
-      : activeRosterId
-        ? `Showing ${activeRosterName ?? `roster ${activeRosterId}`} assets. Leave the search blank to browse the full roster.`
-        : "Search runs league-wide so you can model incoming legs from any team."
+  const searchDescription = !hasScopedRoster
+    ? leagueId.trim().length === 0
+      ? "Select a league to start building the trade."
+      : queryTarget.kind === "user"
+        ? "Your team could not be identified for this league."
+        : "Select a roster for this extra team before searching its outgoing assets."
+    : activeRosterId
+      ? `Showing ${activeRosterName ?? `roster ${activeRosterId}`} assets. Leave the search blank to browse the full roster.`
+      : "Search runs league-wide so you can model incoming legs from any team."
 
   const playerSearchQuery = useQuery({
     queryKey: [
@@ -260,9 +289,13 @@ function TradeEvaluatorPage() {
       if (activeRosterId) {
         params.set("roster_id", String(activeRosterId))
       }
-      return fetchJson<PlayerSearchResult[]>(`/trade/players/search?${params.toString()}`)
+      return fetchJson<PlayerSearchResult[]>(
+        `/trade/players/search?${params.toString()}`,
+      )
     },
-    enabled: canSearchAssets && (Boolean(activeRosterId) || queryText.trim().length >= 2),
+    enabled:
+      canSearchAssets &&
+      (Boolean(activeRosterId) || queryText.trim().length >= 2),
   })
 
   const pickSearchQuery = useQuery({
@@ -280,13 +313,16 @@ function TradeEvaluatorPage() {
       if (activeRosterId) {
         params.set("roster_id", String(activeRosterId))
       }
-      return fetchJson<PickSearchResult[]>(`/trade/picks/search?${params.toString()}`)
+      return fetchJson<PickSearchResult[]>(
+        `/trade/picks/search?${params.toString()}`,
+      )
     },
     enabled: canSearchAssets,
   })
   const pickValuesQuery = useQuery(
     pickValuesOptions(leagueId, {
-      targetManagerId: counterpartyRosterId > 0 ? counterpartyRosterId : undefined,
+      targetManagerId:
+        counterpartyRosterId > 0 ? counterpartyRosterId : undefined,
     }),
   )
   const pickValuesByKey = useMemo(
@@ -304,7 +340,8 @@ function TradeEvaluatorPage() {
     () => ({
       league_id: leagueId.trim(),
       user_roster_id: userRosterId,
-      counterparty_roster_id: counterpartyRosterId > 0 ? counterpartyRosterId : null,
+      counterparty_roster_id:
+        counterpartyRosterId > 0 ? counterpartyRosterId : null,
       user_sends: userSends.map(toRequestAsset),
       user_receives: userReceives.map(toRequestAsset),
       third_party_trades: thirdPartyTrades
@@ -356,8 +393,8 @@ function TradeEvaluatorPage() {
   const pickOptions = useMemo(
     () =>
       activeRosterId
-        ? pickSearchQuery.data ?? []
-        : pickSearchQuery.data?.slice(0, 24) ?? [],
+        ? (pickSearchQuery.data ?? [])
+        : (pickSearchQuery.data?.slice(0, 24) ?? []),
     [activeRosterId, pickSearchQuery.data],
   )
 
@@ -369,7 +406,11 @@ function TradeEvaluatorPage() {
   const addThirdPartyTrade = () => {
     const nextTrade = createThirdPartyTradeDraft()
     setThirdPartyTrades((current) => [...current, nextTrade])
-    setActiveTarget({ kind: "third-party", tradeId: nextTrade.clientId, bucket: "send" })
+    setActiveTarget({
+      kind: "third-party",
+      tradeId: nextTrade.clientId,
+      bucket: "send",
+    })
   }
 
   const updateThirdPartyTrade = (
@@ -377,12 +418,16 @@ function TradeEvaluatorPage() {
     updater: (trade: ThirdPartyTradeDraft) => ThirdPartyTradeDraft,
   ) => {
     setThirdPartyTrades((current) =>
-      current.map((trade) => (trade.clientId === tradeId ? updater(trade) : trade)),
+      current.map((trade) =>
+        trade.clientId === tradeId ? updater(trade) : trade,
+      ),
     )
   }
 
   const removeThirdPartyTrade = (tradeId: string) => {
-    setThirdPartyTrades((current) => current.filter((trade) => trade.clientId !== tradeId))
+    setThirdPartyTrades((current) =>
+      current.filter((trade) => trade.clientId !== tradeId),
+    )
     if (queryTarget.kind === "third-party" && queryTarget.tradeId === tradeId) {
       setActiveTarget({ kind: "user", bucket: "send" })
     }
@@ -413,10 +458,14 @@ function TradeEvaluatorPage() {
 
   const removeUserAsset = (bucket: AssetBucket, index: number) => {
     if (bucket === "send") {
-      setUserSends((current) => current.filter((_, assetIndex) => assetIndex !== index))
+      setUserSends((current) =>
+        current.filter((_, assetIndex) => assetIndex !== index),
+      )
       return
     }
-    setUserReceives((current) => current.filter((_, assetIndex) => assetIndex !== index))
+    setUserReceives((current) =>
+      current.filter((_, assetIndex) => assetIndex !== index),
+    )
   }
 
   const removeThirdPartyAsset = (
@@ -449,23 +498,31 @@ function TradeEvaluatorPage() {
         (trade.sends.length === 0 && trade.receives.length === 0),
     )
   const showSuggestedStart =
-    leagueId.trim().length > 0 && userSends.length === 0 && userReceives.length === 0
+    leagueId.trim().length > 0 &&
+    userSends.length === 0 &&
+    userReceives.length === 0
 
   return (
     <div className="space-y-8">
       <Card>
         <CardHeader className="space-y-2">
-          <p className="terminal-label text-primary/85">Deal intelligence</p>
-          <CardTitle className="text-3xl">Evaluate Trade</CardTitle>
+          <p className="terminal-label text-primary/85">
+            Prepared action · manual execution boundary
+          </p>
+          <CardTitle className="text-3xl">Trade Preparation</CardTitle>
           <p className="max-w-3xl text-sm text-muted-foreground">
-            Build your outgoing and incoming package first, then layer in extra teams for
-            multi-team trades. The seven dimensions stay anchored to your net swap, while
-            reroutes and package framing can explain each participant's path through the deal.
+            Build the outgoing and incoming package, attach the manager pitch,
+            and inspect the evidence before deciding whether to send. This
+            surface prepares a trade; it never submits one.
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-4 xl:grid-cols-[repeat(2,minmax(0,1fr))_auto]">
-            <LeagueField value={leagueId} onChange={handleLeagueChange} options={leagueOptions} />
+            <LeagueField
+              value={leagueId}
+              onChange={handleLeagueChange}
+              options={leagueOptions}
+            />
             <RosterField
               label="Primary Counterparty"
               value={counterpartyRosterId}
@@ -473,19 +530,28 @@ function TradeEvaluatorPage() {
               options={counterpartyOptions}
               placeholder="Select the other team"
               emptyLabel={
-                leagueId.trim().length > 0 ? "No other rosters available" : "Select a league first"
+                leagueId.trim().length > 0
+                  ? "No other rosters available"
+                  : "Select a league first"
               }
             />
             <div className="flex items-end">
-              <Button className="w-full xl:w-auto" variant="outline" onClick={addThirdPartyTrade}>
+              <Button
+                className="w-full xl:w-auto"
+                variant="outline"
+                onClick={addThirdPartyTrade}
+              >
                 Add Third Team
               </Button>
             </div>
           </div>
 
-          {leagueId.trim().length > 0 && selectedLeague && userRosterId === 0 ? (
+          {leagueId.trim().length > 0 &&
+          selectedLeague &&
+          userRosterId === 0 ? (
             <p className="rounded-lg border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              Your team could not be identified for this league, so trade evaluation is disabled.
+              Your team could not be identified for this league, so trade
+              evaluation is disabled.
             </p>
           ) : null}
 
@@ -552,15 +618,16 @@ function TradeEvaluatorPage() {
             </Button>
             {thirdPartyTrades.length ? (
               <p className="max-w-2xl text-xs text-muted-foreground">
-                Multi-team legs return sidecar scores that feed participant-specific reroutes
-                and package explanations.
+                Multi-team legs return sidecar scores that feed
+                participant-specific reroutes and package explanations.
               </p>
             ) : null}
           </div>
 
           {evaluationMutation.isError ? (
             <p className={`text-sm ${textToneClasses.destructive}`}>
-              Trade evaluation failed. Check the selected league and rosters, then try again.
+              Trade evaluation failed. Check the selected league and rosters,
+              then try again.
             </p>
           ) : null}
         </CardContent>
@@ -579,7 +646,9 @@ function TradeEvaluatorPage() {
             onOpenReroutes={() => setShowReroutes(true)}
             onOpenPackage={() => setShowPackage(true)}
           />
-          {showPackage ? <PackageBuilderPanel packageBuilder={evaluation.package} /> : null}
+          {showPackage ? (
+            <PackageBuilderPanel packageBuilder={evaluation.package} />
+          ) : null}
           <RerouteSheet
             open={showReroutes}
             reroutes={evaluation.reroutes}

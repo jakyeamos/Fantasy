@@ -22,7 +22,10 @@ export function readStoredLeagueRosterId(leagueId: string): number | null {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null
 }
 
-export function persistStoredLeagueRosterId(leagueId: string, rosterId: number | null) {
+export function persistStoredLeagueRosterId(
+  leagueId: string,
+  rosterId: number | null,
+) {
   if (typeof window === "undefined") {
     return
   }
@@ -63,7 +66,9 @@ export function LeagueRosterSelectionProvider({
 export function useLeagueRosterSelection() {
   const value = useContext(LeagueRosterSelectionContext)
   if (!value) {
-    throw new Error("useLeagueRosterSelection must be used within a LeagueRosterSelectionProvider")
+    throw new Error(
+      "useLeagueRosterSelection must be used within a LeagueRosterSelectionProvider",
+    )
   }
   return value
 }

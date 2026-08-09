@@ -20,9 +20,10 @@ export function OverUndervalueFlag({
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const panelId = useId()
-  const label = lowConfidence || !direction || magnitude == null
-    ? "Insufficient comps - low confidence"
-    : `${magnitude} spots ${direction}`
+  const label =
+    lowConfidence || !direction || magnitude == null
+      ? "Insufficient comps - low confidence"
+      : `${magnitude} spots ${direction}`
 
   return (
     <div className="mt-3">
@@ -32,7 +33,8 @@ export function OverUndervalueFlag({
             "text-sm",
             direction === "overvalued" && textToneClasses.destructive,
             direction === "undervalued" && textToneClasses.success,
-            (lowConfidence || !direction || magnitude == null) && "text-muted-foreground",
+            (lowConfidence || !direction || magnitude == null) &&
+              "text-muted-foreground",
           )}
         >
           {label}
@@ -43,10 +45,16 @@ export function OverUndervalueFlag({
             onClick={() => setIsOpen((open) => !open)}
             aria-controls={panelId}
             aria-expanded={isOpen}
-            aria-label={isOpen ? "Hide signal breakdown" : "Show signal breakdown"}
+            aria-label={
+              isOpen ? "Hide signal breakdown" : "Show signal breakdown"
+            }
             className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {isOpen ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
           </button>
         ) : null}
       </div>

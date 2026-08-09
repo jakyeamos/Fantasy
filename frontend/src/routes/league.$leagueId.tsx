@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button, buttonClasses } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { LeagueBriefingNarrative } from "@/v2/components/LeagueBriefingNarrative"
 import {
   LeagueRosterSelectionProvider,
   persistStoredLeagueRosterId,
@@ -46,7 +47,9 @@ export const Route = createFileRoute("/league/$leagueId")({
           : undefined,
     focus: search.focus === "weekly" ? "weekly" : undefined,
     startPlayerId:
-      typeof search.startPlayerId === "string" ? search.startPlayerId : undefined,
+      typeof search.startPlayerId === "string"
+        ? search.startPlayerId
+        : undefined,
     sitPlayerId:
       typeof search.sitPlayerId === "string" ? search.sitPlayerId : undefined,
     position: typeof search.position === "string" ? search.position : undefined,
@@ -157,7 +160,8 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
   const isOverviewRoute = location.pathname === leaguePath
   const isComparisonRoute = location.pathname === `${leaguePath}/comparison`
   const isManagersRoute = location.pathname.startsWith(`${leaguePath}/managers`)
-  const isTradeHistoryRoute = location.pathname === `${leaguePath}/trade-history`
+  const isTradeHistoryRoute =
+    location.pathname === `${leaguePath}/trade-history`
   const isDraftGradesRoute = location.pathname === `${leaguePath}/draft-grades`
   const isLeagueOpsRoute = location.pathname === `${leaguePath}/league-ops`
   const isPlayerRankingsRoute =
@@ -483,9 +487,15 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
         </Card>
 
         {isOverviewRoute && selectedRosterId ? (
-          <LineupStrengthCard
+          <LineupStrengthCard leagueId={leagueId} rosterId={selectedRosterId} />
+        ) : null}
+
+        {isOverviewRoute ? (
+          <LeagueBriefingNarrative
+            league={league}
             leagueId={leagueId}
             rosterId={selectedRosterId}
+            lineup={lineupQuery.data ?? null}
           />
         ) : null}
 

@@ -21,7 +21,9 @@ export function DimensionScoreRow({
         <div className="w-40 shrink-0 text-xs text-foreground">
           {label}
           {score.confidence === "LOW" ? (
-            <span className="ml-2 italic text-muted-foreground">(low confidence)</span>
+            <span className="ml-2 italic text-muted-foreground">
+              (low confidence)
+            </span>
           ) : null}
         </div>
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">

@@ -36,7 +36,9 @@ export function TendencyWarningList({
             className="rounded-xl border border-border/45 bg-card/45 p-4"
           >
             <p className="text-sm font-semibold">{warning.title}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{warning.description}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {warning.description}
+            </p>
           </div>
         ))}
       </CardContent>

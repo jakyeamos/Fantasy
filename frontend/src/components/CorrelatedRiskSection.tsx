@@ -26,7 +26,8 @@ export function CorrelatedRiskSection({
   if (isError) {
     return (
       <p className="text-xs text-muted-foreground">
-        Correlated risk data unavailable. Check that the backend is running, then refresh.
+        Correlated risk data unavailable. Check that the backend is running,
+        then refresh.
       </p>
     )
   }
@@ -41,7 +42,9 @@ export function CorrelatedRiskSection({
               key={`${row.nfl_team}-${row.league_ids.join("-")}`}
               className={`flex items-start gap-2 rounded-md px-3 py-2 ${surfaceToneClasses.warning}`}
             >
-              <AlertTriangle className={`mt-0.5 size-4 ${textToneClasses.warning}`} />
+              <AlertTriangle
+                className={`mt-0.5 size-4 ${textToneClasses.warning}`}
+              />
               <p className={`text-sm ${textToneClasses.warning}`}>
                 {row.risk_string}
               </p>

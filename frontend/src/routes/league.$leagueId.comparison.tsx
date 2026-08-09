@@ -12,7 +12,9 @@ export const Route = createFileRoute("/league/$leagueId/comparison")({
 
 function LeagueComparisonPage() {
   const { leagueId, league } = useLeagueRosterSelection()
-  const lineupQuery = useQuery(lineupScoreOptions(leagueId, league.user_roster_id ?? 0))
+  const lineupQuery = useQuery(
+    lineupScoreOptions(leagueId, league.user_roster_id ?? 0),
+  )
 
   if (!league.user_roster_id) {
     return (
@@ -34,8 +36,9 @@ function LeagueComparisonPage() {
         <CardHeader>
           <CardTitle>League Comparison</CardTitle>
           <p className="mt-2 text-sm text-muted-foreground">
-            Win-now, future-value, and title-window comparisons against the rest of the league,
-            with matchup outlook shown only during in-season windows.
+            Win-now, future-value, and title-window comparisons against the rest
+            of the league, with matchup outlook shown only during in-season
+            windows.
           </p>
         </CardHeader>
       </Card>

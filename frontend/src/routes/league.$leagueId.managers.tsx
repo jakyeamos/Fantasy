@@ -17,24 +17,32 @@ function ManagersPlaceholderPage() {
   const { leagueId } = Route.useParams()
   const location = useLocation()
   const queryClient = useQueryClient()
-  const isManagerListRoute = location.pathname === `/league/${leagueId}/managers`
+  const isManagerListRoute =
+    location.pathname === `/league/${leagueId}/managers`
   const summariesQuery = useQuery({
     ...managerSummariesOptions(leagueId),
     enabled: isManagerListRoute,
   })
   const computeMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/profiling/leagues/${leagueId}/managers/compute`, {
-        method: "POST",
-      })
+      const response = await fetch(
+        `/api/profiling/leagues/${leagueId}/managers/compute`,
+        {
+          method: "POST",
+        },
+      )
       if (!response.ok) {
         throw new Error("Failed to compute manager profiles")
       }
       return response.json()
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["profiling", "managers", leagueId] })
-      await queryClient.invalidateQueries({ queryKey: ["profiling", "manager", leagueId] })
+      await queryClient.invalidateQueries({
+        queryKey: ["profiling", "managers", leagueId],
+      })
+      await queryClient.invalidateQueries({
+        queryKey: ["profiling", "manager", leagueId],
+      })
     },
   })
 
@@ -80,10 +88,15 @@ function ManagersPlaceholderPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="terminal-label text-muted-foreground">League {leagueId}</p>
-          <h2 className="font-headline text-3xl font-extrabold tracking-tight">Managers</h2>
+          <p className="terminal-label text-muted-foreground">
+            League {leagueId}
+          </p>
+          <h2 className="font-headline text-3xl font-extrabold tracking-tight">
+            Managers
+          </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Behavioral profiles, exploitability, and top trade angles for every roster.
+            Behavioral profiles, exploitability, and top trade angles for every
+            roster.
           </p>
         </div>
         <Button
@@ -111,7 +124,8 @@ function ManagersPlaceholderPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Scores below the evidence threshold stay visible but are intentionally dimmed.
+            Scores below the evidence threshold stay visible but are
+            intentionally dimmed.
           </p>
         </CardContent>
       </Card>

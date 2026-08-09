@@ -4,18 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { formatModelLabel } from "@/lib/utils"
 
-export function DossierOverviewTab({
-  profile,
-}: {
-  profile: ManagerProfile
-}) {
+export function DossierOverviewTab({ profile }: { profile: ManagerProfile }) {
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>How to Trade With {profile.manager_name ?? "This Manager"}</CardTitle>
+          <CardTitle>
+            How to Trade With {profile.manager_name ?? "This Manager"}
+          </CardTitle>
           <p className="mt-2 text-sm text-muted-foreground">
-            Specific trade guidance based on behavioral patterns in their trade history.
+            Specific trade guidance based on behavioral patterns in their trade
+            history.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -25,7 +24,9 @@ export function DossierOverviewTab({
               {profile.low_confidence ? "Weak sample" : "Actionable sample"}
             </Badge>
             <span>{profile.evidence_count} trades</span>
-            <span>Exploitability {profile.exploitability_score.toFixed(0)}</span>
+            <span>
+              Exploitability {profile.exploitability_score.toFixed(0)}
+            </span>
           </div>
 
           {profile.recent_urgency_state ? (
@@ -85,7 +86,6 @@ export function DossierOverviewTab({
               )}
             </div>
           </div>
-
         </CardContent>
       </Card>
     </div>

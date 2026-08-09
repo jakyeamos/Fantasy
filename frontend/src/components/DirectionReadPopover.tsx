@@ -66,7 +66,9 @@ function formatDirectionReasoning({
     directionRead === "Hybrid"
       ? [directionLabel, ...directionAlternates.slice(0, 2)]
       : [directionLabel, ...directionAlternates.slice(0, 1)]
-  const formattedPaths = nearbyPaths.map((label) => formatDirectionName(label)).join(", ")
+  const formattedPaths = nearbyPaths
+    .map((label) => formatDirectionName(label))
+    .join(", ")
 
   return (
     `This roster checks enough boxes across ${formattedPaths} that the model does not see one clean lane separating from the others. ` +
@@ -105,10 +107,7 @@ export function HoverTrigger({
 }) {
   return (
     <div className="group relative">
-      <button
-        type="button"
-        className={cn("cursor-help text-left", className)}
-      >
+      <button type="button" className={cn("cursor-help text-left", className)}>
         {children}
       </button>
       {popout}
@@ -202,8 +201,8 @@ export function DirectionReadPopover({
                     <Popout title={formatDirectionName(alternate)}>
                       <p>{directionContext(alternate)}</p>
                       <p>
-                        This roster is close enough to this path that a modest shift
-                        in the scorecard could move the read here.
+                        This roster is close enough to this path that a modest
+                        shift in the scorecard could move the read here.
                       </p>
                     </Popout>
                   }

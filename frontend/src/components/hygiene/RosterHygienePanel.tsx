@@ -12,8 +12,13 @@ type RosterHygienePanelProps = {
   rosterId: number
 }
 
-export function RosterHygienePanel({ leagueId, rosterId }: RosterHygienePanelProps) {
-  const { data, isLoading, isError } = useQuery(hygieneOptions(leagueId, rosterId))
+export function RosterHygienePanel({
+  leagueId,
+  rosterId,
+}: RosterHygienePanelProps) {
+  const { data, isLoading, isError } = useQuery(
+    hygieneOptions(leagueId, rosterId),
+  )
 
   if (isLoading) {
     return (
@@ -30,7 +35,8 @@ export function RosterHygienePanel({ leagueId, rosterId }: RosterHygienePanelPro
       <Card>
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground">
-            Roster hygiene suggestions could not be generated. Ingest data may be incomplete.
+            Roster hygiene suggestions could not be generated. Ingest data may
+            be incomplete.
           </p>
         </CardContent>
       </Card>
@@ -81,7 +87,9 @@ export function RosterHygienePanel({ leagueId, rosterId }: RosterHygienePanelPro
       <CardContent>
         {data.recommendation_cards && data.recommendation_cards.length > 0 ? (
           <div className="mb-6 space-y-3">
-            <p className="terminal-label text-muted-foreground">Recommendations</p>
+            <p className="terminal-label text-muted-foreground">
+              Recommendations
+            </p>
             <RecommendationCardList cards={data.recommendation_cards} />
           </div>
         ) : null}
@@ -89,15 +97,17 @@ export function RosterHygienePanel({ leagueId, rosterId }: RosterHygienePanelPro
           <>
             <p className="text-sm font-medium">Roster Looks Clean</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              No roster triage, package, or taxi suggestions are active right now. Check back
-              after the next ingest.
+              No roster triage, package, or taxi suggestions are active right
+              now. Check back after the next ingest.
             </p>
           </>
         ) : (
           <div className="space-y-0 divide-y divide-border/40">
             {populatedSections.map((section) => (
               <div key={section.title}>
-                <p className="terminal-label py-2 text-muted-foreground">{section.title}</p>
+                <p className="terminal-label py-2 text-muted-foreground">
+                  {section.title}
+                </p>
                 {section.suggestions.map((suggestion, index) => (
                   <HygieneSuggestionRow
                     key={`${section.title}-${index}`}

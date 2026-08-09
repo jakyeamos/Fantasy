@@ -11,7 +11,9 @@ export function TierDivider({
         <p className="terminal-label text-muted-foreground">Tier</p>
         <p className="mt-2 font-headline text-2xl font-bold">{label}</p>
       </div>
-      <p className="font-mono text-xs text-muted-foreground">{playerCount} players</p>
+      <p className="font-mono text-xs text-muted-foreground">
+        {playerCount} players
+      </p>
     </div>
   )
 }

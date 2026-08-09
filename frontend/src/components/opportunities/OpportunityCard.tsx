@@ -1,6 +1,13 @@
 import type { OpportunityFeedItem } from "@/api/types"
 import { Link } from "@tanstack/react-router"
-import { AlertTriangle, ArrowRightLeft, ExternalLink, Gauge, Target, UserRound } from "lucide-react"
+import {
+  AlertTriangle,
+  ArrowRightLeft,
+  ExternalLink,
+  Gauge,
+  Target,
+  UserRound,
+} from "lucide-react"
 
 import { CalendarEscalationLabel } from "@/components/opportunities/CalendarEscalationLabel"
 import { ConfidenceIndicator } from "@/components/opportunities/ConfidenceIndicator"
@@ -56,7 +63,11 @@ export function OpportunityCard({
                   {item.player_name}
                 </p>
                 <Badge variant="outline">{item.position}</Badge>
-                <Badge variant={item.availability === "available" ? "secondary" : "outline"}>
+                <Badge
+                  variant={
+                    item.availability === "available" ? "secondary" : "outline"
+                  }
+                >
                   {availabilityLabel(item.availability)}
                 </Badge>
                 <OwnershipSymbol leagueIds={item.owned_in_leagues} />
@@ -115,8 +126,8 @@ export function OpportunityCard({
           {item.weekly_fit ? (
             <div className="rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-xs leading-5 text-primary">
               What I would check: {item.weekly_fit.player_name} is{" "}
-              {item.weekly_fit.gap_to_title_target.toFixed(1)} below the title target at{" "}
-              {item.weekly_fit.position}.{" "}
+              {item.weekly_fit.gap_to_title_target.toFixed(1)} below the title
+              target at {item.weekly_fit.position}.{" "}
               {item.weekly_fit.is_stale
                 ? `Refresh ${item.weekly_fit.stale_domains.join(", ")} before acting.`
                 : "Weekly data is fresh enough to use this as a lineup-fit tiebreaker."}

@@ -12,7 +12,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 
-function pickKey(value: { pick_owner_roster_id: number; pick_year: number; pick_round: number }) {
+function pickKey(value: {
+  pick_owner_roster_id: number
+  pick_year: number
+  pick_round: number
+}) {
   return `${value.pick_owner_roster_id}:${value.pick_year}:${value.pick_round}`
 }
 
@@ -87,7 +91,9 @@ export function LeaguePickList({
   const inventoryQuery = useQuery(pickInventoryOptions(leagueId, rosterId))
   const recomputeMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/picks/${leagueId}/recompute`, { method: "POST" })
+      const response = await fetch(`/api/picks/${leagueId}/recompute`, {
+        method: "POST",
+      })
       if (!response.ok) {
         throw new Error("Failed to recompute picks")
       }
@@ -95,18 +101,27 @@ export function LeaguePickList({
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["picks", leagueId] })
-      await queryClient.invalidateQueries({ queryKey: ["picks", "list", leagueId] })
+      await queryClient.invalidateQueries({
+        queryKey: ["picks", "list", leagueId],
+      })
     },
   })
 
   const inventoryByKey = useMemo(
-    () => new Map((inventoryQuery.data ?? []).map((row) => [inventoryKey(row), row])),
+    () =>
+      new Map(
+        (inventoryQuery.data ?? []).map((row) => [inventoryKey(row), row]),
+      ),
     [inventoryQuery.data],
   )
   const lastComputedAt = useMemo(
     () =>
       [...(pickListQuery.data?.picks ?? [])]
-        .sort((a, b) => new Date(b.computed_at).getTime() - new Date(a.computed_at).getTime())
+        .sort(
+          (a, b) =>
+            new Date(b.computed_at).getTime() -
+            new Date(a.computed_at).getTime(),
+        )
         .at(0)?.computed_at,
     [pickListQuery.data?.picks],
   )
@@ -164,7 +179,8 @@ export function LeaguePickList({
         <div>
           <CardTitle>Pick Capital</CardTitle>
           <p className="mt-2 text-sm text-muted-foreground">
-            Timed value, projected slot range, and market posture for every future pick.
+            Timed value, projected slot range, and market posture for every
+            future pick.
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             Last computed: {relativeTime(lastComputedAt)}
@@ -202,13 +218,20 @@ export function LeaguePickList({
           const inventory = inventoryByKey.get(key)
           const ownerText = ownerSummary(inventory)
           return (
-            <div key={key} className="rounded-xl border border-border/45 bg-card/45 p-4">
+            <div
+              key={key}
+              className="rounded-xl border border-border/45 bg-card/45 p-4"
+            >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-semibold">
                     {formatPickLabel(pickValue)}
                   </p>
-                  {ownerText ? <span className="text-xs text-muted-foreground">{ownerText}</span> : null}
+                  {ownerText ? (
+                    <span className="text-xs text-muted-foreground">
+                      {ownerText}
+                    </span>
+                  ) : null}
                   {!isBlocked ? (
                     <span className="text-xs text-muted-foreground">
                       {formatProjectedRange(pickValue)}
@@ -233,10 +256,15 @@ export function LeaguePickList({
                   <p className="mt-2 text-xs text-muted-foreground">
                     Projected position: {formatProjectedSlot(pickValue)}
                   </p>
-                  <p className="mt-2 text-xs text-muted-foreground">{pickValue.timing_reasoning}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {pickValue.timing_reasoning}
+                  </p>
                 </>
               ) : null}
-              <RuleCitation citation={pickValue.rule_citation} leagueId={leagueId} />
+              <RuleCitation
+                citation={pickValue.rule_citation}
+                leagueId={leagueId}
+              />
             </div>
           )
         })}

@@ -28,11 +28,7 @@ const behavioralVectors = [
   },
 ] as const
 
-export function DossierProfileTab({
-  profile,
-}: {
-  profile: ManagerProfile
-}) {
+export function DossierProfileTab({ profile }: { profile: ManagerProfile }) {
   const positionalNeeds = profile.roster_summary?.positional_needs ?? []
   const exploitationEvidence = Object.values(profile.exploitation_evidence)
 
@@ -42,7 +38,8 @@ export function DossierProfileTab({
         <CardHeader>
           <CardTitle>Exploitation Type</CardTitle>
           <p className="mt-2 text-sm text-muted-foreground">
-            Primary patterns inferred from how this manager has historically traded.
+            Primary patterns inferred from how this manager has historically
+            traded.
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -75,13 +72,15 @@ export function DossierProfileTab({
         <CardHeader>
           <CardTitle>Behavioral Vectors</CardTitle>
           <p className="mt-2 text-sm text-muted-foreground">
-            Secondary scoring signals behind the trade guidance and exploitability read.
+            Secondary scoring signals behind the trade guidance and
+            exploitability read.
           </p>
         </CardHeader>
         <CardContent>
           {profile.low_confidence ? (
             <p className="text-sm text-muted-foreground">
-              Behavioral vectors need a larger trade sample before they become reliable.
+              Behavioral vectors need a larger trade sample before they become
+              reliable.
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -96,7 +95,9 @@ export function DossierProfileTab({
                     <p className="text-lg font-semibold">
                       {(value * 100).toFixed(0)}
                     </p>
-                    <p className="text-xs text-muted-foreground">{vectorLabel}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {vectorLabel}
+                    </p>
                   </div>
                 )
               })}
@@ -109,7 +110,8 @@ export function DossierProfileTab({
         <CardHeader>
           <CardTitle>Roster Summary</CardTitle>
           <p className="mt-2 text-sm text-muted-foreground">
-            Direction, needs, and trade output from this roster’s current profile.
+            Direction, needs, and trade output from this roster’s current
+            profile.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -120,7 +122,9 @@ export function DossierProfileTab({
           <div className="space-y-2">
             <p className="text-sm font-medium">Positional Needs</p>
             {positionalNeeds.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No positional needs surfaced.</p>
+              <p className="text-sm text-muted-foreground">
+                No positional needs surfaced.
+              </p>
             ) : (
               <ul className="space-y-2 text-sm text-muted-foreground">
                 {positionalNeeds.map((position) => (

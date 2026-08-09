@@ -55,7 +55,9 @@ function scoreTone(score: number): string {
   return "text-muted-foreground"
 }
 
-function participantBalance(participant: HistoricalTradeParticipant): number | null {
+function participantBalance(
+  participant: HistoricalTradeParticipant,
+): number | null {
   return participant.current_replay?.trade_balance?.net_adjusted_delta ?? null
 }
 
@@ -80,8 +82,9 @@ function selectedParticipant(
 ): HistoricalTradeParticipant | null {
   if (selectedRosterId === null) return null
   return (
-    trade.participants.find((participant) => participant.roster_id === selectedRosterId) ??
-    null
+    trade.participants.find(
+      (participant) => participant.roster_id === selectedRosterId,
+    ) ?? null
   )
 }
 
@@ -91,10 +94,15 @@ function EvaluationDetails({ evaluation }: { evaluation: TradeEvaluation }) {
       {DIMENSIONS.map(([key, label]) => {
         const dimension = evaluation[key]
         return (
-          <div key={key} className="rounded-lg border border-border/35 bg-background/35 p-3">
+          <div
+            key={key}
+            className="rounded-lg border border-border/35 bg-background/35 p-3"
+          >
             <div className="flex items-center justify-between gap-2">
               <p className="terminal-label text-muted-foreground">{label}</p>
-              <span className={`font-mono text-sm ${scoreTone(dimension.score)}`}>
+              <span
+                className={`font-mono text-sm ${scoreTone(dimension.score)}`}
+              >
                 {dimension.score.toFixed(0)}
               </span>
             </div>
@@ -126,7 +134,9 @@ function TradeRow({
   const rowReplayLabel = focusedParticipant
     ? focusedParticipant.roster_name
     : (trade.current_winner_name ?? "No clear winner")
-  const detailParticipants = focusedParticipant ? [focusedParticipant] : trade.participants
+  const detailParticipants = focusedParticipant
+    ? [focusedParticipant]
+    : trade.participants
 
   return (
     <div className="rounded-xl border border-border/45 bg-card/45">
@@ -154,7 +164,11 @@ function TradeRow({
           <p className="mt-1 font-mono text-sm">{deltaText(rowDelta)}</p>
         </div>
         <div className="flex items-center gap-2 md:justify-end">
-          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          {expanded ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
         </div>
       </button>
       {expanded ? (
@@ -162,7 +176,9 @@ function TradeRow({
           {detailParticipants.map((participant) => (
             <div key={participant.roster_id} className="space-y-3">
               {focusedParticipant ? null : (
-                <p className="text-sm font-semibold">{participant.roster_name}</p>
+                <p className="text-sm font-semibold">
+                  {participant.roster_name}
+                </p>
               )}
               {participantSummary(participant)}
               <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -174,7 +190,8 @@ function TradeRow({
                 <EvaluationDetails evaluation={participant.current_replay} />
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  {participant.current_replay_error ?? "Current replay unavailable."}
+                  {participant.current_replay_error ??
+                    "Current replay unavailable."}
                 </p>
               )}
             </div>
@@ -205,9 +222,12 @@ function LeagueTradeHistoryPage() {
     const allTrades = query.data?.trades ?? []
     if (managerFilter === "all") return allTrades
     const rosterId = Number(managerFilter)
-    return allTrades.filter((trade) => trade.participant_roster_ids.includes(rosterId))
+    return allTrades.filter((trade) =>
+      trade.participant_roster_ids.includes(rosterId),
+    )
   }, [managerFilter, query.data?.trades])
-  const selectedRosterId = managerFilter === "all" ? null : Number(managerFilter)
+  const selectedRosterId =
+    managerFilter === "all" ? null : Number(managerFilter)
 
   if (query.isLoading) {
     return (
@@ -219,7 +239,11 @@ function LeagueTradeHistoryPage() {
   }
 
   if (query.isError || !query.data) {
-    return <p className="text-sm text-muted-foreground">Trade history unavailable.</p>
+    return (
+      <p className="text-sm text-muted-foreground">
+        Trade history unavailable.
+      </p>
+    )
   }
 
   return (
@@ -228,14 +252,19 @@ function LeagueTradeHistoryPage() {
         <CardHeader className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="terminal-label text-primary/85">League Trade Audit</p>
-            <CardTitle className="mt-2 text-3xl">Past Trade Evaluations</CardTitle>
+            <CardTitle className="mt-2 text-3xl">
+              Past Trade Evaluations
+            </CardTitle>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              Completed Sleeper trades replayed through the current app model. Selecting a
-              manager frames every delta from that roster's perspective.
+              Completed Sleeper trades replayed through the current app model.
+              Selecting a manager frames every delta from that roster's
+              perspective.
             </p>
           </div>
           <label className="space-y-2">
-            <span className="terminal-label text-muted-foreground">Manager</span>
+            <span className="terminal-label text-muted-foreground">
+              Manager
+            </span>
             <select
               value={managerFilter}
               onChange={(event) => setManagerFilter(event.target.value)}
@@ -257,7 +286,9 @@ function LeagueTradeHistoryPage() {
               <p className="mt-2 font-mono text-2xl">{trades.length}</p>
             </div>
             <div className="rounded-xl border border-border/40 bg-card/45 p-4">
-              <p className="terminal-label text-muted-foreground">Perspective</p>
+              <p className="terminal-label text-muted-foreground">
+                Perspective
+              </p>
               <p className="mt-2 text-sm text-muted-foreground">
                 {managerFilter === "all"
                   ? "Rows show the best current replay delta across participants."
@@ -278,7 +309,9 @@ function LeagueTradeHistoryPage() {
               selectedRosterId={selectedRosterId}
               onToggle={() =>
                 setExpandedId(
-                  expandedId === trade.transaction_id ? null : trade.transaction_id,
+                  expandedId === trade.transaction_id
+                    ? null
+                    : trade.transaction_id,
                 )
               }
             />

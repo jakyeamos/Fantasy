@@ -39,7 +39,9 @@ function RuleList({
           key={entry.rule}
           className="flex flex-wrap items-center gap-2 rounded-lg border border-border/35 bg-card/45 px-3 py-2 text-sm"
         >
-          <Badge className={badgeClassName}>{formatRuleLabel(entry.rule)}</Badge>
+          <Badge className={badgeClassName}>
+            {formatRuleLabel(entry.rule)}
+          </Badge>
           <span className="text-muted-foreground">{entry.reason}</span>
         </div>
       ))}
@@ -81,10 +83,13 @@ export function FormatWarningBanner({ leagueId }: { leagueId: string }) {
           </div>
           <div className="min-w-0 flex-1 space-y-3">
             <div className="space-y-1">
-              <p className="terminal-label text-destructive/85">Unsupported league rules</p>
+              <p className="terminal-label text-destructive/85">
+                Unsupported league rules
+              </p>
               <p className="text-sm text-muted-foreground">
-                This league uses rules the app does not model cleanly. Recommendations remain
-                visible, but confidence should be treated as degraded.
+                This league uses rules the app does not model cleanly.
+                Recommendations remain visible, but confidence should be treated
+                as degraded.
               </p>
             </div>
             <RuleList
@@ -101,7 +106,11 @@ export function FormatWarningBanner({ leagueId }: { leagueId: string }) {
     return null
   }
 
-  if (acknowledgedQuery.isLoading || acknowledgedQuery.isError || !acknowledgedQuery.data) {
+  if (
+    acknowledgedQuery.isLoading ||
+    acknowledgedQuery.isError ||
+    !acknowledgedQuery.data
+  ) {
     return null
   }
 
@@ -117,10 +126,13 @@ export function FormatWarningBanner({ leagueId }: { leagueId: string }) {
         </div>
         <div className="min-w-0 flex-1 space-y-3">
           <div className="space-y-1">
-            <p className="terminal-label text-primary/85">Partially supported league rules</p>
+            <p className="terminal-label text-primary/85">
+              Partially supported league rules
+            </p>
             <p className="text-sm text-muted-foreground">
-              This league uses format settings that can distort confidence. Review the flagged
-              rules before relying on lineup, trade, or roster recommendations.
+              This league uses format settings that can distort confidence.
+              Review the flagged rules before relying on lineup, trade, or
+              roster recommendations.
             </p>
           </div>
           <RuleList
@@ -134,7 +146,9 @@ export function FormatWarningBanner({ leagueId }: { leagueId: string }) {
               onClick={() => acknowledgeMutation.mutate()}
               disabled={acknowledgeMutation.isPending}
             >
-              {acknowledgeMutation.isPending ? "Saving..." : "I understand, continue"}
+              {acknowledgeMutation.isPending
+                ? "Saving..."
+                : "I understand, continue"}
             </Button>
             {acknowledgeMutation.isError ? (
               <p className="text-sm text-destructive">

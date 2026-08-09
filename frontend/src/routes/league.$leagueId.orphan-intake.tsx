@@ -56,8 +56,8 @@ function OrphanIntakePage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm leading-6 text-muted-foreground">
-            Orphan intake needs a linked roster plus current lineup and valuation data before it can
-            score a first-month action plan.
+            Orphan intake needs a linked roster plus current lineup and
+            valuation data before it can score a first-month action plan.
           </p>
         </CardContent>
       </Card>

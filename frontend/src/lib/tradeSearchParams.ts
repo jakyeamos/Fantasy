@@ -29,7 +29,10 @@ function rawStringParam(key: string): string | undefined {
   return new URLSearchParams(window.location.search).get(key) ?? undefined
 }
 
-function stringParam(search: Record<string, unknown>, key: string): string | undefined {
+function stringParam(
+  search: Record<string, unknown>,
+  key: string,
+): string | undefined {
   const value = search[key]
   if (typeof value === "string") return value
   if (typeof value === "number") return rawStringParam(key) ?? String(value)

@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react"
 
 import { useQuery } from "@tanstack/react-query"
-import { AlertTriangle, ArrowRight, ChevronDown, RefreshCcw } from "lucide-react"
+import {
+  AlertTriangle,
+  ArrowRight,
+  ChevronDown,
+  RefreshCcw,
+} from "lucide-react"
 
 import {
   dashboardSummaryOptions,
@@ -9,7 +14,11 @@ import {
   postJson,
   recomputeActions,
 } from "@/api/queries"
-import type { CommandAction, DataRefreshAction, FreshnessTag } from "@/api/types"
+import type {
+  CommandAction,
+  DataRefreshAction,
+  FreshnessTag,
+} from "@/api/types"
 import { Badge } from "@/components/ui/badge"
 import { buttonClasses } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -40,18 +49,16 @@ function confidenceVariant(confidence: CommandAction["confidence"]) {
 }
 
 function similarEvidenceDomains(domains: string[]): string[] {
-  return domains.filter((domain) => domain === "player_metadata" || domain === "team_context")
+  return domains.filter(
+    (domain) => domain === "player_metadata" || domain === "team_context",
+  )
 }
 
 function formatFreshnessLabel(tag: FreshnessTag): string {
   return tag.domain.replaceAll("_", " ")
 }
 
-function CommandSummary({
-  dataHealth,
-}: {
-  dataHealth: FreshnessTag[]
-}) {
+function CommandSummary({ dataHealth }: { dataHealth: FreshnessTag[] }) {
   const staleDomains = dataHealth.filter((tag) => tag.is_stale)
 
   if (!staleDomains.length) return null
@@ -60,7 +67,8 @@ function CommandSummary({
     <div className="flex flex-wrap items-center gap-2 rounded border border-border/45 bg-card/35 px-3 py-2 text-xs">
       <div className="flex items-center gap-2 pr-2 font-semibold text-foreground">
         <AlertTriangle className={`size-4 ${textToneClasses.attention}`} />
-        {staleDomains.length} stale data lane{staleDomains.length === 1 ? "" : "s"}
+        {staleDomains.length} stale data lane
+        {staleDomains.length === 1 ? "" : "s"}
       </div>
       {staleDomains.slice(0, 3).map((tag) => (
         <Badge key={tag.domain} variant="outline">
@@ -105,7 +113,9 @@ function RefreshAllButton({
             : recomputeActions()
           void run
             .then(onComplete)
-            .catch(() => setError("Refresh failed. Check the local server logs."))
+            .catch(() =>
+              setError("Refresh failed. Check the local server logs."),
+            )
             .finally(() => setIsRunning(false))
         }}
       >
@@ -128,22 +138,32 @@ function RefreshAllButton({
 
 function CommandCard({ action }: { action: CommandAction }) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const staleSimilarEvidenceDomains = similarEvidenceDomains(action.stale_domains)
+  const staleSimilarEvidenceDomains = similarEvidenceDomains(
+    action.stale_domains,
+  )
 
   return (
-    <Card style={{ boxShadow: "0 8px 18px -18px hsl(var(--foreground) / 0.55)" }}>
+    <Card
+      style={{ boxShadow: "0 8px 18px -18px hsl(var(--foreground) / 0.55)" }}
+    >
       <CardHeader className="space-y-3 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline">#{action.priority_rank}</Badge>
-              <Badge variant="secondary">{categoryLabel[action.category]}</Badge>
-              <Badge variant={confidenceVariant(action.confidence)}>{action.confidence}</Badge>
+              <Badge variant="secondary">
+                {categoryLabel[action.category]}
+              </Badge>
+              <Badge variant={confidenceVariant(action.confidence)}>
+                {action.confidence}
+              </Badge>
               <span className="terminal-label text-muted-foreground">
                 {urgencyCopy(action.urgency)}
               </span>
             </div>
-            <CardTitle className="text-lg leading-6">{action.headline}</CardTitle>
+            <CardTitle className="text-lg leading-6">
+              {action.headline}
+            </CardTitle>
           </div>
           <button
             type="button"
@@ -157,14 +177,18 @@ function CommandCard({ action }: { action: CommandAction }) {
             />
           </button>
         </div>
-        <p className="text-sm font-semibold leading-6">{action.recommended_action}</p>
+        <p className="text-sm font-semibold leading-6">
+          {action.recommended_action}
+        </p>
       </CardHeader>
       {isExpanded ? (
         <CardContent className="flex flex-col gap-4 px-4 pb-4 pt-0">
           <div className="space-y-3">
             <div className="space-y-2 text-sm leading-6 text-muted-foreground">
               <p>
-                <span className="font-semibold text-foreground">Acceptable price:</span>{" "}
+                <span className="font-semibold text-foreground">
+                  Acceptable price:
+                </span>{" "}
                 {action.acceptable_price}
               </p>
               <p>
@@ -190,7 +214,9 @@ function CommandCard({ action }: { action: CommandAction }) {
               </div>
             ) : null}
             {action.stale_domains.length ? (
-              <div className={`flex items-center gap-2 rounded border px-3 py-2 text-xs ${surfaceToneClasses.attention} ${textToneClasses.attention}`}>
+              <div
+                className={`flex items-center gap-2 rounded border px-3 py-2 text-xs ${surfaceToneClasses.attention} ${textToneClasses.attention}`}
+              >
                 <AlertTriangle className="size-3.5 shrink-0" />
                 {staleSimilarEvidenceDomains.length
                   ? `Refresh similar-player evidence (${staleSimilarEvidenceDomains.join(", ")}) before locking this in.`
@@ -199,13 +225,17 @@ function CommandCard({ action }: { action: CommandAction }) {
             ) : null}
             {action.trade_suggestion ? (
               <div className="space-y-2 rounded border border-border/45 bg-background/35 p-3 text-xs text-muted-foreground">
-                <p className="font-semibold text-foreground">Suggested package</p>
+                <p className="font-semibold text-foreground">
+                  Suggested package
+                </p>
                 <p>
                   <span className="font-semibold text-foreground">Send:</span>{" "}
                   {action.trade_suggestion.send_assets.join(" + ")}
                 </p>
                 <p>
-                  <span className="font-semibold text-foreground">Receive:</span>{" "}
+                  <span className="font-semibold text-foreground">
+                    Receive:
+                  </span>{" "}
                   {action.trade_suggestion.receive_assets.join(" + ")}
                 </p>
                 <p>
@@ -214,16 +244,22 @@ function CommandCard({ action }: { action: CommandAction }) {
                 </p>
                 {action.trade_suggestion.evaluation_summary ? (
                   <p>
-                    <span className="font-semibold text-foreground">Pre-score:</span>{" "}
+                    <span className="font-semibold text-foreground">
+                      Pre-score:
+                    </span>{" "}
                     {action.trade_suggestion.evaluation_verdict.toUpperCase()}{" "}
-                    {action.trade_suggestion.evaluation_score?.toFixed(1) ?? "--"} -{" "}
-                    {action.trade_suggestion.evaluation_summary}
+                    {action.trade_suggestion.evaluation_score?.toFixed(1) ??
+                      "--"}{" "}
+                    - {action.trade_suggestion.evaluation_summary}
                   </p>
                 ) : null}
               </div>
             ) : null}
           </div>
-          <a href={action.cta_destination} className={buttonClasses({ variant: "outline" })}>
+          <a
+            href={action.cta_destination}
+            className={buttonClasses({ variant: "outline" })}
+          >
             {action.cta_label}
             <ArrowRight className="size-3.5" />
           </a>
@@ -239,12 +275,17 @@ export function CommandCenter() {
   const [selectedLeagueId, setSelectedLeagueId] = useState("")
   const [includeStartSit, setIncludeStartSit] = useState(false)
   const activeLeagueId = selectedLeagueId || leagues[0]?.league_id || ""
-  const selectedLeague = leagues.find((league) => league.league_id === activeLeagueId)
+  const selectedLeague = leagues.find(
+    (league) => league.league_id === activeLeagueId,
+  )
   const query = useQuery(leagueActionsOptions(activeLeagueId))
 
   useEffect(() => {
     if (!leagues.length) return
-    if (selectedLeagueId && leagues.some((league) => league.league_id === selectedLeagueId)) {
+    if (
+      selectedLeagueId &&
+      leagues.some((league) => league.league_id === selectedLeagueId)
+    ) {
       return
     }
     setSelectedLeagueId(leagues[0].league_id)
@@ -291,7 +332,8 @@ export function CommandCenter() {
             Top moves today
           </h2>
           <p className="text-sm leading-6 text-muted-foreground">
-            The highest-priority action queue for {selectedLeague?.league_name ?? "this league"}.
+            The highest-priority action queue for{" "}
+            {selectedLeague?.league_name ?? "this league"}.
           </p>
         </div>
         <div className="flex flex-wrap items-end justify-end gap-3">
@@ -302,7 +344,9 @@ export function CommandCenter() {
               className="size-4 accent-primary"
               onChange={(event) => setIncludeStartSit(event.target.checked)}
             />
-            <span className="terminal-label text-muted-foreground">Include start/sit</span>
+            <span className="terminal-label text-muted-foreground">
+              Include start/sit
+            </span>
           </label>
           <label className="flex flex-col gap-1">
             <span className="terminal-label text-muted-foreground">League</span>
@@ -333,8 +377,8 @@ export function CommandCenter() {
               Command Center Unavailable
             </p>
             <p className="text-sm text-muted-foreground">
-              The backend could not rank actions. Use league pages while checking
-              the local server logs.
+              The backend could not rank actions. Use league pages while
+              checking the local server logs.
             </p>
           </CardContent>
         </Card>
@@ -351,8 +395,8 @@ export function CommandCenter() {
               No Ranked Moves for {selectedLeague?.league_name ?? "This League"}
             </p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Run recompute after a fresh ingest, or include start/sit if you want
-              lineup-only actions in this view.
+              Run recompute after a fresh ingest, or include start/sit if you
+              want lineup-only actions in this view.
             </p>
           </CardContent>
         </Card>

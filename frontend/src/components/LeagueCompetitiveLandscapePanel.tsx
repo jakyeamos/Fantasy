@@ -60,12 +60,11 @@ function buildLineupPlan(lineup: LineupResult | null): LineupPlanItem[] {
     return []
   }
 
-  const urgentSlot = [...lineup.slot_scores]
-    .sort(
-      (left, right) =>
-        right.gap_to_title_target - left.gap_to_title_target ||
-        right.upgrade_leverage_score - left.upgrade_leverage_score,
-    )[0]
+  const urgentSlot = [...lineup.slot_scores].sort(
+    (left, right) =>
+      right.gap_to_title_target - left.gap_to_title_target ||
+      right.upgrade_leverage_score - left.upgrade_leverage_score,
+  )[0]
 
   const leverageSlot = [...lineup.slot_scores]
     .sort(
@@ -79,12 +78,13 @@ function buildLineupPlan(lineup: LineupResult | null): LineupPlanItem[] {
   const anchorSlot = [...lineup.slot_scores]
     .sort(
       (left, right) =>
-        (right.score - right.title_target) - (left.score - left.title_target) ||
+        right.score - right.title_target - (left.score - left.title_target) ||
         right.score - left.score,
     )
     .find(
       (slot) =>
-        slot.player_id !== urgentSlot?.player_id && slot.player_id !== leverageSlot?.player_id,
+        slot.player_id !== urgentSlot?.player_id &&
+        slot.player_id !== leverageSlot?.player_id,
     )
 
   const plan: LineupPlanItem[] = []
@@ -149,16 +149,24 @@ function RankingBoard({
               entry.is_user && "border-primary/25 bg-primary/7",
             )}
           >
-            <div className="font-mono text-xs text-muted-foreground">#{entry.rank}</div>
+            <div className="font-mono text-xs text-muted-foreground">
+              #{entry.rank}
+            </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="truncate text-sm font-semibold">{entry.manager_name}</p>
+                <p className="truncate text-sm font-semibold">
+                  {entry.manager_name}
+                </p>
                 {entry.is_user ? <Badge>You</Badge> : null}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">{rankingContext(entry)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {rankingContext(entry)}
+              </p>
             </div>
             <div className="text-right">
-              <p className="font-mono text-sm font-semibold">{scoreOutOf100(entry.score)}</p>
+              <p className="font-mono text-sm font-semibold">
+                {scoreOutOf100(entry.score)}
+              </p>
               <p className="text-label-xs uppercase tracking-label-tight text-muted-foreground">
                 score
               </p>
@@ -201,7 +209,9 @@ export function LeagueCompetitiveLandscapePanel({
           {landscape.metric_summaries.map((metric) => (
             <Card key={metric.key}>
               <CardHeader className="pb-3">
-                <p className="terminal-label text-muted-foreground">{metric.label}</p>
+                <p className="terminal-label text-muted-foreground">
+                  {metric.label}
+                </p>
                 <div className="mt-3 flex items-end justify-between gap-4">
                   <div>
                     <p className="font-headline text-3xl font-extrabold tracking-tight">
@@ -265,23 +275,36 @@ export function LeagueCompetitiveLandscapePanel({
             <CardHeader>
               <CardTitle>Head-to-Head Outlook</CardTitle>
               <p className="mt-2 text-sm text-muted-foreground">
-                Model-based matchup reads from title-window strength, ceiling, stability, and
-                depth. These are opponent comparisons, not schedule assumptions.
+                Model-based matchup reads from title-window strength, ceiling,
+                stability, and depth. These are opponent comparisons, not
+                schedule assumptions.
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-lg border border-border/50 bg-card/35 p-3">
-                  <p className="terminal-label text-muted-foreground">Favored</p>
-                  <p className="mt-2 font-headline text-2xl font-extrabold">{favoredCount}</p>
+                  <p className="terminal-label text-muted-foreground">
+                    Favored
+                  </p>
+                  <p className="mt-2 font-headline text-2xl font-extrabold">
+                    {favoredCount}
+                  </p>
                 </div>
                 <div className="rounded-lg border border-border/50 bg-card/35 p-3">
-                  <p className="terminal-label text-muted-foreground">Toss-ups</p>
-                  <p className="mt-2 font-headline text-2xl font-extrabold">{tossUpCount}</p>
+                  <p className="terminal-label text-muted-foreground">
+                    Toss-ups
+                  </p>
+                  <p className="mt-2 font-headline text-2xl font-extrabold">
+                    {tossUpCount}
+                  </p>
                 </div>
                 <div className="rounded-lg border border-border/50 bg-card/35 p-3">
-                  <p className="terminal-label text-muted-foreground">Underdog</p>
-                  <p className="mt-2 font-headline text-2xl font-extrabold">{underdogCount}</p>
+                  <p className="terminal-label text-muted-foreground">
+                    Underdog
+                  </p>
+                  <p className="mt-2 font-headline text-2xl font-extrabold">
+                    {underdogCount}
+                  </p>
                 </div>
               </div>
 
@@ -293,12 +316,19 @@ export function LeagueCompetitiveLandscapePanel({
                   >
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold">{prediction.manager_name}</p>
-                        <Badge className={verdictBadge(prediction)} variant="outline">
+                        <p className="text-sm font-semibold">
+                          {prediction.manager_name}
+                        </p>
+                        <Badge
+                          className={verdictBadge(prediction)}
+                          variant="outline"
+                        >
                           {prediction.verdict.replaceAll("_", " ")}
                         </Badge>
                       </div>
-                      <p className="mt-2 text-sm text-muted-foreground">{prediction.reason}</p>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {prediction.reason}
+                      </p>
                     </div>
                     <div className="text-left md:text-right">
                       <p className="font-mono text-xl font-semibold">
@@ -320,8 +350,8 @@ export function LeagueCompetitiveLandscapePanel({
             <CardHeader>
               <CardTitle>Lineup Plan</CardTitle>
               <p className="mt-2 text-sm text-muted-foreground">
-                Comparative slot guidance built from your current gaps versus the league title
-                targets.
+                Comparative slot guidance built from your current gaps versus
+                the league title targets.
               </p>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -336,7 +366,9 @@ export function LeagueCompetitiveLandscapePanel({
                   )}
                 >
                   <p className="text-sm font-semibold">{item.title}</p>
-                  <p className="mt-2 text-sm text-muted-foreground">{item.detail}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {item.detail}
+                  </p>
                 </div>
               ))}
             </CardContent>

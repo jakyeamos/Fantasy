@@ -1,11 +1,20 @@
 import { queryOptions } from "@tanstack/react-query"
 
 import type {
+  AnalyzeUrlResponse,
+  FootballEvent,
+  EventDetail,
+  IntelligenceRunResult,
+  MorningBrief,
+} from "@/api/intelligence.generated"
+
+import type {
   ActionPlan,
   AcknowledgedResponse,
   CalendarContext,
   CommandCenterResponse,
   FreshnessTag,
+  HealthResponse,
   CorrelatedRiskRow,
   DashboardLeagueSummary,
   DraftGradesResponse,
@@ -42,7 +51,13 @@ import type {
   WaiverRecommendationsResponse,
   WeeklyContextRefreshResponse,
   WeeklyEdgeResponse,
+  ReadyResponse,
 } from "@/api/types"
+import type {
+  DecisionCard,
+  DecisionCardWire,
+} from "@/v2/contracts/decision-card"
+import { decisionCardFromWire } from "@/v2/contracts/decision-card"
 
 export async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, init)
@@ -64,6 +79,52 @@ export async function postJson<T>(path: string, body: unknown): Promise<T> {
   return (await response.json()) as T
 }
 
+export const todayBriefOptions = queryOptions({
+  queryKey: ["v2", "briefs", "today"],
+  queryFn: () => getJson<MorningBrief>("/v2/briefs/today"),
+  retry: false,
+  staleTime: 60 * 1000,
+})
+
+export const intelligenceReviewOptions = queryOptions({
+  queryKey: ["v2", "intelligence", "review"],
+  queryFn: () => getJson<FootballEvent[]>("/v2/intelligence/review"),
+  retry: false,
+  staleTime: 60 * 1000,
+})
+
+export function refreshIntelligence(): Promise<IntelligenceRunResult> {
+  return postJson<IntelligenceRunResult>("/v2/intelligence/refresh", {
+    scheduled: false,
+    source_ids: [],
+    league_ids: [],
+  })
+}
+
+export function analyzeIntelligenceUrl(
+  url: string,
+): Promise<AnalyzeUrlResponse> {
+  return postJson<AnalyzeUrlResponse>("/v2/intelligence/analyze-url", { url })
+}
+
+export function reviewIntelligenceEvent(
+  eventId: string,
+  decision: "confirm" | "reject",
+): Promise<EventDetail> {
+  return postJson<EventDetail>(`/v2/events/${eventId}/review`, { decision })
+}
+
+export function recordBriefFeedback(
+  briefId: string,
+  itemId: string,
+  verdict: "acted" | "useful" | "not_relevant" | "dismissed",
+): Promise<{ feedback_id: string }> {
+  return postJson<{ feedback_id: string }>(
+    `/v2/briefs/${briefId}/items/${itemId}/feedback`,
+    { verdict },
+  )
+}
+
 export async function deleteJson<T>(path: string): Promise<T> {
   const response = await fetch(`/api${path}`, { method: "DELETE" })
   if (!response.ok) {
@@ -71,6 +132,40 @@ export async function deleteJson<T>(path: string): Promise<T> {
   }
   return (await response.json()) as T
 }
+
+export const healthOptions = queryOptions({
+  queryKey: ["ops", "healthz"],
+  queryFn: () => getJson<HealthResponse>("/healthz"),
+  retry: false,
+  staleTime: 30_000,
+})
+
+export const readyOptions = queryOptions({
+  queryKey: ["ops", "readyz"],
+  queryFn: () => getJson<ReadyResponse>("/readyz"),
+  retry: false,
+  staleTime: 30_000,
+})
+
+export const decisionCardsOptions = queryOptions({
+  queryKey: ["v2", "decisions"],
+  queryFn: async () => {
+    const response = await getJson<{
+      cards: DecisionCardWire[]
+      total: number
+      computed_at: string
+    }>("/v2/decisions")
+    return {
+      cards: response.cards.map(
+        (card): DecisionCard => decisionCardFromWire(card),
+      ),
+      total: response.total,
+      computedAt: response.computed_at,
+    }
+  },
+  retry: false,
+  staleTime: 60_000,
+})
 
 export const dashboardSummaryOptions = queryOptions({
   queryKey: ["dashboard", "summary"],
@@ -87,7 +182,8 @@ export const commandCenterOptions = queryOptions({
 export const leagueActionsOptions = (leagueId: string) =>
   queryOptions({
     queryKey: ["actions", "league", leagueId],
-    queryFn: () => getJson<CommandCenterResponse>(`/actions/league/${leagueId}`),
+    queryFn: () =>
+      getJson<CommandCenterResponse>(`/actions/league/${leagueId}`),
     staleTime: 60 * 1000,
     enabled: leagueId.trim().length > 0,
   })
@@ -96,7 +192,10 @@ export async function recomputeActions(): Promise<CommandCenterResponse> {
   return postJson<CommandCenterResponse>("/actions/recompute", {})
 }
 
-export const leagueDetailOptions = (leagueId: string, rosterId?: number | null) =>
+export const leagueDetailOptions = (
+  leagueId: string,
+  rosterId?: number | null,
+) =>
   queryOptions({
     queryKey: ["dashboard", "league", leagueId, rosterId ?? "default"],
     queryFn: () => {
@@ -105,7 +204,9 @@ export const leagueDetailOptions = (leagueId: string, rosterId?: number | null) 
         params.set("roster_id", String(rosterId))
       }
       const suffix = params.size ? `?${params.toString()}` : ""
-      return getJson<LeagueDetailResponse>(`/dashboard/league/${leagueId}${suffix}`)
+      return getJson<LeagueDetailResponse>(
+        `/dashboard/league/${leagueId}${suffix}`,
+      )
     },
     staleTime: 5 * 60 * 1000,
   })
@@ -113,14 +214,24 @@ export const leagueDetailOptions = (leagueId: string, rosterId?: number | null) 
 export const leagueRosterOptions = (leagueId: string) =>
   queryOptions({
     queryKey: ["dashboard", "league", leagueId, "rosters"],
-    queryFn: () => getJson<LeagueRosterOption[]>(`/dashboard/league/${leagueId}/rosters`),
+    queryFn: () =>
+      getJson<LeagueRosterOption[]>(`/dashboard/league/${leagueId}/rosters`),
     staleTime: 5 * 60 * 1000,
     enabled: leagueId.trim().length > 0,
   })
 
-export const playerRankingsOptions = (leagueId: string, rosterId?: number | null) =>
+export const playerRankingsOptions = (
+  leagueId: string,
+  rosterId?: number | null,
+) =>
   queryOptions({
-    queryKey: ["dashboard", "league", leagueId, "player-rankings", rosterId ?? "default"],
+    queryKey: [
+      "dashboard",
+      "league",
+      leagueId,
+      "player-rankings",
+      rosterId ?? "default",
+    ],
     queryFn: () => {
       const params = new URLSearchParams()
       if (rosterId && rosterId > 0) {
@@ -138,7 +249,8 @@ export const playerRankingsOptions = (leagueId: string, rosterId?: number | null
 export const leagueTradeHistoryOptions = (leagueId: string) =>
   queryOptions({
     queryKey: ["trade", "history", leagueId],
-    queryFn: () => getJson<LeagueTradeHistoryResponse>(`/trade/history/${leagueId}`),
+    queryFn: () =>
+      getJson<LeagueTradeHistoryResponse>(`/trade/history/${leagueId}`),
     staleTime: 60 * 1000,
     enabled: leagueId.trim().length > 0,
   })
@@ -195,7 +307,10 @@ export const pickValuesOptions = (
         params.set("target_manager_id", String(options.targetManagerId))
       }
       if (options?.currentOwnerRosterId) {
-        params.set("current_owner_roster_id", String(options.currentOwnerRosterId))
+        params.set(
+          "current_owner_roster_id",
+          String(options.currentOwnerRosterId),
+        )
       }
       const suffix = params.size ? `?${params.toString()}` : ""
       return getJson<PickListResponse>(`/picks/${leagueId}${suffix}`).then(
@@ -224,7 +339,10 @@ export const pickListOptions = (leagueId: string, rosterId?: number | null) =>
 export const draftOrderRuleOptions = (leagueId: string) =>
   queryOptions({
     queryKey: ["picks", leagueId, "draft-order-rule"],
-    queryFn: () => getJson<DraftOrderRuleResponse | null>(`/picks/${leagueId}/draft-order-rule`),
+    queryFn: () =>
+      getJson<DraftOrderRuleResponse | null>(
+        `/picks/${leagueId}/draft-order-rule`,
+      ),
     staleTime: 5 * 60 * 1000,
     enabled: leagueId.trim().length > 0,
   })
@@ -255,7 +373,9 @@ export const pickInventoryOptions = (
       if (rosterId) {
         params.set("roster_id", String(rosterId))
       }
-      return getJson<PickSearchResult[]>(`/trade/picks/search?${params.toString()}`)
+      return getJson<PickSearchResult[]>(
+        `/trade/picks/search?${params.toString()}`,
+      )
     },
     staleTime: 60_000,
     enabled: leagueId.trim().length > 0,
@@ -272,7 +392,8 @@ export const rookieBoardOptions = (leagueId: string) =>
 export const draftRoomOptions = (leagueId: string, pickSlot: number) =>
   queryOptions({
     queryKey: ["draft-room", leagueId, pickSlot],
-    queryFn: () => getJson<DraftRoomResponse>(`/draft-room/${leagueId}/${pickSlot}`),
+    queryFn: () =>
+      getJson<DraftRoomResponse>(`/draft-room/${leagueId}/${pickSlot}`),
     staleTime: 15 * 60 * 1000,
     enabled: leagueId.trim().length > 0 && pickSlot > 0,
   })
@@ -280,7 +401,8 @@ export const draftRoomOptions = (leagueId: string, pickSlot: number) =>
 export const prospectModelOutputsOptions = (leagueId: string) =>
   queryOptions({
     queryKey: ["prospects", "model-outputs", leagueId],
-    queryFn: () => getJson<ProspectModelOutput[]>(`/prospects/model-outputs/${leagueId}`),
+    queryFn: () =>
+      getJson<ProspectModelOutput[]>(`/prospects/model-outputs/${leagueId}`),
     staleTime: 30 * 60 * 1000,
     enabled: leagueId.trim().length > 0,
   })
@@ -335,7 +457,8 @@ export const portfolioHealthOptions = () =>
 export const snapshotAnchorsOptions = (leagueId: string) =>
   queryOptions({
     queryKey: ["snapshot-anchors", leagueId],
-    queryFn: () => getJson<SnapshotAnchor[]>(`/leagues/${leagueId}/snapshot-anchors`),
+    queryFn: () =>
+      getJson<SnapshotAnchor[]>(`/leagues/${leagueId}/snapshot-anchors`),
     staleTime: 60 * 1000,
     enabled: leagueId.trim().length > 0,
   })
@@ -374,7 +497,8 @@ export const snapshotDiffOptions = (
 export const lineupScoreOptions = (leagueId: string, rosterId: number) =>
   queryOptions({
     queryKey: ["intelligence", "lineup", leagueId, rosterId],
-    queryFn: () => getJson<LineupResult>(`/intelligence/lineup/${leagueId}/${rosterId}`),
+    queryFn: () =>
+      getJson<LineupResult>(`/intelligence/lineup/${leagueId}/${rosterId}`),
     staleTime: 5 * 60 * 1000,
     enabled: leagueId.trim().length > 0 && rosterId > 0,
   })
@@ -382,7 +506,8 @@ export const lineupScoreOptions = (leagueId: string, rosterId: number) =>
 export const hygieneOptions = (leagueId: string, rosterId: number) =>
   queryOptions({
     queryKey: ["intelligence", "hygiene", leagueId, rosterId],
-    queryFn: () => getJson<HygieneResult>(`/intelligence/hygiene/${leagueId}/${rosterId}`),
+    queryFn: () =>
+      getJson<HygieneResult>(`/intelligence/hygiene/${leagueId}/${rosterId}`),
     staleTime: 5 * 60 * 1000,
     enabled: leagueId.trim().length > 0 && rosterId > 0,
   })
@@ -390,7 +515,8 @@ export const hygieneOptions = (leagueId: string, rosterId: number) =>
 export const taxiConfigOptions = (leagueId: string) =>
   queryOptions({
     queryKey: ["leagues", leagueId, "taxi-config"],
-    queryFn: () => getJson<TaxiConfigResponse>(`/leagues/${leagueId}/taxi-config`),
+    queryFn: () =>
+      getJson<TaxiConfigResponse>(`/leagues/${leagueId}/taxi-config`),
     staleTime: 5 * 60 * 1000,
     enabled: leagueId.trim().length > 0,
   })
@@ -398,7 +524,8 @@ export const taxiConfigOptions = (leagueId: string) =>
 export const slotOccupancyOptions = (leagueId: string, rosterId: number) =>
   queryOptions({
     queryKey: ["leagues", leagueId, "slot-occupancy", rosterId],
-    queryFn: () => getJson<SlotOccupancy>(`/leagues/${leagueId}/slot-occupancy/${rosterId}`),
+    queryFn: () =>
+      getJson<SlotOccupancy>(`/leagues/${leagueId}/slot-occupancy/${rosterId}`),
     staleTime: 5 * 60 * 1000,
     enabled: leagueId.trim().length > 0 && rosterId > 0,
   })
@@ -427,7 +554,8 @@ export const leagueFormatScanOptions = (leagueId: string) =>
 export const leagueAcknowledgedOptions = (leagueId: string) =>
   queryOptions({
     queryKey: ["trust", leagueId, "acknowledged"],
-    queryFn: () => getJson<AcknowledgedResponse>(`/trust/${leagueId}/acknowledged`),
+    queryFn: () =>
+      getJson<AcknowledgedResponse>(`/trust/${leagueId}/acknowledged`),
     staleTime: 0,
     enabled: leagueId.trim().length > 0,
   })
@@ -440,11 +568,16 @@ export async function acknowledgeLeagueFormat(leagueId: string): Promise<void> {
   if (!res.ok) throw new Error("Failed to acknowledge league format")
 }
 
-export function waiverRecommendationsOptions(leagueId: string, rosterId: number) {
+export function waiverRecommendationsOptions(
+  leagueId: string,
+  rosterId: number,
+) {
   return queryOptions({
     queryKey: ["waiver-recommendations", leagueId, rosterId],
     queryFn: () =>
-      getJson<WaiverRecommendationsResponse>(`/waiver/${leagueId}/${rosterId}/recommendations`),
+      getJson<WaiverRecommendationsResponse>(
+        `/waiver/${leagueId}/${rosterId}/recommendations`,
+      ),
     staleTime: 60 * 1000,
     enabled: leagueId.trim().length > 0 && rosterId > 0,
   })
@@ -453,7 +586,10 @@ export function waiverRecommendationsOptions(leagueId: string, rosterId: number)
 export function weeklyEdgeOptions(leagueId: string, rosterId: number) {
   return queryOptions({
     queryKey: ["weekly", "edge", leagueId, rosterId],
-    queryFn: () => getJson<WeeklyEdgeResponse>(`/weekly/league/${leagueId}/${rosterId}/edge`),
+    queryFn: () =>
+      getJson<WeeklyEdgeResponse>(
+        `/weekly/league/${leagueId}/${rosterId}/edge`,
+      ),
     staleTime: 60 * 1000,
     enabled: leagueId.trim().length > 0 && rosterId > 0,
   })
@@ -478,13 +614,17 @@ export async function runOrphanIntake(
   leagueId: string,
   rosterId: number,
 ): Promise<OrphanIntake> {
-  return postJson<OrphanIntake>(`/waiver/${leagueId}/${rosterId}/orphan-intake`, {})
+  return postJson<OrphanIntake>(
+    `/waiver/${leagueId}/${rosterId}/orphan-intake`,
+    {},
+  )
 }
 
 export function actionPlanOptions(leagueId: string, rosterId: number) {
   return queryOptions({
     queryKey: ["action-plan", leagueId, rosterId],
-    queryFn: () => getJson<ActionPlan>(`/waiver/${leagueId}/${rosterId}/action-plan`),
+    queryFn: () =>
+      getJson<ActionPlan>(`/waiver/${leagueId}/${rosterId}/action-plan`),
     staleTime: 60 * 1000,
     enabled: leagueId.trim().length > 0 && rosterId > 0,
   })
@@ -493,7 +633,10 @@ export function actionPlanOptions(leagueId: string, rosterId: number) {
 export function startupContextOptions(leagueId: string, rosterId: number = 0) {
   return queryOptions({
     queryKey: ["startup-context", leagueId, rosterId],
-    queryFn: () => getJson<StartupContext>(`/startup/${leagueId}/context?roster_id=${rosterId}`),
+    queryFn: () =>
+      getJson<StartupContext>(
+        `/startup/${leagueId}/context?roster_id=${rosterId}`,
+      ),
     staleTime: 60 * 1000,
     enabled: leagueId.trim().length > 0,
   })

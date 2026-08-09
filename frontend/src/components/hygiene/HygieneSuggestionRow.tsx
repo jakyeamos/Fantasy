@@ -37,9 +37,15 @@ const actionBadgeClass: Record<HygieneSuggestion["action_type"], string> = {
   throw_in_now: badgeToneClasses.attention,
 }
 
-export function HygieneSuggestionRow({ suggestion, leagueId }: HygieneSuggestionRowProps) {
+export function HygieneSuggestionRow({
+  suggestion,
+  leagueId,
+}: HygieneSuggestionRowProps) {
   const names = suggestion.primary_player_names.join(" + ")
-  const target = suggestion.target_player_name != null ? ` -> ${suggestion.target_player_name}` : ""
+  const target =
+    suggestion.target_player_name != null
+      ? ` -> ${suggestion.target_player_name}`
+      : ""
   const badgeLabel = actionBadgeCopy[suggestion.action_type]
   const badgeClass = actionBadgeClass[suggestion.action_type]
 
@@ -53,14 +59,18 @@ export function HygieneSuggestionRow({ suggestion, leagueId }: HygieneSuggestion
           {badgeLabel}
         </Badge>
         {suggestion.model_vs_market_gap?.gap_classification ? (
-          <MarketGapBadge classification={suggestion.model_vs_market_gap.gap_classification} />
+          <MarketGapBadge
+            classification={suggestion.model_vs_market_gap.gap_classification}
+          />
         ) : null}
         <span className="text-sm font-medium">
           {names}
           {target}
         </span>
       </div>
-      <p className="text-sm text-muted-foreground leading-relaxed">{suggestion.reasoning}</p>
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        {suggestion.reasoning}
+      </p>
       <p className="text-xs text-muted-foreground">
         Timing: {suggestion.timing_rationale}
       </p>
@@ -78,11 +88,14 @@ export function HygieneSuggestionRow({ suggestion, leagueId }: HygieneSuggestion
           ))}
         </div>
       ) : null}
-      {suggestion.action_type === "consolidate" && suggestion.counterparty_name ? (
+      {suggestion.action_type === "consolidate" &&
+      suggestion.counterparty_name ? (
         <div className="flex flex-col items-start gap-1">
           <p className="text-xs text-muted-foreground">
             Target manager:{" "}
-            <span className="font-medium text-foreground">{suggestion.counterparty_name}</span>
+            <span className="font-medium text-foreground">
+              {suggestion.counterparty_name}
+            </span>
           </p>
           <Link
             to="/trades"

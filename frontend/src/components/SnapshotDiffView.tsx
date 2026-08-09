@@ -14,7 +14,10 @@ function sortDiffRows(rows: DiffRow[]) {
       if (row.field_type === "direction_label") return 1
       return 0
     }
-    return priority(a) - priority(b) || Math.abs(b.delta ?? 0) - Math.abs(a.delta ?? 0)
+    return (
+      priority(a) - priority(b) ||
+      Math.abs(b.delta ?? 0) - Math.abs(a.delta ?? 0)
+    )
   })
 }
 
@@ -53,7 +56,8 @@ export function SnapshotDiffView({
   if (query.isError) {
     return (
       <p className="mt-4 text-sm text-muted-foreground">
-        Snapshot comparison unavailable. Check that the backend is running, then refresh.
+        Snapshot comparison unavailable. Check that the backend is running, then
+        refresh.
       </p>
     )
   }
@@ -73,7 +77,9 @@ export function SnapshotDiffView({
               className="flex items-center justify-between gap-4 py-1"
             >
               <span className="text-xs text-muted-foreground">{row.field}</span>
-              <span className={cn("text-sm", rowColor(row))}>{row.display_string}</span>
+              <span className={cn("text-sm", rowColor(row))}>
+                {row.display_string}
+              </span>
             </div>
           ))}
         </div>

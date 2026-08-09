@@ -77,19 +77,26 @@ export function WeeklyEdgePanel({
   const isFocused = startSitFocused || gapFocused
 
   return (
-    <Card id="weekly-edge" className={cn("border-primary/25", isFocused && "ring-2 ring-primary/55")}>
+    <Card
+      id="weekly-edge"
+      className={cn("border-primary/25", isFocused && "ring-2 ring-primary/55")}
+    >
       <CardHeader className="space-y-2">
         <p className="terminal-label text-primary/85">Weekly Edge</p>
         <CardTitle>Start, sit, and lineup pressure</CardTitle>
         {isFocused ? (
           <div className="rounded border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
-            Opened from a command-center action. The matching decision is highlighted below.
+            Opened from a command-center action. The matching decision is
+            highlighted below.
           </div>
         ) : null}
         {query.data.stale_domains.length ? (
-          <div className={`flex flex-wrap items-center gap-2 rounded border px-3 py-2 text-xs ${surfaceToneClasses.attention} ${textToneClasses.attention}`}>
+          <div
+            className={`flex flex-wrap items-center gap-2 rounded border px-3 py-2 text-xs ${surfaceToneClasses.attention} ${textToneClasses.attention}`}
+          >
             <AlertTriangle className="size-3.5" />
-            Refresh {query.data.stale_domains.join(", ")} before treating this as final.
+            Refresh {query.data.stale_domains.join(", ")} before treating this
+            as final.
           </div>
         ) : null}
       </CardHeader>
@@ -116,7 +123,8 @@ export function WeeklyEdgePanel({
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {topStartSit.why_now}
             </p>
-            {topStartSit.stale_domains.length ? null : topStartSignal?.usage_note ? (
+            {topStartSit.stale_domains
+              .length ? null : topStartSignal?.usage_note ? (
               <p className="mt-2 text-xs text-muted-foreground">
                 {topStartSignal.usage_note}
               </p>
@@ -171,7 +179,8 @@ export function WeeklyEdgePanel({
           <div className="rounded-lg border border-border/45 bg-card/45 p-4">
             <p className="terminal-label text-muted-foreground">Lineup Gap</p>
             <p className="mt-3 text-sm text-muted-foreground">
-              No cached starter slot is currently below the playoff or title target.
+              No cached starter slot is currently below the playoff or title
+              target.
             </p>
           </div>
         )}

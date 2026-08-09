@@ -11,12 +11,15 @@ export function LiquidationOptionsPanel({
   intake,
   plan,
 }: LiquidationOptionsPanelProps) {
-  const tradeItems = plan?.items.filter((item) => item.category === "trade") ?? []
+  const tradeItems =
+    plan?.items.filter((item) => item.category === "trade") ?? []
 
   return (
     <Card>
       <CardHeader>
-        <p className="terminal-label text-muted-foreground">Liquidation Options</p>
+        <p className="terminal-label text-muted-foreground">
+          Liquidation Options
+        </p>
         <CardTitle>{intake.liquidation_options.label}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -33,7 +36,9 @@ export function LiquidationOptionsPanel({
                 <span className="text-sm font-semibold">{item.headline}</span>
                 <Badge variant="outline">Sell Now</Badge>
               </div>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.rationale}</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                {item.rationale}
+              </p>
             </div>
           ))
         ) : (

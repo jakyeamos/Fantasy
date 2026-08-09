@@ -49,8 +49,12 @@ function TradeBalanceSeesaw({ evaluation }: { evaluation: TradeEvaluation }) {
           </p>
         </div>
         <div className="text-right">
-          <p className="terminal-label text-muted-foreground">App-Adjusted Fairness</p>
-          <p className="font-mono text-xl text-foreground">{score.toFixed(0)}</p>
+          <p className="terminal-label text-muted-foreground">
+            App-Adjusted Fairness
+          </p>
+          <p className="font-mono text-xl text-foreground">
+            {score.toFixed(0)}
+          </p>
         </div>
       </div>
       <div className="mt-5">
@@ -139,7 +143,9 @@ export function EvaluationOutputPanel({
             `${asset.pick_owner_roster_id ?? 0}:${asset.pick_year ?? 0}:${asset.pick_round ?? 0}`,
           ) ?? null,
       })),
-  ].filter((row): row is { side: string; value: PickValue } => row.value !== null)
+  ].filter(
+    (row): row is { side: string; value: PickValue } => row.value !== null,
+  )
 
   return (
     <Card>
@@ -150,7 +156,9 @@ export function EvaluationOutputPanel({
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
-        <StrategicDistinctionBanner distinction={evaluation.strategic_distinction} />
+        <StrategicDistinctionBanner
+          distinction={evaluation.strategic_distinction}
+        />
         <TradeBalanceSeesaw evaluation={evaluation} />
         <div className="rounded-xl border border-border/40 bg-card/45 p-4">
           {DIMENSIONS.map(([key, label]) => (
@@ -163,7 +171,9 @@ export function EvaluationOutputPanel({
         </div>
         {evaluation.third_party_evaluations?.length ? (
           <div className="rounded-xl border border-border/40 bg-card/45 p-4">
-            <p className="terminal-label text-muted-foreground">Third-Party Legs</p>
+            <p className="terminal-label text-muted-foreground">
+              Third-Party Legs
+            </p>
             <div className="mt-3 space-y-3">
               {evaluation.third_party_evaluations.map((sidecar) => (
                 <div key={sidecar.roster_id} className="space-y-2">
@@ -172,8 +182,8 @@ export function EvaluationOutputPanel({
                     score={sidecar.market_fairness}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Sends {sidecar.sent_market_value.toFixed(2)} market value, receives{" "}
-                    {sidecar.received_market_value.toFixed(2)}.
+                    Sends {sidecar.sent_market_value.toFixed(2)} market value,
+                    receives {sidecar.received_market_value.toFixed(2)}.
                   </p>
                 </div>
               ))}
@@ -197,11 +207,14 @@ export function EvaluationOutputPanel({
             ))}
           </div>
         ) : null}
-        {evaluation.recommendation_cards && evaluation.recommendation_cards.length > 0 ? (
+        {evaluation.recommendation_cards &&
+        evaluation.recommendation_cards.length > 0 ? (
           <>
             <Separator className="my-4" />
             <div className="space-y-3">
-              <p className="terminal-label text-muted-foreground">Recommendations</p>
+              <p className="terminal-label text-muted-foreground">
+                Recommendations
+              </p>
               <RecommendationCardList cards={evaluation.recommendation_cards} />
             </div>
           </>

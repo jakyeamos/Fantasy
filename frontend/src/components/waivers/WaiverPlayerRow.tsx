@@ -35,17 +35,27 @@ export function WaiverPlayerRow({ recommendation }: WaiverPlayerRowProps) {
       >
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold">{recommendation.player_name}</span>
+            <span className="text-sm font-semibold">
+              {recommendation.player_name}
+            </span>
             <Badge variant="outline">{recommendation.position}</Badge>
             {recommendation.team ? (
-              <span className="text-xs text-muted-foreground">{recommendation.team}</span>
+              <span className="text-xs text-muted-foreground">
+                {recommendation.team}
+              </span>
             ) : null}
-            {recommendation.is_immediate_start ? <Badge variant="secondary">Startable</Badge> : null}
-            {recommendation.dynasty_stash ? <Badge variant="outline">Stash</Badge> : null}
+            {recommendation.is_immediate_start ? (
+              <Badge variant="secondary">Startable</Badge>
+            ) : null}
+            {recommendation.dynasty_stash ? (
+              <Badge variant="outline">Stash</Badge>
+            ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {recommendation.recommendation_label === "free_agent_only" ? (
-              <Badge className="border-accent/30 bg-accent/20 text-accent">Free Claim</Badge>
+              <Badge className="border-accent/30 bg-accent/20 text-accent">
+                Free Claim
+              </Badge>
             ) : (
               <span className="font-mono text-sm">
                 {recommendation.bid_low === null
@@ -53,7 +63,9 @@ export function WaiverPlayerRow({ recommendation }: WaiverPlayerRowProps) {
                   : `$${recommendation.bid_low ?? 0} / $${recommendation.bid_mid ?? 0} / $${recommendation.bid_high ?? 0}`}
               </span>
             )}
-            <Badge variant={urgencyVariant(recommendation.urgency)}>{recommendation.urgency}</Badge>
+            <Badge variant={urgencyVariant(recommendation.urgency)}>
+              {recommendation.urgency}
+            </Badge>
             <Badge variant={confidenceVariant(recommendation.confidence)}>
               {recommendation.confidence}
             </Badge>
@@ -79,10 +91,13 @@ export function WaiverPlayerRow({ recommendation }: WaiverPlayerRowProps) {
       {showRationale ? (
         <div className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
           <p>{recommendation.rationale}</p>
-          {recommendation.drop_reason ? <p>{recommendation.drop_reason}</p> : null}
+          {recommendation.drop_reason ? (
+            <p>{recommendation.drop_reason}</p>
+          ) : null}
           {recommendation.data_freshness_warning ? (
             <p className={textToneClasses.attention}>
-              Waiver budgets or roster state may be stale; refresh before bidding.
+              Waiver budgets or roster state may be stale; refresh before
+              bidding.
             </p>
           ) : null}
         </div>

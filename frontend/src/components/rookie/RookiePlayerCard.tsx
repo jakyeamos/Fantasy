@@ -52,10 +52,19 @@ export function RookiePlayerCard({
           </div>
           <Badge variant="outline">{player.position}</Badge>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">{player.archetype_label}</p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {player.archetype_label}
+        </p>
         <div className="mt-3 flex items-center gap-2">
-          <span className="terminal-label text-muted-foreground">{player.risk_band} risk</span>
-          <span className={cn("rounded px-2 py-0.5 text-xs font-medium", RISK_BADGE[player.risk_band])}>
+          <span className="terminal-label text-muted-foreground">
+            {player.risk_band} risk
+          </span>
+          <span
+            className={cn(
+              "rounded px-2 py-0.5 text-xs font-medium",
+              RISK_BADGE[player.risk_band],
+            )}
+          >
             {player.risk_band}
           </span>
         </div>
@@ -84,8 +93,12 @@ export function RookiePlayerCard({
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="terminal-label text-muted-foreground">Model signal</p>
-                <p className="mt-1 text-sm text-muted-foreground">{modelOutput.predicted_bucket} outcome lean</p>
+                <p className="terminal-label text-muted-foreground">
+                  Model signal
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {modelOutput.predicted_bucket} outcome lean
+                </p>
               </div>
               <HitRateBadge
                 bucket={modelOutput.hit_rate_bucket}
@@ -99,19 +112,34 @@ export function RookiePlayerCard({
               subFlags={modelOutput.sub_flags}
             />
             <div className="space-y-2">
-              <p className="terminal-label text-muted-foreground">Historical comps</p>
+              <p className="terminal-label text-muted-foreground">
+                Historical comps
+              </p>
               {modelOutput.comps.length ? (
-                modelOutput.comps.map((comp) => <CompRow key={`${player.player_id}-${comp.role}`} comp={comp} />)
+                modelOutput.comps.map((comp) => (
+                  <CompRow
+                    key={`${player.player_id}-${comp.role}`}
+                    comp={comp}
+                  />
+                ))
               ) : (
-                <p className="text-xs text-muted-foreground">No historical comps surfaced for this profile yet.</p>
+                <p className="text-xs text-muted-foreground">
+                  No historical comps surfaced for this profile yet.
+                </p>
               )}
             </div>
-            {player.model_vs_market_gap ? <MarketGapPanel gap={player.model_vs_market_gap} /> : null}
+            {player.model_vs_market_gap ? (
+              <MarketGapPanel gap={player.model_vs_market_gap} />
+            ) : null}
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">Phase 8 model output unavailable for this prospect.</p>
-            {player.model_vs_market_gap ? <MarketGapPanel gap={player.model_vs_market_gap} /> : null}
+            <p className="text-xs text-muted-foreground">
+              Phase 8 model output unavailable for this prospect.
+            </p>
+            {player.model_vs_market_gap ? (
+              <MarketGapPanel gap={player.model_vs_market_gap} />
+            ) : null}
           </div>
         )}
       </CardContent>

@@ -20,16 +20,22 @@ export function MarketGapPanel({ gap }: { gap: ModelVsMarketGap }) {
         <div>
           <p className="terminal-label text-muted-foreground">Model</p>
           <p>{formatMaybeNumber(gap.model_value)}</p>
-          <p className="text-xs text-muted-foreground">Rank {formatMaybeNumber(gap.model_rank)}</p>
+          <p className="text-xs text-muted-foreground">
+            Rank {formatMaybeNumber(gap.model_rank)}
+          </p>
         </div>
         <div>
           <p className="terminal-label text-muted-foreground">Market</p>
           <p>{formatMaybeNumber(gap.market_value)}</p>
-          <p className="text-xs text-muted-foreground">Rank {formatMaybeNumber(gap.market_rank)}</p>
+          <p className="text-xs text-muted-foreground">
+            Rank {formatMaybeNumber(gap.market_rank)}
+          </p>
         </div>
       </div>
       {gap.explanation ? (
-        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{gap.explanation}</p>
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+          {gap.explanation}
+        </p>
       ) : null}
     </div>
   )

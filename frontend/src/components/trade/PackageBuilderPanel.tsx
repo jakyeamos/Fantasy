@@ -2,10 +2,13 @@ import type { PackageBuilderResult, TradeAsset } from "@/api/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 function renderAssets(assets: TradeAsset[]) {
-  return assets.map((asset, index) => {
-    if (asset.asset_type === "player") return asset.player_id ?? `Player ${index + 1}`
-    return `${asset.pick_year} Round ${asset.pick_round}`
-  }).join(", ")
+  return assets
+    .map((asset, index) => {
+      if (asset.asset_type === "player")
+        return asset.player_id ?? `Player ${index + 1}`
+      return `${asset.pick_year} Round ${asset.pick_round}`
+    })
+    .join(", ")
 }
 
 export function PackageBuilderPanel({
@@ -25,10 +28,7 @@ export function PackageBuilderPanel({
     )
   }
 
-  const offers = [
-    packageBuilder.aggressive_open,
-    packageBuilder.fair_close,
-  ]
+  const offers = [packageBuilder.aggressive_open, packageBuilder.fair_close]
 
   return (
     <div className="space-y-4">
@@ -44,11 +44,15 @@ export function PackageBuilderPanel({
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="rounded-lg border border-border/35 bg-card/45 px-3 py-3 text-sm">
-                <span className="terminal-label text-muted-foreground">Send</span>{" "}
+                <span className="terminal-label text-muted-foreground">
+                  Send
+                </span>{" "}
                 {renderAssets(offer.send_assets)}
               </p>
               <p className="rounded-lg border border-border/35 bg-card/45 px-3 py-3 text-sm">
-                <span className="terminal-label text-muted-foreground">Receive</span>{" "}
+                <span className="terminal-label text-muted-foreground">
+                  Receive
+                </span>{" "}
                 {renderAssets(offer.receive_assets)}
               </p>
               <p className="border-t border-border/60 pt-3 text-sm italic text-muted-foreground">
@@ -84,11 +88,15 @@ export function PackageBuilderPanel({
                 </div>
                 <div className="mt-3 space-y-2 text-sm">
                   <p>
-                    <span className="terminal-label text-muted-foreground">Sends</span>{" "}
+                    <span className="terminal-label text-muted-foreground">
+                      Sends
+                    </span>{" "}
                     {renderAssets(offer.send_assets)}
                   </p>
                   <p>
-                    <span className="terminal-label text-muted-foreground">Receives</span>{" "}
+                    <span className="terminal-label text-muted-foreground">
+                      Receives
+                    </span>{" "}
                     {renderAssets(offer.receive_assets)}
                   </p>
                 </div>

@@ -13,22 +13,33 @@ function dotClass(index: number) {
   return "bg-border/60"
 }
 
-export function ThirtyDayActionPlanCard({ plan }: ThirtyDayActionPlanCardProps) {
+export function ThirtyDayActionPlanCard({
+  plan,
+}: ThirtyDayActionPlanCardProps) {
   return (
     <Card>
       <CardHeader>
-        <p className="terminal-label text-muted-foreground">30-Day Action Plan</p>
+        <p className="terminal-label text-muted-foreground">
+          30-Day Action Plan
+        </p>
         <CardTitle>Your First Month</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {plan?.summary ? (
-          <p className="text-sm leading-6 text-muted-foreground">{plan.summary}</p>
+          <p className="text-sm leading-6 text-muted-foreground">
+            {plan.summary}
+          </p>
         ) : null}
         {plan?.items.length ? (
           <div className="space-y-4">
             {plan.items.map((item, index) => (
-              <div key={`${item.headline}-${item.priority_rank}`} className="flex gap-3">
-                <div className={cn("mt-2 size-2 rounded-full", dotClass(index))} />
+              <div
+                key={`${item.headline}-${item.priority_rank}`}
+                className="flex gap-3"
+              >
+                <div
+                  className={cn("mt-2 size-2 rounded-full", dotClass(index))}
+                />
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold">
@@ -40,7 +51,9 @@ export function ThirtyDayActionPlanCard({ plan }: ThirtyDayActionPlanCardProps) 
                       </Badge>
                     ) : null}
                   </div>
-                  <p className="text-sm leading-6 text-muted-foreground">{item.rationale}</p>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {item.rationale}
+                  </p>
                 </div>
               </div>
             ))}

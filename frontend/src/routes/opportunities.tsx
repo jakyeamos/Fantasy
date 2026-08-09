@@ -117,7 +117,9 @@ function OpportunityFeedPage() {
             {query.isLoading ? (
               <Skeleton className="mt-3 h-5 w-20" />
             ) : (
-              <p className="mt-2 text-sm font-bold text-foreground">{updatedAt}</p>
+              <p className="mt-2 text-sm font-bold text-foreground">
+                {updatedAt}
+              </p>
             )}
           </div>
         </div>
@@ -142,7 +144,13 @@ function OpportunityFeedPage() {
                 "min-w-0",
               )}
               onClick={() =>
-                setScopeFilter(value as "all" | "my_roster" | "available" | "opponent_roster")
+                setScopeFilter(
+                  value as
+                    | "all"
+                    | "my_roster"
+                    | "available"
+                    | "opponent_roster",
+                )
               }
             >
               {label}
@@ -162,7 +170,9 @@ function OpportunityFeedPage() {
                 size: "sm",
               })}
               onClick={() =>
-                setActionFilter(value as "all" | OpportunityFeedItem["suggested_action"])
+                setActionFilter(
+                  value as "all" | OpportunityFeedItem["suggested_action"],
+                )
               }
             >
               {label}

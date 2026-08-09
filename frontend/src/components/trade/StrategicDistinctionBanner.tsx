@@ -25,9 +25,15 @@ export function StrategicDistinctionBanner({
     >
       <Icon className={isNeutral ? "text-muted-foreground" : "text-primary"} />
       <div className="space-y-1">
-        <p className="terminal-label text-muted-foreground">Strategic distinction</p>
-        <p className="font-headline text-2xl font-bold">{distinction.headline}</p>
-        <p className={`text-sm ${isNeutral ? "text-muted-foreground" : "text-foreground"}`}>
+        <p className="terminal-label text-muted-foreground">
+          Strategic distinction
+        </p>
+        <p className="font-headline text-2xl font-bold">
+          {distinction.headline}
+        </p>
+        <p
+          className={`text-sm ${isNeutral ? "text-muted-foreground" : "text-foreground"}`}
+        >
           {distinction.explanation}
         </p>
       </div>

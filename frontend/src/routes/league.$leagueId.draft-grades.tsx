@@ -77,7 +77,9 @@ function SelectionRow({
         <Badge variant="outline">Round {selection.round_number}</Badge>
         <div>
           <p className="terminal-label text-muted-foreground">Grade</p>
-          <p className={`mt-1 font-mono text-sm ${gradeTone(selection.grade_score)}`}>
+          <p
+            className={`mt-1 font-mono text-sm ${gradeTone(selection.grade_score)}`}
+          >
             {selection.grade_label} {selection.grade_score.toFixed(0)}
           </p>
         </div>
@@ -85,13 +87,19 @@ function SelectionRow({
           <Badge variant={selection.value_delta >= 0 ? "secondary" : "outline"}>
             {deltaText(selection.value_delta)}
           </Badge>
-          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          {expanded ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
         </div>
       </button>
       {expanded ? (
         <div className="grid gap-4 border-t border-border/40 p-4 md:grid-cols-[1.2fr_1fr]">
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">{selection.rationale}</p>
+            <p className="text-sm text-muted-foreground">
+              {selection.rationale}
+            </p>
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline">
                 Current {selection.current_value.toFixed(2)}
@@ -109,7 +117,9 @@ function SelectionRow({
                 ? `Snapshot value ${selection.at_time.value?.toFixed(2) ?? "--"}`
                 : "Unavailable"}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">{selection.at_time.note}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {selection.at_time.note}
+            </p>
           </div>
         </div>
       ) : null}
@@ -117,7 +127,9 @@ function SelectionRow({
   )
 }
 
-function teamCardDetail(team: DraftGradeTeamSummary | null | undefined): string {
+function teamCardDetail(
+  team: DraftGradeTeamSummary | null | undefined,
+): string {
   if (!team) return "No draft selections available."
   return `${team.pick_count} picks · ${deltaText(team.total_value_delta)} value delta`
 }
@@ -148,9 +160,12 @@ function LeagueDraftGradesPage() {
 
   const selections = useMemo(() => {
     return (query.data?.selections ?? []).filter((selection) => {
-      const typeMatch = draftType === "all" || selection.draft_type === draftType
-      const seasonMatch = season === "all" || selection.season === Number(season)
-      const managerMatch = manager === "all" || selection.roster_id === Number(manager)
+      const typeMatch =
+        draftType === "all" || selection.draft_type === draftType
+      const seasonMatch =
+        season === "all" || selection.season === Number(season)
+      const managerMatch =
+        manager === "all" || selection.roster_id === Number(manager)
       return typeMatch && seasonMatch && managerMatch
     })
   }, [draftType, manager, query.data?.selections, season])
@@ -165,18 +180,23 @@ function LeagueDraftGradesPage() {
   }
 
   if (query.isError || !query.data) {
-    return <p className="text-sm text-muted-foreground">Draft grades unavailable.</p>
+    return (
+      <p className="text-sm text-muted-foreground">Draft grades unavailable.</p>
+    )
   }
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <p className="terminal-label text-primary/85">League Draft Gradebook</p>
+          <p className="terminal-label text-primary/85">
+            League Draft Gradebook
+          </p>
           <CardTitle className="mt-2 text-3xl">Draft Grades</CardTitle>
           <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-            Rookie and startup selections graded by current replay value, slot baseline,
-            roster fit, and historical snapshot coverage where available.
+            Rookie and startup selections graded by current replay value, slot
+            baseline, roster fit, and historical snapshot coverage where
+            available.
           </p>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -212,10 +232,14 @@ function LeagueDraftGradesPage() {
           </div>
           <div className="grid gap-3 md:grid-cols-3">
             <label className="space-y-2">
-              <span className="terminal-label text-muted-foreground">Draft Type</span>
+              <span className="terminal-label text-muted-foreground">
+                Draft Type
+              </span>
               <select
                 value={draftType}
-                onChange={(event) => setDraftType(event.target.value as DraftTypeFilter)}
+                onChange={(event) =>
+                  setDraftType(event.target.value as DraftTypeFilter)
+                }
                 className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
               >
                 <option value="all">All drafts</option>
@@ -224,7 +248,9 @@ function LeagueDraftGradesPage() {
               </select>
             </label>
             <label className="space-y-2">
-              <span className="terminal-label text-muted-foreground">Season</span>
+              <span className="terminal-label text-muted-foreground">
+                Season
+              </span>
               <select
                 value={season}
                 onChange={(event) => setSeason(event.target.value)}
@@ -239,7 +265,9 @@ function LeagueDraftGradesPage() {
               </select>
             </label>
             <label className="space-y-2">
-              <span className="terminal-label text-muted-foreground">Manager</span>
+              <span className="terminal-label text-muted-foreground">
+                Manager
+              </span>
               <select
                 value={manager}
                 onChange={(event) => setManager(event.target.value)}
@@ -266,7 +294,9 @@ function LeagueDraftGradesPage() {
                 key={key}
                 selection={selection}
                 expanded={expandedKey === key}
-                onToggle={() => setExpandedKey(expandedKey === key ? null : key)}
+                onToggle={() =>
+                  setExpandedKey(expandedKey === key ? null : key)
+                }
               />
             )
           })}

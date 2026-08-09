@@ -22,17 +22,23 @@ function LeagueOpsPage() {
         <CardHeader>
           <CardTitle>League Ops</CardTitle>
           <p className="mt-2 text-sm text-muted-foreground">
-            Pick inventory, exploit windows, draft-order rules, and taxi configuration for this
-            league.
+            Pick inventory, exploit windows, draft-order rules, and taxi
+            configuration for this league.
           </p>
         </CardHeader>
       </Card>
 
       <FormatWarningBanner leagueId={leagueId} />
       <LeaguePickList leagueId={leagueId} rosterId={league.user_roster_id} />
-      <ExploitWindowPanel leagueId={leagueId} windows={league.exploit_windows} />
+      <ExploitWindowPanel
+        leagueId={leagueId}
+        windows={league.exploit_windows}
+      />
       <DraftOrderRuleForm leagueId={leagueId} />
-      <TaxiIRSlotSummary leagueId={leagueId} rosterId={league.user_roster_id ?? 0} />
+      <TaxiIRSlotSummary
+        leagueId={leagueId}
+        rosterId={league.user_roster_id ?? 0}
+      />
       <TaxiConfigForm leagueId={leagueId} />
     </div>
   )

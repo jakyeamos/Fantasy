@@ -52,7 +52,8 @@ export function DossierDraftPicksTab({
         <CardHeader>
           <CardTitle>Draft & Picks</CardTitle>
           <p className="mt-2 text-sm text-muted-foreground">
-            Startup and rookie draft behavior, plus the underlying draft sample behind those reads.
+            Startup and rookie draft behavior, plus the underlying draft sample
+            behind those reads.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -60,7 +61,8 @@ export function DossierDraftPicksTab({
             <p className="terminal-label mb-1">Pick Trade Sample</p>
             <p className="text-xl font-semibold">{pickTradeEvidence}</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Pick-related trades used to establish pricing and archetype patterns.
+              Pick-related trades used to establish pricing and archetype
+              patterns.
             </p>
             {pickPremiumScore === null ? (
               <p className="text-sm text-muted-foreground">
@@ -78,7 +80,9 @@ export function DossierDraftPicksTab({
               <span>Archetype</span>
             </div>
             {draftSelectionHistory.length > 0 &&
-            draftSelectionHistory.every((selection) => selection.draft_type === "startup") ? (
+            draftSelectionHistory.every(
+              (selection) => selection.draft_type === "startup",
+            ) ? (
               <p className="text-xs text-muted-foreground px-4 py-2">
                 Startup draft only - slot aggression analysis not applicable.
               </p>

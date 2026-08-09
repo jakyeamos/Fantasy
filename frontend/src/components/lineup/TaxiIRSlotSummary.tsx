@@ -9,8 +9,13 @@ type TaxiIRSlotSummaryProps = {
   rosterId: number
 }
 
-export function TaxiIRSlotSummary({ leagueId, rosterId }: TaxiIRSlotSummaryProps) {
-  const { data, isLoading, isError } = useQuery(slotOccupancyOptions(leagueId, rosterId))
+export function TaxiIRSlotSummary({
+  leagueId,
+  rosterId,
+}: TaxiIRSlotSummaryProps) {
+  const { data, isLoading, isError } = useQuery(
+    slotOccupancyOptions(leagueId, rosterId),
+  )
 
   if (isLoading) {
     return <Skeleton className="h-8 w-full max-w-md" />
@@ -52,7 +57,8 @@ export function TaxiIRSlotSummary({ leagueId, rosterId }: TaxiIRSlotSummaryProps
       </CardHeader>
       <CardContent className="space-y-1 font-mono text-sm">
         <p>
-          Taxi: {taxi_used}/{taxi_total} occupied — {taxiFree} {spotLabel} available
+          Taxi: {taxi_used}/{taxi_total} occupied — {taxiFree} {spotLabel}{" "}
+          available
         </p>
         <p>
           IR: {ir_used}/{ir_total} occupied

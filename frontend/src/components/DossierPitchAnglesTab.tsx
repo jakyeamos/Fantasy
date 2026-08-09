@@ -13,7 +13,8 @@ export function DossierPitchAnglesTab({
         <CardHeader>
           <CardTitle>Pitch Angles</CardTitle>
           <p className="mt-2 text-sm text-muted-foreground">
-            No pitch angles available yet. More trade history is needed to compute angles.
+            No pitch angles available yet. More trade history is needed to
+            compute angles.
           </p>
         </CardHeader>
         <CardContent />
@@ -36,7 +37,9 @@ export function DossierPitchAnglesTab({
               {angle.send_description}
             </p>
             <p className="rounded-lg border border-border/35 bg-card/45 px-3 py-3 text-sm">
-              <span className="terminal-label text-muted-foreground">Avoid</span>{" "}
+              <span className="terminal-label text-muted-foreground">
+                Avoid
+              </span>{" "}
               {angle.avoid_description}
             </p>
             <p className="border-t border-border/60 pt-3 text-sm italic text-muted-foreground">

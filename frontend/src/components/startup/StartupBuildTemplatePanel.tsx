@@ -42,7 +42,9 @@ export function StartupBuildTemplatePanel({
   return (
     <Card>
       <CardHeader>
-        <p className="terminal-label text-muted-foreground">Direction Build Templates</p>
+        <p className="terminal-label text-muted-foreground">
+          Direction Build Templates
+        </p>
         <CardTitle>Build Guide</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -51,14 +53,21 @@ export function StartupBuildTemplatePanel({
             key={section.key}
             className={cn(
               "rounded-lg border border-border/50 bg-card/35 p-4",
-              buildTemplate === section.key ? "border-l-2 border-accent pl-3" : "",
+              buildTemplate === section.key
+                ? "border-l-2 border-accent pl-3"
+                : "",
             )}
             open={buildTemplate === section.key}
           >
-            <summary className="cursor-pointer text-base font-semibold">{section.title}</summary>
+            <summary className="cursor-pointer text-base font-semibold">
+              {section.title}
+            </summary>
             <div className="mt-3 space-y-2">
               {section.bullets.map((bullet) => (
-                <p key={bullet} className="text-sm leading-6 text-muted-foreground">
+                <p
+                  key={bullet}
+                  className="text-sm leading-6 text-muted-foreground"
+                >
                   {bullet}
                 </p>
               ))}

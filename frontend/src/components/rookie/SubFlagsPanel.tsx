@@ -21,8 +21,13 @@ export function SubFlagsPanel({
       className="mt-2 flex flex-col gap-2 rounded-md bg-muted/50 p-3 transition-all duration-150"
     >
       {subFlags.map((flag) => (
-        <div key={`${flag.signal_name}-${flag.magnitude_str}`} className="flex items-center justify-between gap-3">
-          <span className="terminal-label text-muted-foreground">{flag.signal_name}</span>
+        <div
+          key={`${flag.signal_name}-${flag.magnitude_str}`}
+          className="flex items-center justify-between gap-3"
+        >
+          <span className="terminal-label text-muted-foreground">
+            {flag.signal_name}
+          </span>
           <span
             className={cn(
               "text-sm",

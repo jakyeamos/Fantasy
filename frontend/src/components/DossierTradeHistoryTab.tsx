@@ -41,7 +41,10 @@ export function DossierTradeHistoryTab({
               </thead>
               <tbody>
                 {trades.map((trade) => (
-                  <tr key={trade.transaction_id} className="border-t border-border/40">
+                  <tr
+                    key={trade.transaction_id}
+                    className="border-t border-border/40"
+                  >
                     <td className="px-4 py-4 text-xs text-muted-foreground">
                       {formatDate(trade.date)}
                     </td>

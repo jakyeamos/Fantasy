@@ -30,7 +30,9 @@ export function ManagerListRow({
             <div className="flex flex-wrap items-center gap-2">
               <div>
                 <p className="terminal-label text-muted-foreground">Manager</p>
-                <p className="mt-2 text-sm font-semibold">{summary.manager_name}</p>
+                <p className="mt-2 text-sm font-semibold">
+                  {summary.manager_name}
+                </p>
               </div>
               {summary.direction_label ? (
                 <Badge variant="secondary">
@@ -66,7 +68,8 @@ export function ManagerListRow({
             {summary.top_pitch_angle ? (
               <>
                 <span className="font-label text-label-xs text-primary">
-                  Best pitch now: {formatModelLabel(summary.top_pitch_angle.deal_archetype)}
+                  Best pitch now:{" "}
+                  {formatModelLabel(summary.top_pitch_angle.deal_archetype)}
                 </span>{" "}
                 {summary.low_confidence
                   ? "Sample is thin, so use this only as a starting hypothesis."

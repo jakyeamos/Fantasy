@@ -21,15 +21,14 @@ function formatSnapshot(snapshot: string | null) {
 export function LeagueCard(props: DashboardLeagueSummary) {
   const leadLabel = props.top_exploit_window ? "Live Market" : "Top Edge"
   const leadCopy = props.top_exploit_window ?? props.summary_signal
-  const DirectionIcon =
-    props.direction_label.includes("contender")
-      ? Trophy
-      : props.direction_label.includes("rebuild") ||
-          props.direction_label.includes("punt")
-        ? Skull
-        : props.direction_label.includes("retool")
-          ? Shield
-          : Zap
+  const DirectionIcon = props.direction_label.includes("contender")
+    ? Trophy
+    : props.direction_label.includes("rebuild") ||
+        props.direction_label.includes("punt")
+      ? Skull
+      : props.direction_label.includes("retool")
+        ? Shield
+        : Zap
 
   return (
     <Link
@@ -45,8 +44,12 @@ export function LeagueCard(props: DashboardLeagueSummary) {
                 <DirectionIcon className="size-4" />
               </div>
               <div>
-                <p className="terminal-label text-muted-foreground">League Briefing</p>
-                <CardTitle className="mt-2 text-xl">{props.league_name}</CardTitle>
+                <p className="terminal-label text-muted-foreground">
+                  League Briefing
+                </p>
+                <CardTitle className="mt-2 text-xl">
+                  {props.league_name}
+                </CardTitle>
               </div>
             </div>
             <Badge variant={directionReadBadgeVariant(props.direction_read)}>
@@ -71,16 +74,12 @@ export function LeagueCard(props: DashboardLeagueSummary) {
         <Separator />
         <CardContent className="space-y-4">
           <div className="space-y-1">
-            <p className="terminal-label text-muted-foreground">
-              {leadLabel}
-            </p>
+            <p className="terminal-label text-muted-foreground">{leadLabel}</p>
             <p className="text-sm leading-6 text-foreground">{leadCopy}</p>
           </div>
           {props.top_exploit_window ? (
             <div className="rounded-lg border border-primary/20 bg-primary/10 p-3">
-              <p className="terminal-label text-primary/85">
-                Top Edge
-              </p>
+              <p className="terminal-label text-primary/85">Top Edge</p>
               <p className="mt-2 text-xs leading-5 text-muted-foreground">
                 {props.summary_signal}
               </p>
@@ -90,7 +89,9 @@ export function LeagueCard(props: DashboardLeagueSummary) {
             <p className="font-mono text-label-sm uppercase tracking-label text-muted-foreground">
               {formatSnapshot(props.last_snapshot_at)}
             </p>
-            <span className="terminal-label text-primary/75">Full Analysis</span>
+            <span className="terminal-label text-primary/75">
+              Full Analysis
+            </span>
           </div>
         </CardContent>
       </Card>

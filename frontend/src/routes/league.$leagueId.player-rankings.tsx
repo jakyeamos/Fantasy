@@ -67,7 +67,9 @@ function playerTradeSearch(
 
 function PlayerRankingsPage() {
   const { leagueId, requestedRosterId, league } = useLeagueRosterSelection()
-  const rankingsQuery = useQuery(playerRankingsOptions(leagueId, requestedRosterId))
+  const rankingsQuery = useQuery(
+    playerRankingsOptions(leagueId, requestedRosterId),
+  )
   const [queryText, setQueryText] = useState("")
   const [position, setPosition] = useState<PositionFilter>("ALL")
   const [ownership, setOwnership] = useState<OwnershipFilter>("ALL")
@@ -100,16 +102,22 @@ function PlayerRankingsPage() {
   if (rankingsQuery.isError) {
     return (
       <p className="text-sm text-muted-foreground">
-        Player rankings unavailable. Run intelligence for this league, then refresh.
+        Player rankings unavailable. Run intelligence for this league, then
+        refresh.
       </p>
     )
   }
 
-  const topOwnedCount = rankings.filter((player) => player.is_user_roster && player.rank <= 48).length
+  const topOwnedCount = rankings.filter(
+    (player) => player.is_user_roster && player.rank <= 48,
+  ).length
   const topTierCount = rankings.filter((player) => player.tier === 1).length
   const activeUserRosterId = requestedRosterId ?? league.user_roster_id
   const renderedRankings = visibleRankings.slice(0, MAX_RENDERED_RANKINGS)
-  const hiddenRankingCount = Math.max(0, visibleRankings.length - renderedRankings.length)
+  const hiddenRankingCount = Math.max(
+    0,
+    visibleRankings.length - renderedRankings.length,
+  )
 
   return (
     <div className="space-y-6">
@@ -117,26 +125,39 @@ function PlayerRankingsPage() {
         <CardHeader className="space-y-5">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-3xl space-y-3">
-              <p className="terminal-label text-primary/85">Player Market Board</p>
-              <CardTitle className="text-3xl">Dynasty rankings with live ownership</CardTitle>
+              <p className="terminal-label text-primary/85">
+                Player Market Board
+              </p>
+              <CardTitle className="text-3xl">
+                Dynasty rankings with live ownership
+              </CardTitle>
               <p className="text-sm leading-6 text-muted-foreground">
-                Ranked board for {league.league_name}. Values blend market lens, production,
-                insulation, and roster-direction fit; each row shows who owns the player in this league.
+                Ranked board for {league.league_name}. Values blend market lens,
+                production, insulation, and roster-direction fit; each row shows
+                who owns the player in this league.
               </p>
               <p className="text-xs text-muted-foreground">
                 Showing {renderedRankings.length.toLocaleString()} of{" "}
-                {visibleRankings.length.toLocaleString()} matching players. Search or filter to narrow
-                the board.
+                {visibleRankings.length.toLocaleString()} matching players.
+                Search or filter to narrow the board.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:min-w-[320px]">
               <div className="rounded-xl border border-border/50 bg-card/60 p-4">
-                <p className="terminal-label text-muted-foreground">Top 48 Owned</p>
-                <p className="mt-2 font-headline text-3xl font-extrabold">{topOwnedCount}</p>
+                <p className="terminal-label text-muted-foreground">
+                  Top 48 Owned
+                </p>
+                <p className="mt-2 font-headline text-3xl font-extrabold">
+                  {topOwnedCount}
+                </p>
               </div>
               <div className="rounded-xl border border-border/50 bg-card/60 p-4">
-                <p className="terminal-label text-muted-foreground">Tier 1 Assets</p>
-                <p className="mt-2 font-headline text-3xl font-extrabold">{topTierCount}</p>
+                <p className="terminal-label text-muted-foreground">
+                  Tier 1 Assets
+                </p>
+                <p className="mt-2 font-headline text-3xl font-extrabold">
+                  {topTierCount}
+                </p>
               </div>
             </div>
           </div>
@@ -174,7 +195,9 @@ function PlayerRankingsPage() {
               <select
                 className="h-11 px-3 text-sm"
                 value={ownership}
-                onChange={(event) => setOwnership(event.target.value as OwnershipFilter)}
+                onChange={(event) =>
+                  setOwnership(event.target.value as OwnershipFilter)
+                }
               >
                 <option value="ALL">All rosters</option>
                 <option value="MINE">My roster</option>
@@ -212,26 +235,41 @@ function PlayerRankingsPage() {
                 </div>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate font-headline text-lg font-bold">{player.player_name}</p>
-                    <Badge>{player.position}{player.position_rank}</Badge>
-                    {player.team ? <Badge variant="outline">{player.team}</Badge> : null}
-                    {player.age !== null ? <Badge variant="outline">Age {player.age}</Badge> : null}
+                    <p className="truncate font-headline text-lg font-bold">
+                      {player.player_name}
+                    </p>
+                    <Badge>
+                      {player.position}
+                      {player.position_rank}
+                    </Badge>
+                    {player.team ? (
+                      <Badge variant="outline">{player.team}</Badge>
+                    ) : null}
+                    {player.age !== null ? (
+                      <Badge variant="outline">Age {player.age}</Badge>
+                    ) : null}
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Score {(player.rank_score * 100).toFixed(1)}
                   </p>
                 </div>
                 <div>
-                  <p className="terminal-label text-muted-foreground lg:hidden">Value</p>
+                  <p className="terminal-label text-muted-foreground lg:hidden">
+                    Value
+                  </p>
                   <p className="font-headline text-xl font-extrabold tabular-nums">
                     {formatMarketValue(player)}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {player.fantasycalc_rank ? `FC rank ${player.fantasycalc_rank}` : "model lens"}
+                    {player.fantasycalc_rank
+                      ? `FC rank ${player.fantasycalc_rank}`
+                      : "model lens"}
                   </p>
                 </div>
                 <div>
-                  <p className="terminal-label text-muted-foreground lg:hidden">Owner</p>
+                  <p className="terminal-label text-muted-foreground lg:hidden">
+                    Owner
+                  </p>
                   <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
                     <Link
                       to="/league/$leagueId/managers/$managerId"
@@ -244,13 +282,21 @@ function PlayerRankingsPage() {
                       <UserRound className="size-3.5 shrink-0" />
                       <span className="truncate">{player.owner_name}</span>
                     </Link>
-                    {player.is_user_roster ? <Badge variant="secondary">You</Badge> : null}
+                    {player.is_user_roster ? (
+                      <Badge variant="secondary">You</Badge>
+                    ) : null}
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <p className="text-xs text-muted-foreground">Roster {player.roster_id}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Roster {player.roster_id}
+                    </p>
                     <Link
                       to="/trades"
-                      search={playerTradeSearch(player, leagueId, activeUserRosterId)}
+                      search={playerTradeSearch(
+                        player,
+                        leagueId,
+                        activeUserRosterId,
+                      )}
                       className={buttonClasses({
                         variant: "ghost",
                         size: "sm",
@@ -263,14 +309,18 @@ function PlayerRankingsPage() {
                   </div>
                 </div>
                 <div>
-                  <p className="terminal-label text-muted-foreground lg:hidden">Fit</p>
+                  <p className="terminal-label text-muted-foreground lg:hidden">
+                    Fit
+                  </p>
                   <p className="font-headline text-xl font-extrabold tabular-nums">
                     {formatValue(player.lens_direction)}
                   </p>
                   <p className="text-xs text-muted-foreground">direction</p>
                 </div>
                 <div>
-                  <p className="terminal-label text-muted-foreground lg:hidden">Trend</p>
+                  <p className="terminal-label text-muted-foreground lg:hidden">
+                    Trend
+                  </p>
                   <div className="flex items-center gap-2">
                     {(player.trend_30day ?? 0) >= 0 ? (
                       <TrendingUp className="size-4 text-accent" />
@@ -287,8 +337,8 @@ function PlayerRankingsPage() {
           </div>
           {hiddenRankingCount > 0 ? (
             <div className="border-t border-border/45 p-5 text-sm text-muted-foreground">
-              {hiddenRankingCount.toLocaleString()} more players are available. Use search, position,
-              or ownership filters to narrow the board.
+              {hiddenRankingCount.toLocaleString()} more players are available.
+              Use search, position, or ownership filters to narrow the board.
             </div>
           ) : null}
           {visibleRankings.length === 0 ? (

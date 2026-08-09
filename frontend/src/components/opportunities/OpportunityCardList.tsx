@@ -51,7 +51,9 @@ export function OpportunityCardList({
       <Card>
         <CardContent className="space-y-2 p-6">
           <p className="font-headline text-2xl font-bold tracking-tight">
-            {isTimeout ? "Opportunity Feed Timed Out" : "Opportunity Feed Unavailable"}
+            {isTimeout
+              ? "Opportunity Feed Timed Out"
+              : "Opportunity Feed Unavailable"}
           </p>
           <p className="text-sm text-muted-foreground">
             {isTimeout

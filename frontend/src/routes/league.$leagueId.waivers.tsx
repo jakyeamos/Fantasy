@@ -26,7 +26,8 @@ function WaiversPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm leading-6 text-muted-foreground">
-            This league is not linked to a user roster yet, so there is no FAAB posture to score.
+            This league is not linked to a user roster yet, so there is no FAAB
+            posture to score.
           </p>
         </CardContent>
       </Card>
@@ -51,8 +52,8 @@ function WaiversPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm leading-6 text-muted-foreground">
-            Waiver intelligence could not be loaded. Ingest data may be incomplete. Try refreshing
-            or re-running ingest for this league.
+            Waiver intelligence could not be loaded. Ingest data may be
+            incomplete. Try refreshing or re-running ingest for this league.
           </p>
         </CardContent>
       </Card>

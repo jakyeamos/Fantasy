@@ -7,12 +7,16 @@ type DeadRosterPanelProps = {
 }
 
 export function DeadRosterPanel({ suggestions }: DeadRosterPanelProps) {
-  const cutSuggestions = suggestions.filter((suggestion) => suggestion.action_type === "cut")
+  const cutSuggestions = suggestions.filter(
+    (suggestion) => suggestion.action_type === "cut",
+  )
 
   return (
     <Card>
       <CardHeader>
-        <p className="terminal-label text-muted-foreground">Dead Roster Spots</p>
+        <p className="terminal-label text-muted-foreground">
+          Dead Roster Spots
+        </p>
         <CardTitle>Bench Cleanup</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -30,7 +34,9 @@ export function DeadRosterPanel({ suggestions }: DeadRosterPanelProps) {
                   DEAD
                 </Badge>
               </div>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{suggestion.reasoning}</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                {suggestion.reasoning}
+              </p>
             </div>
           ))
         ) : (

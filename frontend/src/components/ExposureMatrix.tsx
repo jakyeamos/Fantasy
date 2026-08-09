@@ -14,23 +14,13 @@ interface LeagueColumn {
 function ConcentrationBadge({ count }: { count: number }) {
   if (count >= 3) {
     return (
-      <Badge className={badgeToneClasses.destructive}>
-        {count} leagues
-      </Badge>
+      <Badge className={badgeToneClasses.destructive}>{count} leagues</Badge>
     )
   }
   if (count === 2) {
-    return (
-      <Badge className={badgeToneClasses.warning}>
-        2 leagues
-      </Badge>
-    )
+    return <Badge className={badgeToneClasses.warning}>2 leagues</Badge>
   }
-  return (
-    <Badge className="bg-muted text-muted-foreground">
-      1 league
-    </Badge>
-  )
+  return <Badge className="bg-muted text-muted-foreground">1 league</Badge>
 }
 
 function sortExposureRows(rows: ExposureRow[]) {
@@ -74,7 +64,8 @@ export function ExposureMatrix({
   if (isError) {
     return (
       <p className="text-sm text-muted-foreground">
-        Portfolio data unavailable. Check that the backend is running, then refresh.
+        Portfolio data unavailable. Check that the backend is running, then
+        refresh.
       </p>
     )
   }
@@ -125,23 +116,38 @@ export function ExposureMatrix({
             >
               <td className="px-3 py-3 align-top">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-foreground">{row.full_name}</span>
+                  <span className="text-xs text-foreground">
+                    {row.full_name}
+                  </span>
                   <Badge variant="outline" className="text-xs">
                     {row.position}
                   </Badge>
                 </div>
               </td>
               {leagueColumns.map((column) => (
-                <td key={column.leagueId} className="px-3 py-3 text-center align-top">
+                <td
+                  key={column.leagueId}
+                  className="px-3 py-3 text-center align-top"
+                >
                   {row.owned_in_leagues.includes(column.leagueId) ? (
-                    <Check className={`mx-auto size-4 ${textToneClasses.success}`} />
+                    <Check
+                      className={`mx-auto size-4 ${textToneClasses.success}`}
+                    />
                   ) : null}
                 </td>
               ))}
               <td className="px-3 py-3 align-top">
                 <div className="space-y-1">
                   <ConcentrationBadge count={row.league_count} />
-                  <Badge variant={row.urgency === "sell" ? "default" : row.urgency === "hedge" ? "secondary" : "outline"}>
+                  <Badge
+                    variant={
+                      row.urgency === "sell"
+                        ? "default"
+                        : row.urgency === "hedge"
+                          ? "secondary"
+                          : "outline"
+                    }
+                  >
                     {row.urgency}
                   </Badge>
                   {row.hedge_rec ? (

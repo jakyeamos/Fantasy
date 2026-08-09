@@ -11,7 +11,8 @@ const buyLowGap = {
   gap_magnitude: 0.27,
   gap_direction: "model_above",
   gap_classification: "buy_low",
-  explanation: "Model rates this asset higher the market by 0.27 normalized points.",
+  explanation:
+    "Model rates this asset higher the market by 0.27 normalized points.",
 }
 
 const rookie = {
@@ -53,17 +54,24 @@ const server = await createServer({
 })
 
 try {
-  const { RookiePlayerCard } = await server.ssrLoadModule("/src/components/rookie/RookiePlayerCard.tsx")
+  const { RookiePlayerCard } = await server.ssrLoadModule(
+    "/src/components/rookie/RookiePlayerCard.tsx",
+  )
   const { HygieneSuggestionRow } = await server.ssrLoadModule(
     "/src/components/hygiene/HygieneSuggestionRow.tsx",
   )
 
-  const rookieMarkup = renderToStaticMarkup(createElement(RookiePlayerCard, { player: rookie }))
+  const rookieMarkup = renderToStaticMarkup(
+    createElement(RookiePlayerCard, { player: rookie }),
+  )
   assert.match(rookieMarkup, /Market Gap/)
   assert.match(rookieMarkup, /BUY LOW/)
 
   const hygieneMarkup = renderToStaticMarkup(
-    createElement(HygieneSuggestionRow, { suggestion: hygieneSuggestion, leagueId: "league_x" }),
+    createElement(HygieneSuggestionRow, {
+      suggestion: hygieneSuggestion,
+      leagueId: "league_x",
+    }),
   )
   assert.match(hygieneMarkup, /SELL HIGH/)
   assert.match(hygieneMarkup, /Veteran WR/)

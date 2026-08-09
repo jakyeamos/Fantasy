@@ -39,9 +39,15 @@ export function TaxiConfigForm({ leagueId }: TaxiConfigFormProps) {
     mutationFn: (next: LeagueTaxiConfig) => saveTaxiConfig(leagueId, next),
     onSuccess: async (data) => {
       queryClient.setQueryData(["leagues", leagueId, "taxi-config"], data)
-      await queryClient.invalidateQueries({ queryKey: ["intelligence", "lineup", leagueId] })
-      await queryClient.invalidateQueries({ queryKey: ["intelligence", "hygiene", leagueId] })
-      await queryClient.invalidateQueries({ queryKey: ["leagues", leagueId, "slot-occupancy"] })
+      await queryClient.invalidateQueries({
+        queryKey: ["intelligence", "lineup", leagueId],
+      })
+      await queryClient.invalidateQueries({
+        queryKey: ["intelligence", "hygiene", leagueId],
+      })
+      await queryClient.invalidateQueries({
+        queryKey: ["leagues", leagueId, "slot-occupancy"],
+      })
       setEditing(false)
     },
   })
@@ -63,7 +69,9 @@ export function TaxiConfigForm({ leagueId }: TaxiConfigFormProps) {
     return (
       <Card>
         <CardContent className="pt-6">
-          <p className="text-sm text-muted-foreground">Failed to load taxi configuration.</p>
+          <p className="text-sm text-muted-foreground">
+            Failed to load taxi configuration.
+          </p>
         </CardContent>
       </Card>
     )
@@ -78,14 +86,20 @@ export function TaxiConfigForm({ leagueId }: TaxiConfigFormProps) {
           <div>
             <CardTitle>Taxi configuration</CardTitle>
             <p className="mt-2 text-sm text-muted-foreground">
-              Taxi slots: {cfg.taxi_slots} · Years eligible: {cfg.taxi_years_eligible} · Years pro
-              cutoff: {cfg.years_pro_cutoff}
+              Taxi slots: {cfg.taxi_slots} · Years eligible:{" "}
+              {cfg.taxi_years_eligible} · Years pro cutoff:{" "}
+              {cfg.years_pro_cutoff}
               {cfg.manual_exceptions.length > 0
                 ? ` · Exceptions: ${cfg.manual_exceptions.length} player(s)`
                 : ""}
             </p>
           </div>
-          <Button variant="outline" size="sm" type="button" onClick={() => setEditing(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            type="button"
+            onClick={() => setEditing(true)}
+          >
             Edit Config
           </Button>
         </CardHeader>
@@ -98,8 +112,8 @@ export function TaxiConfigForm({ leagueId }: TaxiConfigFormProps) {
       <CardHeader>
         <CardTitle>Taxi configuration</CardTitle>
         <p className="mt-2 text-sm text-muted-foreground">
-          Pick values and hygiene suggestions stay approximate until this league&apos;s taxi
-          configuration is saved.
+          Pick values and hygiene suggestions stay approximate until this
+          league&apos;s taxi configuration is saved.
         </p>
       </CardHeader>
       <CardContent>
@@ -131,7 +145,9 @@ export function TaxiConfigForm({ leagueId }: TaxiConfigFormProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="taxi-years">How many years a player can remain on taxi</Label>
+            <Label htmlFor="taxi-years">
+              How many years a player can remain on taxi
+            </Label>
             <input
               id="taxi-years"
               type="number"
@@ -143,7 +159,9 @@ export function TaxiConfigForm({ leagueId }: TaxiConfigFormProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="years-pro">Max NFL experience to qualify for taxi</Label>
+            <Label htmlFor="years-pro">
+              Max NFL experience to qualify for taxi
+            </Label>
             <input
               id="years-pro"
               type="number"
@@ -167,7 +185,8 @@ export function TaxiConfigForm({ leagueId }: TaxiConfigFormProps) {
               placeholder="e.g. 4046, 7564"
             />
             <p className="text-xs text-muted-foreground">
-              Player IDs your league allows on taxi outside normal eligibility rules.
+              Player IDs your league allows on taxi outside normal eligibility
+              rules.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -175,13 +194,19 @@ export function TaxiConfigForm({ leagueId }: TaxiConfigFormProps) {
               Save Taxi Config
             </Button>
             {cfg ? (
-              <Button type="button" variant="outline" onClick={() => setEditing(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditing(false)}
+              >
                 Cancel
               </Button>
             ) : null}
           </div>
           {saveMutation.isError ? (
-            <p className="text-sm text-destructive">Failed to save the taxi configuration.</p>
+            <p className="text-sm text-destructive">
+              Failed to save the taxi configuration.
+            </p>
           ) : null}
         </form>
       </CardContent>

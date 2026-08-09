@@ -31,13 +31,17 @@ export function PickValueSummaryRow({
   const isBlocked = pickValue.rule_citation === null
   const showDemand =
     !isBlocked &&
-    Math.abs(pickValue.demand_adjusted_value - pickValue.league_adjusted_value) >= 0.05
+    Math.abs(
+      pickValue.demand_adjusted_value - pickValue.league_adjusted_value,
+    ) >= 0.05
 
   return (
     <div className="rounded-xl border border-border/70 bg-background/70 p-4">
       <div className="flex flex-wrap items-center gap-2">
         <p className="text-sm font-semibold">{formatPickLabel(pickValue)}</p>
-        {!isBlocked ? <Badge variant="outline">{formatExpectedSlot(pickValue)}</Badge> : null}
+        {!isBlocked ? (
+          <Badge variant="outline">{formatExpectedSlot(pickValue)}</Badge>
+        ) : null}
         {!isBlocked ? (
           <TimingBadge
             label={pickValue.timing_label}
@@ -56,11 +60,15 @@ export function PickValueSummaryRow({
                 <span className="text-muted-foreground">
                   To {managerName?.trim() ? managerName : "counterparty"}:
                 </span>
-                <span className="text-primary">{formatValue(pickValue.demand_adjusted_value)}</span>
+                <span className="text-primary">
+                  {formatValue(pickValue.demand_adjusted_value)}
+                </span>
               </>
             ) : null}
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">{pickValue.timing_reasoning}</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {pickValue.timing_reasoning}
+          </p>
         </>
       ) : null}
       <RuleCitation citation={pickValue.rule_citation} leagueId={leagueId} />

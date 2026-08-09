@@ -34,17 +34,23 @@ function Column({
                 className="rounded-lg border border-border/35 bg-card/45 p-3"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-foreground">{item.player_name}</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {item.player_name}
+                  </p>
                   <span
                     className={`font-mono text-xs ${
-                      positive ? textToneClasses.success : textToneClasses.destructive
+                      positive
+                        ? textToneClasses.success
+                        : textToneClasses.destructive
                     }`}
                   >
                     {item.delta > 0 ? "+" : ""}
                     {item.delta.toFixed(1)}
                   </span>
                 </div>
-                <p className="mt-2 text-xs leading-5 text-muted-foreground">{item.reason}</p>
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                  {item.reason}
+                </p>
               </div>
             ))}
           </div>

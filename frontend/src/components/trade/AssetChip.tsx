@@ -33,7 +33,9 @@ export function AssetChip({
       <div className="flex flex-col gap-1 rounded-lg border border-border/35 bg-card/45 px-3 py-2 text-xs">
         <div className="flex flex-wrap items-center gap-2">
           <span>{label(asset)}</span>
-          {!isBlocked && detail ? <Badge variant="outline">{detail}</Badge> : null}
+          {!isBlocked && detail ? (
+            <Badge variant="outline">{detail}</Badge>
+          ) : null}
           {!isBlocked && pickValue.years_out > 0 ? (
             <span className="text-muted-foreground">(future year)</span>
           ) : null}
@@ -44,11 +46,20 @@ export function AssetChip({
               showReasoning={false}
             />
           ) : null}
-          <Button size="sm" variant="ghost" className="h-7 px-2" onClick={onRemove}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2"
+            onClick={onRemove}
+          >
             ×
           </Button>
         </div>
-        {!isBlocked ? <p className="text-xs text-muted-foreground">{pickValue.timing_reasoning}</p> : null}
+        {!isBlocked ? (
+          <p className="text-xs text-muted-foreground">
+            {pickValue.timing_reasoning}
+          </p>
+        ) : null}
         <RuleCitation citation={pickValue.rule_citation} leagueId={leagueId} />
       </div>
     )

@@ -26,14 +26,18 @@ export function LeagueRosterSelector({
 
   return (
     <label className="min-w-[280px] space-y-2">
-      <span className="terminal-label text-muted-foreground">Team Perspective</span>
+      <span className="terminal-label text-muted-foreground">
+        Team Perspective
+      </span>
       <select
         value={value ?? ""}
         onChange={(event) => onChange(Number(event.target.value) || null)}
         disabled={disabled || !hasOptions}
         className="h-11 w-full rounded-lg border border-border bg-card px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <option value="">{hasOptions ? "Select a roster" : "No rosters loaded"}</option>
+        <option value="">
+          {hasOptions ? "Select a roster" : "No rosters loaded"}
+        </option>
         {options.map((option) => (
           <option key={option.roster_id} value={option.roster_id}>
             {optionLabel(option)}

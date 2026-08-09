@@ -6,7 +6,11 @@ import { RecommendationCardList } from "@/components/recommendations/Recommendat
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { badgeToneClasses, surfaceToneClasses, textToneClasses } from "@/lib/ui-tokens"
+import {
+  badgeToneClasses,
+  surfaceToneClasses,
+  textToneClasses,
+} from "@/lib/ui-tokens"
 
 type LineupStrengthCardProps = {
   leagueId: string
@@ -111,7 +115,9 @@ function slotGapSummary(row: LineupSlotScore) {
 
   if (row.below_playoff_target) {
     const parts = [
-      playoffGap > 0 ? `${playoffGap.toFixed(2)} to reach the playoff line` : null,
+      playoffGap > 0
+        ? `${playoffGap.toFixed(2)} to reach the playoff line`
+        : null,
       titleGap > 0 ? `${titleGap.toFixed(2)} to hit the title line` : null,
       eliteGap > 0 ? `${eliteGap.toFixed(2)} to reach the elite line` : null,
     ].filter((part): part is string => part !== null)
@@ -132,9 +138,15 @@ function slotGapSummary(row: LineupSlotScore) {
     : `Clears the playoff and title lines but still trails ${joinClauses(trailing)}.`
 }
 
-export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardProps) {
-  const { data, isLoading, isError } = useQuery(lineupScoreOptions(leagueId, rosterId))
-  const hasEliteInsulation = data?.slot_scores.some((row) => row.elite_insulation_guard) ?? false
+export function LineupStrengthCard({
+  leagueId,
+  rosterId,
+}: LineupStrengthCardProps) {
+  const { data, isLoading, isError } = useQuery(
+    lineupScoreOptions(leagueId, rosterId),
+  )
+  const hasEliteInsulation =
+    data?.slot_scores.some((row) => row.elite_insulation_guard) ?? false
 
   if (isLoading) {
     return (
@@ -150,7 +162,9 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
     return (
       <Card>
         <CardContent className="pt-6">
-          <p className="text-sm text-muted-foreground">Starter scores unavailable.</p>
+          <p className="text-sm text-muted-foreground">
+            Starter scores unavailable.
+          </p>
         </CardContent>
       </Card>
     )
@@ -164,7 +178,8 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            No lineup data yet. Run a roster ingest to see position-by-position starter strength.
+            No lineup data yet. Run a roster ingest to see position-by-position
+            starter strength.
           </p>
         </CardContent>
       </Card>
@@ -176,8 +191,8 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
       <CardHeader>
         <CardTitle>Lineup strength</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Slot strength and overall lineup score vs. playoff, title, and elite roster bars for
-          this league.
+          Slot strength and overall lineup score vs. playoff, title, and elite
+          roster bars for this league.
         </p>
       </CardHeader>
       <CardContent>
@@ -186,9 +201,15 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
             <span className="text-sm font-medium">
               Overall lineup score {data.total_lineup_score.toFixed(2)}
             </span>
-            <Badge variant="outline">playoff {data.overall_playoff_target.toFixed(2)}</Badge>
-            <Badge variant="outline">title {data.overall_title_target.toFixed(2)}</Badge>
-            <Badge variant="outline">elite {data.overall_elite_target.toFixed(2)}</Badge>
+            <Badge variant="outline">
+              playoff {data.overall_playoff_target.toFixed(2)}
+            </Badge>
+            <Badge variant="outline">
+              title {data.overall_title_target.toFixed(2)}
+            </Badge>
+            <Badge variant="outline">
+              elite {data.overall_elite_target.toFixed(2)}
+            </Badge>
             {data.overall_gap_to_title_target > 0 ? (
               <Badge className={badgeToneClasses.info}>
                 Title gap {data.overall_gap_to_title_target.toFixed(2)}
@@ -205,16 +226,21 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
               </Badge>
             ) : null}
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">{overallGapSummary(data)}</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {overallGapSummary(data)}
+          </p>
           {hasEliteInsulation ? (
             <p className="mt-2 text-xs text-muted-foreground">
-              Elite insulation is roster-level context, not a player trait. It can lower urgency on
-              marginal upgrades, but it should not hide the actual slot gaps.
+              Elite insulation is roster-level context, not a player trait. It
+              can lower urgency on marginal upgrades, but it should not hide the
+              actual slot gaps.
             </p>
           ) : null}
         </div>
         {data.upgrade_leverage_point ? (
-          <div className={`mb-4 rounded-lg border px-3 py-2 ${surfaceToneClasses.warning}`}>
+          <div
+            className={`mb-4 rounded-lg border px-3 py-2 ${surfaceToneClasses.warning}`}
+          >
             <p className={`text-sm font-medium ${textToneClasses.warning}`}>
               Best upgrade leverage: {data.upgrade_leverage_point}
             </p>
@@ -224,12 +250,12 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
             </p>
           </div>
         ) : null}
-	        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-	          {data.slot_scores.map((row) => {
-	            const status = tierStatus(row)
-	            const slotSummary = slotGapSummary(row)
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {data.slot_scores.map((row) => {
+            const status = tierStatus(row)
+            const slotSummary = slotGapSummary(row)
 
-	            return (
+            return (
               <div
                 key={`${row.position}-${row.player_id}`}
                 className="flex min-h-[40px] flex-col gap-1 rounded-lg border border-border/50 bg-card/40 p-3"
@@ -239,7 +265,9 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
                   <span className="text-sm font-medium">{row.player_name}</span>
                 </div>
                 <div className="flex flex-wrap items-baseline gap-2">
-                  <span className="font-mono text-sm">{row.starter_value.toFixed(2)}</span>
+                  <span className="font-mono text-sm">
+                    {row.starter_value.toFixed(2)}
+                  </span>
                   <span className="text-xs text-muted-foreground">
                     vs repl {row.replacement_level.toFixed(2)}
                   </span>
@@ -254,15 +282,20 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
                   ) : (
                     <span>tier targets unavailable</span>
                   )}
-                  {data.contender_benchmark_used && benchmarkSourceLabel(row.benchmark_source) ? (
+                  {data.contender_benchmark_used &&
+                  benchmarkSourceLabel(row.benchmark_source) ? (
                     <Badge variant="outline" className="text-label-sm">
                       {benchmarkSourceLabel(row.benchmark_source)}
                     </Badge>
                   ) : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {status ? <Badge className={status.className}>{status.label}</Badge> : null}
-                  {row.weak_by_median ? <Badge variant="secondary">Weak by median</Badge> : null}
+                  {status ? (
+                    <Badge className={status.className}>{status.label}</Badge>
+                  ) : null}
+                  {row.weak_by_median ? (
+                    <Badge variant="secondary">Weak by median</Badge>
+                  ) : null}
                   {row.below_playoff_target ? (
                     <Badge variant="secondary">Below playoff target</Badge>
                   ) : null}
@@ -274,11 +307,11 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
                   {row.below_elite_target ? (
                     <Badge variant="outline">Below elite target</Badge>
                   ) : null}
-	                  {hasVisibleGap(row.gap_to_title_target) ? (
-	                    <Badge className={badgeToneClasses.info}>
-	                      Title gap {row.gap_to_title_target.toFixed(2)}
-	                    </Badge>
-	                  ) : null}
+                  {hasVisibleGap(row.gap_to_title_target) ? (
+                    <Badge className={badgeToneClasses.info}>
+                      Title gap {row.gap_to_title_target.toFixed(2)}
+                    </Badge>
+                  ) : null}
                   {row.position === "TE" && row.format_urgency_weight < 1 ? (
                     <Badge variant="outline">
                       TE urgency x{row.format_urgency_weight.toFixed(1)}
@@ -288,25 +321,34 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
                 {row.player_context_flags.length > 0 ? (
                   <div className="flex flex-wrap gap-2 pt-1">
                     {row.player_context_flags.map((flag) => (
-                      <Badge key={flag} variant="outline" className="text-label-sm">
+                      <Badge
+                        key={flag}
+                        variant="outline"
+                        className="text-label-sm"
+                      >
                         {flag.replaceAll("_", " ")}
                       </Badge>
                     ))}
                   </div>
                 ) : null}
-	                {data.contender_benchmark_used && slotSummary ? (
-	                  <p className="text-xs text-muted-foreground">{slotSummary}</p>
-	                ) : null}
-	                {row.player_context_flags.length === 0 &&
-	                !hasVisibleGap(row.gap_to_title_target) &&
-	                !hasVisibleGap(row.gap_to_elite_target) ? (
-	                  <p className="text-xs text-muted-foreground">
-	                    This slot is holding baseline or better without an active context warning.
-	                  </p>
+                {data.contender_benchmark_used && slotSummary ? (
+                  <p className="text-xs text-muted-foreground">{slotSummary}</p>
+                ) : null}
+                {row.player_context_flags.length === 0 &&
+                !hasVisibleGap(row.gap_to_title_target) &&
+                !hasVisibleGap(row.gap_to_elite_target) ? (
+                  <p className="text-xs text-muted-foreground">
+                    This slot is holding baseline or better without an active
+                    context warning.
+                  </p>
                 ) : null}
                 {row.player_context_flags.length > 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    Context notes: {row.player_context_flags.map((flag) => flag.replaceAll("_", " ")).join(", ")}.
+                    Context notes:{" "}
+                    {row.player_context_flags
+                      .map((flag) => flag.replaceAll("_", " "))
+                      .join(", ")}
+                    .
                   </p>
                 ) : null}
               </div>
@@ -315,7 +357,9 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
         </div>
         {data.recommendation_cards && data.recommendation_cards.length > 0 ? (
           <div className="mt-6 space-y-3">
-            <p className="terminal-label text-muted-foreground">Upgrade Recommendations</p>
+            <p className="terminal-label text-muted-foreground">
+              Upgrade Recommendations
+            </p>
             <RecommendationCardList cards={data.recommendation_cards} />
           </div>
         ) : null}

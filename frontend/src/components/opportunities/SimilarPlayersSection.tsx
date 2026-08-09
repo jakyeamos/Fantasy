@@ -44,7 +44,9 @@ export function SimilarPlayersSection({
                 <p className="text-sm font-bold text-foreground">
                   {player.player_name}
                 </p>
-                <p className="text-xs text-muted-foreground">{player.context}</p>
+                <p className="text-xs text-muted-foreground">
+                  {player.context}
+                </p>
               </div>
               <span className="font-mono text-xs text-muted-foreground">
                 {(player.similarity_score * 100).toFixed(0)}%

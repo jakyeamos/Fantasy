@@ -78,7 +78,9 @@ export function toRequestAsset(asset: TradeAsset): TradeAsset {
   }
 }
 
-export function toThirdPartyTrade(trade: ThirdPartyTradeDraft): ThirdPartyTrade {
+export function toThirdPartyTrade(
+  trade: ThirdPartyTradeDraft,
+): ThirdPartyTrade {
   return {
     roster_id: trade.rosterId,
     sends: trade.sends.map(toRequestAsset),

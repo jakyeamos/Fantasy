@@ -10,7 +10,9 @@ export function VerdictBanner({ verdict }: { verdict: TradeVerdict }) {
   return (
     <div className={cn("glass-panel rounded-xl border p-5", classes)}>
       <p className="terminal-label text-muted-foreground">Draft verdict</p>
-      <p className="mt-2 font-headline text-3xl font-extrabold">{verdict.label}</p>
+      <p className="mt-2 font-headline text-3xl font-extrabold">
+        {verdict.label}
+      </p>
       <p className="mt-2 text-sm text-current/90">{verdict.reasoning}</p>
     </div>
   )

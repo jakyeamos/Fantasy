@@ -59,8 +59,8 @@ export function LeagueOverviewPanels({
               {league.user_roster_name ?? "No roster selected"}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Switching the selector updates every league tab from this team&apos;s
-              perspective.
+              Switching the selector updates every league tab from this
+              team&apos;s perspective.
             </p>
           </CardContent>
         </Card>
