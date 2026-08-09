@@ -18,6 +18,16 @@ class Settings(BaseSettings):
     DEV_AUTO_REFRESH_LEAGUES: str = ""
     DEV_AUTO_REFRESH_INGEST_MODE: Literal["skip", "incremental", "full"] = "incremental"
     DEV_AUTO_REFRESH_SNAPSHOTS: bool = True
+    INTELLIGENCE_PUBLIC_FEEDS: str = ""
+    INTELLIGENCE_BROWSER_ENABLED: bool = False
+    INTELLIGENCE_BROWSER_EXECUTABLE_PATH: str | None = None
+    INTELLIGENCE_CACHE_DAYS: int = 7
+    INTELLIGENCE_MIN_REQUEST_INTERVAL_SECONDS: float = 1.0
+    INTELLIGENCE_USER_AGENT: str = "FantasyFreshIntelligence/2.0 (+local personal assistant)"
+    INTELLIGENCE_EXTRACTOR_PROVIDER: Literal["none", "openai_compatible"] = "none"
+    INTELLIGENCE_EXTRACTOR_BASE_URL: str = "http://127.0.0.1:11434/v1"
+    INTELLIGENCE_EXTRACTOR_MODEL: str | None = None
+    INTELLIGENCE_EXTRACTOR_API_KEY: str | None = None
 
     model_config = SettingsConfigDict(
         env_prefix="FANTASY_",

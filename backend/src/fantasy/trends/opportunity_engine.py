@@ -15,7 +15,10 @@ from fantasy.context.freshness_service import FreshnessService
 from fantasy.context.models import EvidenceFreshness
 from fantasy.intelligence.constants import CONTENDER_DIRECTION_LABELS
 from fantasy.portfolio.portfolio_repo import PortfolioRepo
-from fantasy.trends.constants import CALENDAR_ESCALATION_LABELS, OPPORTUNITY_GAP_THRESHOLD
+from fantasy.trends.constants import (
+    CALENDAR_ESCALATION_LABELS,
+    OPPORTUNITY_GAP_THRESHOLD,
+)
 from fantasy.trends.models import OpportunityCta, OpportunityFeedItem
 from fantasy.trends.models import confidence_multiplier
 from fantasy.trends.similarity import find_similar_players_from_snapshots
@@ -24,7 +27,6 @@ from fantasy.trends.opportunity_weekly import (
     WeeklyFitContext,
     build_weekly_lineup_contexts,
     weekly_fit_context,
-    weekly_fit_multiplier,
     weekly_fit_note,
     weekly_fit_payload,
 )
@@ -140,13 +142,16 @@ class OpportunityEngine:
                 suggested_action=suggested_action,
                 availability=availability,
                 calendar_escalated=escalation_label is not None,
-                weekly_fit=weekly_fit,
             )
             items.append(
                 OpportunityFeedItem(
                     player_id=player_id,
                     player_name=str(candidate.get("full_name") or player_id),
-                    position=str(candidate.get("position") or snapshot.get("position") or "UNKNOWN"),
+                    position=str(
+                        candidate.get("position")
+                        or snapshot.get("position")
+                        or "UNKNOWN"
+                    ),
                     trend_label=trend.trend_label,
                     trend_confidence=trend.confidence,
                     adp_gap=adp_gap,
@@ -195,9 +200,7 @@ class OpportunityEngine:
                 if item.similar_players:
                     item.evidence_freshness = evidence_freshness
         except Exception:
-            self.degraded_reason = (
-                "Similar-player context failed, but ranked opportunity actions are still available."
-            )
+            self.degraded_reason = "Similar-player context failed, but ranked opportunity actions are still available."
         return bounded_items
 
     def _similar_player_evidence_freshness(
@@ -234,7 +237,6 @@ class OpportunityEngine:
         suggested_action: str,
         availability: str,
         calendar_escalated: bool,
-        weekly_fit: WeeklyFitContext | None = None,
     ) -> float:
         score = abs(adp_gap) * confidence_multiplier(confidence)
         availability_multiplier = {
@@ -258,7 +260,6 @@ class OpportunityEngine:
             score *= 0.45
         if calendar_escalated:
             score *= 1.1
-        score *= weekly_fit_multiplier(weekly_fit)
         return score
 
     def _contender_league_ids(self, user_rosters: list[dict[str, object]]) -> set[str]:
@@ -303,10 +304,7 @@ class OpportunityEngine:
             league_id = str(roster["league_id"])
             for player_id in self._loads(roster.get("players")):
                 owned.setdefault(player_id, set()).add(league_id)
-        return {
-            player_id: sorted(leagues)
-            for player_id, leagues in owned.items()
-        }
+        return {player_id: sorted(leagues) for player_id, leagues in owned.items()}
 
     def _roster_contexts(
         self,
@@ -338,7 +336,8 @@ class OpportunityEngine:
                         "league_id": league_key,
                         "roster_id": roster_key,
                         "user_roster_id": user_roster_by_league[league_key],
-                        "is_user_roster": roster_key == user_roster_by_league[league_key],
+                        "is_user_roster": roster_key
+                        == user_roster_by_league[league_key],
                     }
                 )
         return contexts
@@ -352,8 +351,12 @@ class OpportunityEngine:
         roster_contexts: dict[str, list[dict[str, object]]],
     ) -> OpportunityCta | None:
         contexts = roster_contexts.get(player_id, [])
-        user_contexts = [context for context in contexts if bool(context["is_user_roster"])]
-        opponent_contexts = [context for context in contexts if not bool(context["is_user_roster"])]
+        user_contexts = [
+            context for context in contexts if bool(context["is_user_roster"])
+        ]
+        opponent_contexts = [
+            context for context in contexts if not bool(context["is_user_roster"])
+        ]
 
         if suggested_action == "sell" and user_contexts:
             context = user_contexts[0]
@@ -507,31 +510,26 @@ class OpportunityEngine:
         if suggested_action == "sell":
             return (
                 f"{player_name} sits about {gap_slots} startup slots above the model, "
-                "and the component trend still points down."
-                + weekly_note
+                "and the component trend still points down." + weekly_note
             )
         if contender_fit:
             return (
                 f"{player_name} carries a decline signal, but the market discount is steep "
-                "enough to justify a short-window contender buy."
-                + weekly_note
+                "enough to justify a short-window contender buy." + weekly_note
             )
         if suggested_action == "buy":
             return (
                 f"{player_name} is discounted by roughly {gap_slots} startup slots while "
-                "the component trend still points up."
-                + weekly_note
+                "the component trend still points up." + weekly_note
             )
         if trend_label == "will_rise":
             return (
                 f"The market premium is real, but {player_name}'s component profile still "
-                "projects upward movement next season."
-                + weekly_note
+                "projects upward movement next season." + weekly_note
             )
         return (
             f"{player_name} shows a sizable market gap, but the trend signal argues for "
-            "patience instead of an immediate buy or sell."
-            + weekly_note
+            "patience instead of an immediate buy or sell." + weekly_note
         )
 
     def _conflict_explanation(

@@ -22,7 +22,9 @@ FRESH_NOW = datetime(2026, 6, 28, 12, tzinfo=timezone.utc)
 
 def _components(score: float, *, fragility: float | None = None) -> dict[str, float]:
     values = {column: score for column in COMPONENT_COLS}
-    values["comp_fragility"] = fragility if fragility is not None else max(0.0, min(1.0, 1.0 - score))
+    values["comp_fragility"] = (
+        fragility if fragility is not None else max(0.0, min(1.0, 1.0 - score))
+    )
     return values
 
 
@@ -38,7 +40,9 @@ def _seed_league(conn, league_id: str) -> None:
     )
 
 
-def _seed_roster(conn, league_id: str, roster_id: int, owner_id: str, players: list[str]) -> None:
+def _seed_roster(
+    conn, league_id: str, roster_id: int, owner_id: str, players: list[str]
+) -> None:
     conn.execute(
         """
         INSERT INTO rosters (
@@ -46,7 +50,14 @@ def _seed_roster(conn, league_id: str, roster_id: int, owner_id: str, players: l
         )
         VALUES (?, ?, ?, ?, ?, '[]', ?, '[]', '[]')
         """,
-        [int(f"{1 if league_id == 'league_a' else 2}{roster_id}"), league_id, roster_id, owner_id, owner_id, str(players).replace("'", '"')],
+        [
+            int(f"{1 if league_id == 'league_a' else 2}{roster_id}"),
+            league_id,
+            roster_id,
+            owner_id,
+            owner_id,
+            str(players).replace("'", '"'),
+        ],
     )
 
 
@@ -59,7 +70,12 @@ def _seed_direction(conn, league_id: str, roster_id: int, label: str) -> None:
         )
         VALUES (?, ?, ?, ?, 0.92, 'seed', '[]', '{}', '[]', '[]')
         """,
-        [int(f"{1 if league_id == 'league_a' else 2}{roster_id}"), league_id, roster_id, label],
+        [
+            int(f"{1 if league_id == 'league_a' else 2}{roster_id}"),
+            league_id,
+            roster_id,
+            label,
+        ],
     )
 
 
@@ -107,7 +123,9 @@ def _seed_lineup_gap(conn, league_id: str, roster_id: int, position: str) -> Non
     )
 
 
-def _seed_player(conn, player_id: str, name: str, position: str, age: int, adp: float) -> None:
+def _seed_player(
+    conn, player_id: str, name: str, position: str, age: int, adp: float
+) -> None:
     conn.execute(
         """
         INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
@@ -175,7 +193,14 @@ def test_feed_sorted_by_impact_score(db):
     conn = _base_feed_db(db)
     _seed_player(conn, "player_a", "Player A", "WR", 24, 52.5)
     _seed_player(conn, "player_b", "Player B", "WR", 24, 62.5)
-    _seed_trend_history(conn, player_id="player_a", current_score=0.90, prior_score=0.30, current_adp=52.5, prior_adp=88.0)
+    _seed_trend_history(
+        conn,
+        player_id="player_a",
+        current_score=0.90,
+        prior_score=0.30,
+        current_adp=52.5,
+        prior_adp=88.0,
+    )
     _seed_trend_history(
         conn,
         player_id="player_b",
@@ -197,9 +222,18 @@ def test_feed_sorted_by_impact_score(db):
 def test_feed_deduplicates_players(db):
     conn = _base_feed_db(db)
     _seed_player(conn, "player_x", "Player X", "WR", 25, 70.0)
-    _seed_trend_history(conn, player_id="player_x", current_score=0.82, prior_score=0.40, current_adp=70.0, prior_adp=105.0)
+    _seed_trend_history(
+        conn,
+        player_id="player_x",
+        current_score=0.82,
+        prior_score=0.40,
+        current_adp=70.0,
+        prior_adp=105.0,
+    )
 
-    items = OpportunityEngine(conn, calendar_service=_StubCalendarService("early_season")).build_feed()
+    items = OpportunityEngine(
+        conn, calendar_service=_StubCalendarService("early_season")
+    ).build_feed()
     rows = [item for item in items if item.player_id == "player_x"]
 
     assert len(rows) == 1
@@ -209,9 +243,18 @@ def test_feed_deduplicates_players(db):
 def test_feed_buy_target_no_symbol(db):
     conn = _base_feed_db(db)
     _seed_player(conn, "player_y", "Player Y", "WR", 24, 74.0)
-    _seed_trend_history(conn, player_id="player_y", current_score=0.86, prior_score=0.40, current_adp=74.0, prior_adp=102.0)
+    _seed_trend_history(
+        conn,
+        player_id="player_y",
+        current_score=0.86,
+        prior_score=0.40,
+        current_adp=74.0,
+        prior_adp=102.0,
+    )
 
-    items = OpportunityEngine(conn, calendar_service=_StubCalendarService("early_season")).build_feed()
+    items = OpportunityEngine(
+        conn, calendar_service=_StubCalendarService("early_season")
+    ).build_feed()
     row = next(item for item in items if item.player_id == "player_y")
 
     assert row.owned_in_leagues == []
@@ -220,9 +263,18 @@ def test_feed_buy_target_no_symbol(db):
 def test_suggested_action_sell(db):
     conn = _base_feed_db(db)
     _seed_player(conn, "player_sell", "Player Sell", "WR", 30, 70.0)
-    _seed_trend_history(conn, player_id="player_sell", current_score=0.50, prior_score=0.90, current_adp=70.0, prior_adp=34.0)
+    _seed_trend_history(
+        conn,
+        player_id="player_sell",
+        current_score=0.50,
+        prior_score=0.90,
+        current_adp=70.0,
+        prior_adp=34.0,
+    )
 
-    items = OpportunityEngine(conn, calendar_service=_StubCalendarService("early_season")).build_feed()
+    items = OpportunityEngine(
+        conn, calendar_service=_StubCalendarService("early_season")
+    ).build_feed()
     row = next(item for item in items if item.player_id == "player_sell")
 
     assert row.adp_gap > 0
@@ -287,9 +339,18 @@ def test_opponent_buy_opportunity_links_trade_evaluator_receive_side(db):
         WHERE league_id = 'league_a' AND roster_id = 2
         """
     )
-    _seed_trend_history(conn, player_id="player_buy", current_score=0.88, prior_score=0.45, current_adp=80.0, prior_adp=112.0)
+    _seed_trend_history(
+        conn,
+        player_id="player_buy",
+        current_score=0.88,
+        prior_score=0.45,
+        current_adp=80.0,
+        prior_adp=112.0,
+    )
 
-    items = OpportunityEngine(conn, calendar_service=_StubCalendarService("early_season")).build_feed()
+    items = OpportunityEngine(
+        conn, calendar_service=_StubCalendarService("early_season")
+    ).build_feed()
     row = next(item for item in items if item.player_id == "player_buy")
 
     assert row.suggested_action == "buy"
@@ -301,7 +362,7 @@ def test_opponent_buy_opportunity_links_trade_evaluator_receive_side(db):
     assert row.cta.target_player_roster_id == 2
 
 
-def test_buy_target_solving_lineup_gap_outranks_larger_raw_gap(db):
+def test_larger_value_gap_outranks_lineup_need(db):
     conn = _base_feed_db(db)
     conn.execute(
         """
@@ -311,12 +372,19 @@ def test_buy_target_solving_lineup_gap_outranks_larger_raw_gap(db):
         """
     )
     _seed_lineup_gap(conn, "league_a", 1, "WR")
+    fresh_at = datetime.now(tz=timezone.utc)
+    freshness_repo = ContextRepo(conn)
     for domain in ["usage", "stats", "schedule", "injuries"]:
-        ContextRepo(conn).upsert_freshness(
-            "league_a",
-            domain,
-            FRESH_NOW,
-            f"test fresh {domain}",
+        freshness_repo.record_source_result(
+            league_id="league_a",
+            domain=domain,
+            fetched_at=fresh_at,
+            source_id=f"test:{domain}",
+            parsed_successfully=True,
+            record_count=1,
+            observed_at=fresh_at,
+            coverage_through=fresh_at,
+            notes=f"test fresh {domain}",
         )
     _seed_player(conn, "fit_wr", "Fit WR", "WR", 24, 78.0)
     _seed_trend_history(
@@ -342,11 +410,11 @@ def test_buy_target_solving_lineup_gap_outranks_larger_raw_gap(db):
         calendar_service=_StubCalendarService("early_season"),
     ).build_feed()
 
-    assert [item.player_id for item in items[:2]] == ["fit_wr", "raw_rb"]
-    fit = items[0]
-    raw = items[1]
+    assert [item.player_id for item in items[:2]] == ["raw_rb", "fit_wr"]
+    raw = items[0]
+    fit = items[1]
     assert abs(raw.adp_gap) > abs(fit.adp_gap)
-    assert fit.impact_score > raw.impact_score
+    assert raw.impact_score > fit.impact_score
     assert "current WR lineup gap" in fit.why_summary
     assert fit.weekly_fit is not None
     assert fit.weekly_fit.position == "WR"
@@ -395,15 +463,29 @@ def test_stale_weekly_data_dampens_lineup_gap_opportunity_boost(db):
     assert "Verify stale weekly data first" in fit.why_summary
     assert fit.weekly_fit is not None
     assert fit.weekly_fit.is_stale is True
-    assert set(fit.weekly_fit.stale_domains) == {"usage", "stats", "schedule", "injuries"}
+    assert set(fit.weekly_fit.stale_domains) == {
+        "usage",
+        "stats",
+        "schedule",
+        "injuries",
+    }
 
 
 def test_veteran_buy_low_contending_team(db):
     conn = _base_feed_db(db)
     _seed_player(conn, "player_vet", "Player Vet", "RB", 30, 120.0)
-    _seed_trend_history(conn, player_id="player_vet", current_score=0.84, prior_score=0.96, current_adp=120.0, prior_adp=92.0)
+    _seed_trend_history(
+        conn,
+        player_id="player_vet",
+        current_score=0.84,
+        prior_score=0.96,
+        current_adp=120.0,
+        prior_adp=92.0,
+    )
 
-    items = OpportunityEngine(conn, calendar_service=_StubCalendarService("early_season")).build_feed()
+    items = OpportunityEngine(
+        conn, calendar_service=_StubCalendarService("early_season")
+    ).build_feed()
     row = next(item for item in items if item.player_id == "player_vet")
 
     assert row.adp_gap < 0
@@ -423,7 +505,9 @@ def test_low_confidence_not_suppressed(db):
         prior_backfilled=True,
     )
 
-    items = OpportunityEngine(conn, calendar_service=_StubCalendarService("early_season")).build_feed()
+    items = OpportunityEngine(
+        conn, calendar_service=_StubCalendarService("early_season")
+    ).build_feed()
 
     assert any(item.player_id == "player_low_conf" for item in items)
 
@@ -431,9 +515,18 @@ def test_low_confidence_not_suppressed(db):
 def test_calendar_escalation_flag(db):
     conn = _base_feed_db(db)
     _seed_player(conn, "player_escalated", "Player Escalated", "WR", 24, 80.0)
-    _seed_trend_history(conn, player_id="player_escalated", current_score=0.88, prior_score=0.45, current_adp=80.0, prior_adp=112.0)
+    _seed_trend_history(
+        conn,
+        player_id="player_escalated",
+        current_score=0.88,
+        prior_score=0.45,
+        current_adp=80.0,
+        prior_adp=112.0,
+    )
 
-    items = OpportunityEngine(conn, calendar_service=_StubCalendarService("post_combine")).build_feed()
+    items = OpportunityEngine(
+        conn, calendar_service=_StubCalendarService("post_combine")
+    ).build_feed()
 
     assert any(item.calendar_escalated for item in items)
 
@@ -441,9 +534,18 @@ def test_calendar_escalation_flag(db):
 def test_no_calendar_escalation(db):
     conn = _base_feed_db(db)
     _seed_player(conn, "player_normal", "Player Normal", "WR", 24, 80.0)
-    _seed_trend_history(conn, player_id="player_normal", current_score=0.88, prior_score=0.45, current_adp=80.0, prior_adp=112.0)
+    _seed_trend_history(
+        conn,
+        player_id="player_normal",
+        current_score=0.88,
+        prior_score=0.45,
+        current_adp=80.0,
+        prior_adp=112.0,
+    )
 
-    items = OpportunityEngine(conn, calendar_service=_StubCalendarService("early_season")).build_feed()
+    items = OpportunityEngine(
+        conn, calendar_service=_StubCalendarService("early_season")
+    ).build_feed()
 
     assert all(item.calendar_escalated is False for item in items)
 

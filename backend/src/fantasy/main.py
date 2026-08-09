@@ -14,11 +14,13 @@ from fantasy.routers import (
     actions,
     context,
     corrections,
+    decisions,
     dashboard,
     draft_grades,
     draft_room,
     edge_radar,
     health,
+    fresh_intelligence,
     ingest,
     intelligence,
     leagues,
@@ -97,7 +99,10 @@ def create_app() -> FastAPI:
     app.include_router(ingest.router)
     app.include_router(actions.router)
     app.include_router(corrections.router)
+    app.include_router(decisions.router)
     app.include_router(health.router)
+    app.include_router(health.process_router)
+    app.include_router(fresh_intelligence.router)
     app.include_router(intelligence.router)
     app.include_router(leagues.router)
     app.include_router(dashboard.router)

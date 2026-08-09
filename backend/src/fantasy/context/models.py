@@ -10,6 +10,13 @@ class FreshnessTag(BaseModel):
 
     domain: str
     last_updated: datetime | None
+    fetched_at: datetime | None = None
+    observed_at: datetime | None = None
+    effective_at: datetime | None = None
+    coverage_through: datetime | None = None
+    status: str = "unknown"
+    source_id: str | None = None
+    record_count: int | None = None
     is_stale: bool
     warning: str | None = None
 
@@ -44,3 +51,10 @@ class FreshnessRow(BaseModel):
     domain: str
     last_updated: datetime | None
     notes: str | None = None
+    fetched_at: datetime | None = None
+    observed_at: datetime | None = None
+    effective_at: datetime | None = None
+    coverage_through: datetime | None = None
+    status: str = "unknown"
+    source_id: str | None = None
+    record_count: int | None = None

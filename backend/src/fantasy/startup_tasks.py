@@ -578,10 +578,13 @@ def refresh_edge_radar_sources(
         "team_context",
         f"Team context refreshed for {season} by dev auto-refresh.",
     )
-    freshness.mark_refreshed(
-        GLOBAL_FRESHNESS_LEAGUE_ID,
-        "player_metadata",
-        f"Dense player metadata refreshed for {season} by dev auto-refresh.",
+    freshness.mark_source_result(
+        league_id=GLOBAL_FRESHNESS_LEAGUE_ID,
+        domain="player_metadata",
+        source_id="nflreadpy:weekly_rosters",
+        parsed_successfully=player_metadata.source_rows > 0,
+        record_count=player_metadata.updated_rows,
+        notes=f"Dense player metadata refreshed for {season} by dev auto-refresh.",
     )
     return {
         "team_context": team_context,
