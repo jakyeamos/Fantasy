@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import duckdb
 
+from fantasy.data_health import resolve_stats_season
 from fantasy.intelligence.constants import (
     DIRECTION_VALUE_WEIGHTS,
     FORMAT_MULTIPLIERS,
@@ -31,6 +32,14 @@ class ValuationEngine:
         self._trend_repo = TrendRepo(conn)
         self._market_service = market_service or MarketService(conn)
         self._flag_engine = flag_engine or FlagEngine(conn)
+        self._stats_season_cache: dict[int, int | None] = {}
+
+    def _stats_season(self, league_season: int) -> int | None:
+        if league_season not in self._stats_season_cache:
+            self._stats_season_cache[league_season] = resolve_stats_season(
+                self._conn, league_season
+            )
+        return self._stats_season_cache[league_season]
 
     def compute_player(
         self,
@@ -64,6 +73,7 @@ class ValuationEngine:
         if league_row is None:
             raise ValueError(f"league not found: {league_id}")
         season = int(league_row[0])
+        stats_season = self._stats_season(season)
         league_settings = (
             float(league_row[1]),
             bool(league_row[2]),
@@ -77,8 +87,9 @@ class ValuationEngine:
                    MAX(fantasy_points) AS best_week
             FROM player_stats_weekly
             WHERE player_id = ?
+              AND season = ?
             """,
-            [player_id],
+            [player_id, stats_season],
         ).fetchone()
         adp_row = self._conn.execute(
             """

@@ -45,10 +45,13 @@ class IngestStatusResponse(BaseModel):
 
 class AdpBaselineRefreshResponse(BaseModel):
     source: str
+    refresh_run_id: int
     source_rows: int
     matched_rows: int
     matched_unique_rows: int
     unmatched_rows: int
+    market_value_rows: int
+    coverage_ratio: float
     num_qbs: int
     num_teams: int
     ppr: float
@@ -314,7 +317,7 @@ async def refresh_league_pipeline(
     FreshnessService(ContextRepo(conn)).mark_refreshed(
         league_id,
         "market",
-        "FantasyCalc ADP baseline refreshed by league refresh pipeline.",
+            "FantasyCalc market values and ADP baseline refreshed by league refresh pipeline.",
     )
 
     draft_capital_summary = refresh_actual_draft_capital(conn, draft_year=draft_year)
@@ -340,10 +343,13 @@ async def refresh_league_pipeline(
         sleeper_status=sleeper_status,
         adp=AdpBaselineRefreshResponse(
             source="fantasycalc_api",
+            refresh_run_id=int(adp_summary["refresh_run_id"]),
             source_rows=adp_summary["source_rows"],
             matched_rows=adp_summary["matched_rows"],
             matched_unique_rows=adp_summary["matched_unique_rows"],
             unmatched_rows=adp_summary["unmatched_rows"],
+            market_value_rows=int(adp_summary["market_value_rows"]),
+            coverage_ratio=float(adp_summary["coverage_ratio"]),
             num_qbs=resolved_num_qbs,
             num_teams=resolved_num_teams,
             ppr=resolved_ppr,
@@ -396,15 +402,18 @@ async def refresh_adp_baseline(
         FreshnessService(ContextRepo(conn)).mark_refreshed(
             league_id,
             "market",
-            "FantasyCalc ADP baseline refreshed.",
+            "FantasyCalc market values and ADP baseline refreshed.",
         )
 
     return AdpBaselineRefreshResponse(
         source="fantasycalc_api",
+        refresh_run_id=int(refresh_summary["refresh_run_id"]),
         source_rows=refresh_summary["source_rows"],
         matched_rows=refresh_summary["matched_rows"],
         matched_unique_rows=refresh_summary["matched_unique_rows"],
         unmatched_rows=refresh_summary["unmatched_rows"],
+        market_value_rows=int(refresh_summary["market_value_rows"]),
+        coverage_ratio=float(refresh_summary["coverage_ratio"]),
         num_qbs=resolved_num_qbs,
         num_teams=resolved_num_teams,
         ppr=resolved_ppr,

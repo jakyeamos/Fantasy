@@ -1,4 +1,5 @@
 import math
+import json
 
 import pytest
 
@@ -161,6 +162,55 @@ def test_league_relative_normalization(phase2_seed_data):
     assert scorecards[1].pick_capital > scorecards[2].pick_capital
     assert 0.0 <= scorecards[1].pick_capital <= 1.0
     assert 0.0 <= scorecards[2].pick_capital <= 1.0
+
+
+def test_scorecard_semantics_are_self_describing(phase2_seed_data):
+    scorecard = ScorecardEngine(phase2_seed_data).compute_all("league_x")[1]
+    metadata = json.loads(scorecard.computation_json)
+
+    assert metadata["schema_version"] == "team-scorecard-semantics/1.0"
+    assert metadata["model_version"] == "team-scorecard/2.0"
+    assert metadata["stats_season"] == 2024
+    assert metadata["composite_label"] == "beneficial_team_quality"
+    assert metadata["dimensions"]["fragility"]["direction"] == "lower_is_better"
+    assert metadata["dimensions"]["win_now"]["direction"] == "higher_is_better"
+    assert "raw" in metadata["dimensions"]["win_now"]
+    assert "percentile" in metadata["dimensions"]["win_now"]
+    beneficial = [
+        dimension["beneficial_score"]
+        for dimension in metadata["dimensions"].values()
+    ]
+    assert scorecard.composite == pytest.approx(sum(beneficial) / len(beneficial), abs=1e-3)
+
+
+def test_cross_season_clone_is_not_double_counted(phase2_seed_data):
+    rows = phase2_seed_data.execute(
+        "SELECT * EXCLUDE (season) FROM player_stats_weekly WHERE season = 2024"
+    ).fetchall()
+    columns = [
+        row[0]
+        for row in phase2_seed_data.execute(
+            "DESCRIBE player_stats_weekly"
+        ).fetchall()
+        if row[0] != "season"
+    ]
+    # Expand past the clone detector's minimum while preserving the actual roster rows.
+    for suffix in range(1, 10):
+        for row in rows:
+            values = list(row)
+            values[0] = f"{values[0]}-{suffix}"
+            phase2_seed_data.execute(
+                f"INSERT INTO player_stats_weekly ({','.join(columns)}, season) VALUES ({','.join(['?'] * len(columns))}, 2024)",
+                values,
+            )
+    phase2_seed_data.execute(
+        "INSERT INTO player_stats_weekly SELECT * REPLACE (2025 AS season) FROM player_stats_weekly WHERE season = 2024"
+    )
+
+    inputs = ScorecardEngine(phase2_seed_data)._gather_inputs("league_x", 1)
+
+    assert inputs.stats_season == 2024
+    assert inputs.player_games_played["wr1"] == 1
 
 
 def test_fragility_availability_proxy(phase2_seed_data):

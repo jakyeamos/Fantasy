@@ -5,6 +5,7 @@ from typing import Any
 
 import duckdb
 
+from fantasy.data_health import assess_stats_health
 from fantasy.intelligence.constants import (
     FUTURE_VALUE_DEPTH_ADP_WEIGHT,
     FUTURE_VALUE_ELITE_ADP_THRESHOLD,
@@ -42,6 +43,21 @@ def normalize_within_league(values: dict[int, float]) -> dict[int, float]:
     return {roster_id: (value - min_val) / span for roster_id, value in values.items()}
 
 
+def percentile_within_league(values: dict[int, float]) -> dict[int, float]:
+    """Return tie-aware empirical percentiles on a zero-to-one scale."""
+
+    if not values:
+        return {}
+    if len(values) == 1:
+        return {next(iter(values)): 0.5}
+    ordered = sorted(values.values())
+    result: dict[int, float] = {}
+    for roster_id, value in values.items():
+        indexes = [index for index, candidate in enumerate(ordered) if candidate == value]
+        result[roster_id] = (sum(indexes) / len(indexes)) / (len(ordered) - 1)
+    return result
+
+
 def _clamp01(value: float) -> float:
     return max(0.0, min(1.0, value))
 
@@ -49,6 +65,14 @@ def _clamp01(value: float) -> float:
 class ScorecardEngine:
     def __init__(self, conn: duckdb.DuckDBPyConnection):
         self._conn = conn
+        self._stats_health_cache: dict[int, Any] = {}
+
+    def _stats_health(self, league_season: int):
+        if league_season not in self._stats_health_cache:
+            self._stats_health_cache[league_season] = assess_stats_health(
+                self._conn, league_season
+            )
+        return self._stats_health_cache[league_season]
 
     def compute(self, league_id: str, roster_id: int) -> TeamScorecard:
         return self.compute_all(league_id)[roster_id]
@@ -95,18 +119,53 @@ class ScorecardEngine:
             score_name: normalize_within_league(values)
             for score_name, values in raw_scores.items()
         }
+        percentiles = {
+            score_name: percentile_within_league(values)
+            for score_name, values in raw_scores.items()
+        }
+        directions = {
+            name: ("lower_is_better" if name in {"fragility", "age_risk"} else "higher_is_better")
+            for name in raw_scores
+        }
 
         results: dict[int, TeamScorecard] = {}
         for roster_id in roster_ids:
             score_dict = {name: normalized[name][roster_id] for name in raw_scores}
-            composite = sum(score_dict.values()) / len(score_dict)
+            beneficial_scores = {
+                name: (1.0 - value if directions[name] == "lower_is_better" else value)
+                for name, value in score_dict.items()
+            }
+            composite = sum(beneficial_scores.values()) / len(beneficial_scores)
+            inputs = inputs_map[roster_id]
+            dimensions = {
+                name: {
+                    "raw": round(raw_scores[name][roster_id], 6),
+                    "normalized": round(score_dict[name], 6),
+                    "percentile": round(percentiles[name][roster_id], 6),
+                    "direction": directions[name],
+                    "beneficial_score": round(beneficial_scores[name], 6),
+                    "evidence": (
+                        {"stats_season": inputs.stats_season}
+                        if name in {"win_now", "future_value", "depth", "fragility", "positional_insulation"}
+                        else {"league_season": inputs.season}
+                    ),
+                }
+                for name in raw_scores
+            }
             results[roster_id] = TeamScorecard(
                 league_id=league_id,
                 roster_id=roster_id,
                 **score_dict,
                 composite=round(composite, 3),
                 computation_json=json.dumps(
-                    {"raw": {name: raw_scores[name][roster_id] for name in raw_scores}},
+                    {
+                        "schema_version": "team-scorecard-semantics/1.0",
+                        "model_version": "team-scorecard/2.0",
+                        "composite_label": "beneficial_team_quality",
+                        "composite_formula": "mean(higher_is_better, 1 - lower_is_better)",
+                        "stats_season": inputs.stats_season,
+                        "dimensions": dimensions,
+                    },
                     separators=(",", ":"),
                 ),
             )
@@ -138,6 +197,8 @@ class ScorecardEngine:
             raise ValueError(f"roster not found: {league_id}/{roster_id}")
 
         season = int(league_row[0])
+        stats_health = self._stats_health(season)
+        stats_season = stats_health.scoring_season
         all_players = json.loads(roster_row[0] or "[]")
         starters = json.loads(roster_row[1] or "[]")
         ir = json.loads(roster_row[2] or "[]")
@@ -165,10 +226,11 @@ class ScorecardEngine:
             WHERE player_id IN (
                 SELECT UNNEST(?)
             )
+            AND season = ?
             AND fantasy_points > 0
             GROUP BY player_id
             """,
-            [all_players],
+            [all_players, stats_season],
         ).fetchall()
         weekly_fantasy_pts = {str(row[0]): float(row[1] or 0.0) for row in stats_rows}
         player_games_played = {str(row[0]): int(row[2] or 0) for row in stats_rows}
@@ -192,8 +254,10 @@ class ScorecardEngine:
                 SELECT COALESCE(p.position, 'UNKNOWN'), AVG(s.fantasy_points)
                 FROM player_stats_weekly s
                 LEFT JOIN players p ON p.player_id = s.player_id
+                WHERE s.season = ?
                 GROUP BY COALESCE(p.position, 'UNKNOWN')
-                """
+                """,
+                [stats_season],
             ).fetchall()
         }
 
@@ -213,6 +277,7 @@ class ScorecardEngine:
             league_id=league_id,
             roster_id=roster_id,
             season=season,
+            stats_season=stats_season,
             roster_positions=json.loads(league_row[1] or "[]"),
             starters=starters,
             bench=bench,

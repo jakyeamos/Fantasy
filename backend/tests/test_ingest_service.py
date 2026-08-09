@@ -405,3 +405,57 @@ async def test_ingest_completes_when_stats_fetch_raises(db, base_league, base_ro
         "SELECT status FROM ingest_runs WHERE id = ?", [run_id]
     ).fetchone()[0]
     assert status == "complete"
+    gaps = db.execute(
+        "SELECT gaps_json FROM ingest_runs WHERE id = ?", [run_id]
+    ).fetchone()[0]
+    assert "Missing Sleeper Weekly Stats" in gaps
+    assert "weekly_stats_fetch_failed" in db.execute(
+        "SELECT cursor_json FROM ingest_runs WHERE id = ?", [run_id]
+    ).fetchone()[0]
+    assert db.execute(
+        """
+        SELECT COUNT(*)
+        FROM freshness_domains
+        WHERE league_id = 'test_league_001' AND domain IN ('stats', 'usage')
+        """
+    ).fetchone()[0] == 0
+
+
+@pytest.mark.asyncio
+async def test_preseason_ingest_validates_prior_season_and_marks_stats_fresh(
+    db, base_league, base_roster
+):
+    preseason_league = {**base_league, "season": "2026"}
+    client = FakeSleeperClient(
+        preseason_league, [base_roster], [], {}, week=0
+    )
+
+    async def fetch_preseason_state():
+        return {"season_type": "pre", "season": "2026", "week": 0}
+
+    client.fetch_nfl_state = fetch_preseason_state
+    client._weekly_stats = {
+        week: {"4017": {"rec": 5.0, "rec_yd": 60.0}}
+        for week in range(1, 19)
+    }
+
+    service = IngestService(db, client)
+    run_id = await service.run("test_league_001", "full")
+
+    gaps = db.execute(
+        "SELECT gaps_json FROM ingest_runs WHERE id = ?", [run_id]
+    ).fetchone()[0]
+    assert "2026 Season Stats" not in gaps
+    assert "Unmapped Scoring Key" not in gaps
+    assert db.execute(
+        "SELECT COUNT(*) FROM player_stats_weekly WHERE season = 2025"
+    ).fetchone()[0] == 18
+    freshness = db.execute(
+        """
+        SELECT domain
+        FROM freshness_domains
+        WHERE league_id = 'test_league_001' AND domain IN ('stats', 'usage')
+        ORDER BY domain
+        """
+    ).fetchall()
+    assert freshness == [("stats",), ("usage",)]

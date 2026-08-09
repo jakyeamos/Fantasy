@@ -345,8 +345,20 @@ class IngestService:
                         )
                         all_weeks_stats[week] = week_stats
                         print(f"[ingest:{run_id}]     stats players loaded: {len(week_stats)}")
+                        if not week_stats:
+                            self._record_degradation(
+                                f"weekly_stats_empty: no Sleeper stat rows returned for "
+                                f"season {stats_season}, week {week}."
+                            )
                     except Exception as stats_exc:
-                        print(f"[ingest:{run_id}]     WARNING: stats fetch failed for week {week}: {stats_exc}")
+                        self._record_degradation(
+                            f"weekly_stats_fetch_failed: Sleeper stats fetch failed for "
+                            f"season {stats_season}, week {week}: {stats_exc}"
+                        )
+                        print(
+                            f"[ingest:{run_id}]     WARNING: stats fetch failed for "
+                            f"week {week}: {stats_exc}"
+                        )
                     max_week_fetched = week
 
             print(f"[ingest:{run_id}] applying corrections...")
@@ -371,8 +383,19 @@ class IngestService:
 
             season_rows = self.conn.execute(
                 "SELECT season FROM player_stats_weekly WHERE season = ?",
-                [season_number],
+                [stats_season],
             ).fetchall()
+            loaded_stat_weeks = {
+                int(row[0])
+                for row in self.conn.execute(
+                    """
+                    SELECT DISTINCT week
+                    FROM player_stats_weekly
+                    WHERE season = ?
+                    """,
+                    [stats_season],
+                ).fetchall()
+            }
             stats_df = pl.DataFrame(
                 {"season": [int(row[0]) for row in season_rows]}
                 if season_rows
@@ -385,7 +408,10 @@ class IngestService:
                 scoring_settings=league.scoring_settings,
                 sleeper_to_nfldata_map={},
                 stats_df=stats_df,
-                expected_years=[season_number],
+                expected_years=[stats_season],
+                stats_source="sleeper",
+                expected_weeks=list(range(1, stats_max_week + 1)),
+                loaded_weeks=loaded_stat_weeks,
             )
 
             cursor_json = json.dumps(
@@ -420,6 +446,24 @@ class IngestService:
             freshness = FreshnessService(repo=ContextRepo(self.conn))
             freshness.mark_refreshed(league_id, "injuries")
             freshness.mark_refreshed(league_id, "depth_chart")
+            has_missing_stat_weeks = any(
+                gap.name == "Missing Sleeper Weekly Stats" for gap in gaps
+            )
+            has_stats_degradation = any(
+                warning.startswith(("weekly_stats_empty:", "weekly_stats_fetch_failed:"))
+                for warning in self.degradation_warnings
+            )
+            if not has_missing_stat_weeks and not has_stats_degradation:
+                stats_note = (
+                    f"Sleeper weekly stats refreshed for {stats_season}; "
+                    f"weeks 1-{stats_max_week} covered."
+                )
+                freshness.mark_refreshed(league_id, "stats", stats_note)
+                freshness.mark_refreshed(
+                    league_id,
+                    "usage",
+                    f"{stats_note} Usage derives from Sleeper stat rows.",
+                )
             print(f"[ingest:{run_id}] done.")
             return run_id
         except Exception as exc:

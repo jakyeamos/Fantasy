@@ -8,6 +8,7 @@ from fantasy.ingestion.nfl_data_loader import (
     PLAYER_STATS_COLUMNS,
     compute_fantasy_points,
     load_adp_baseline,
+    refresh_market_from_fantasycalc,
     refresh_adp_baseline_from_fantasycalc,
 )
 from fantasy.market.models import ExternalPlayerValue
@@ -144,6 +145,75 @@ async def test_refresh_adp_baseline_from_fantasycalc_matches_by_name(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_market_refresh_populates_adp_and_external_values_atomically(monkeypatch, db):
+    db.execute(
+        """
+        INSERT INTO players (player_id, full_name, position, team, age, metadata_blob)
+        VALUES
+            ('p_wr', 'Rome Odunze', 'WR', 'CHI', 22, '{}'),
+            ('p_rb', 'Jahmyr Gibbs', 'RB', 'DET', 23, '{}')
+        """
+    )
+
+    async def _fake_fetch(self, *, num_qbs: int, num_teams: int, ppr: float):
+        return [
+            ExternalPlayerValue(
+                player_name="Rome Odunze",
+                position="WR",
+                dynasty_value=5000.0,
+                overall_rank=21,
+                trend_30day=125.0,
+                mfl_id=None,
+            ),
+            ExternalPlayerValue(
+                player_name="Jahmyr Gibbs",
+                position="RB",
+                dynasty_value=9000.0,
+                overall_rank=5,
+                trend_30day=-25.0,
+                mfl_id=None,
+            ),
+        ]
+
+    monkeypatch.setattr(
+        "fantasy.ingestion.nfl_data_loader.FantasyCalcClient.fetch_dynasty_values",
+        _fake_fetch,
+    )
+
+    summary = await refresh_market_from_fantasycalc(db, num_qbs=2, num_teams=12, ppr=1.0)
+
+    assert summary == {
+        "refresh_run_id": 1,
+        "source_rows": 2,
+        "matched_rows": 2,
+        "matched_unique_rows": 2,
+        "unmatched_rows": 0,
+        "market_value_rows": 2,
+        "coverage_ratio": 1.0,
+    }
+    assert db.execute(
+        """
+        SELECT player_id, fantasycalc_value, fantasycalc_rank,
+               fantasycalc_trend30, adp_baseline
+        FROM market_values
+        ORDER BY fantasycalc_rank
+        """
+    ).fetchall() == [
+        ("p_rb", 9000.0, 5, -25.0, 5.0),
+        ("p_wr", 5000.0, 21, 125.0, 21.0),
+    ]
+    assert db.execute(
+        """
+        SELECT status, source, num_qbs, num_teams, ppr, source_rows,
+               matched_unique_rows, coverage_ratio
+        FROM market_refresh_runs
+        """
+    ).fetchall() == [
+        ("success", "fantasycalc_api", 2, 12, 1.0, 2, 2, 1.0)
+    ]
+
+
+@pytest.mark.asyncio
 async def test_refresh_adp_baseline_from_fantasycalc_does_not_wipe_on_no_matches(
     monkeypatch, db
 ):
@@ -180,3 +250,32 @@ async def test_refresh_adp_baseline_from_fantasycalc_does_not_wipe_on_no_matches
         """
     ).fetchall()
     assert rows == [("existing", "Existing Player", 77.0, "seed")]
+    assert db.execute(
+        """
+        SELECT status, source_rows, matched_unique_rows, coverage_ratio, error_detail
+        FROM market_refresh_runs
+        """
+    ).fetchall() == [
+        ("failure", 1, 0, 0.0, "FantasyCalc market refresh matched zero local players.")
+    ]
+
+
+@pytest.mark.asyncio
+async def test_market_refresh_records_provider_failure(monkeypatch, db):
+    async def _failed_fetch(self, *, num_qbs: int, num_teams: int, ppr: float):
+        raise RuntimeError("provider unavailable")
+
+    monkeypatch.setattr(
+        "fantasy.ingestion.nfl_data_loader.FantasyCalcClient.fetch_dynasty_values",
+        _failed_fetch,
+    )
+
+    with pytest.raises(RuntimeError, match="provider unavailable"):
+        await refresh_market_from_fantasycalc(db, num_qbs=2, num_teams=12, ppr=0.5)
+
+    assert db.execute(
+        """
+        SELECT status, source_rows, coverage_ratio, error_detail
+        FROM market_refresh_runs
+        """
+    ).fetchall() == [("failure", None, None, "provider unavailable")]

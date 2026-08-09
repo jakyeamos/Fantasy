@@ -17,7 +17,9 @@ class _StubCalendarService:
         return self._state
 
 
-FRESH_NOW = datetime(2026, 6, 28, 12, tzinfo=timezone.utc)
+# Freshness fixtures must stay relative to execution time; a fixed calendar date
+# silently turns the positive path into the stale-data path as the suite ages.
+FRESH_NOW = datetime.now(timezone.utc)
 
 
 def _components(score: float, *, fragility: float | None = None) -> dict[str, float]:

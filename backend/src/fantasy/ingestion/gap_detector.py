@@ -65,6 +65,25 @@ class GapDetector:
         return gaps
 
     @staticmethod
+    def detect_missing_stat_weeks(
+        expected_weeks: list[int], loaded_weeks: set[int]
+    ) -> list[DataGap]:
+        missing_weeks = [week for week in expected_weeks if week not in loaded_weeks]
+        if not missing_weeks:
+            return []
+
+        missing_label = ", ".join(str(week) for week in missing_weeks)
+        return [
+            DataGap(
+                name="Missing Sleeper Weekly Stats",
+                reason=f"No Sleeper weekly stat rows are present for week(s) {missing_label}.",
+                expected_resolution=(
+                    "Run a full ingest after the Sleeper stats endpoint is available."
+                ),
+            )
+        ]
+
+    @staticmethod
     def detect_incomplete_transaction_history(
         conn: duckdb.DuckDBPyConnection, league_id: str, expected_season_year: int
     ) -> list[DataGap]:
@@ -125,10 +144,16 @@ class GapDetector:
         sleeper_to_nfldata_map: dict[str, str],
         stats_df: pl.DataFrame,
         expected_years: list[int],
+        stats_source: Literal["nflverse", "sleeper"] = "nflverse",
+        expected_weeks: list[int] | None = None,
+        loaded_weeks: set[int] | None = None,
     ) -> list[DataGap]:
         gaps: list[DataGap] = []
-        gaps.extend(cls.detect_unmapped_scoring_keys(scoring_settings, sleeper_to_nfldata_map))
+        if stats_source == "nflverse":
+            gaps.extend(cls.detect_unmapped_scoring_keys(scoring_settings, sleeper_to_nfldata_map))
         gaps.extend(cls.detect_missing_season_stats(stats_df, expected_years))
+        if expected_weeks is not None and loaded_weeks is not None:
+            gaps.extend(cls.detect_missing_stat_weeks(expected_weeks, loaded_weeks))
         expected_year = max(expected_years) if expected_years else 0
         gaps.extend(cls.detect_incomplete_transaction_history(conn, league_id, expected_year))
         return gaps

@@ -1,3 +1,5 @@
+import pytest
+
 from fantasy.intelligence.valuation_engine import ValuationEngine
 
 
@@ -23,6 +25,23 @@ def test_all_components_present(phase2_seed_data):
 def test_missing_stats_defaults(phase2_seed_data):
     value = ValuationEngine(phase2_seed_data).compute_player("league_x", 1, "rookie1", "hard_rebuild")
     assert value.comp_current_production is not None
+
+
+def test_valuation_uses_one_explicit_stats_season(phase2_seed_data):
+    phase2_seed_data.execute(
+        """
+        INSERT INTO player_stats_weekly
+        SELECT * REPLACE (2025 AS season)
+        FROM player_stats_weekly
+        WHERE season = 2024
+        """
+    )
+
+    value = ValuationEngine(phase2_seed_data).compute_player(
+        "league_x", 1, "wr1", "true_contender"
+    )
+
+    assert value.comp_role_stability == pytest.approx(1 / 17)
 
 
 def test_ppr_format_adjustment(phase2_seed_data):

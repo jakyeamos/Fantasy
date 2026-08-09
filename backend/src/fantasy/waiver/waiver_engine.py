@@ -8,6 +8,7 @@ from typing import Any, Literal
 
 import duckdb
 
+from fantasy.data_health import resolve_stats_season
 from fantasy.recommendation.card_engine import RecommendationCardEngine
 from fantasy.waiver.constants import (
     DIRECTION_URGENCY,
@@ -171,6 +172,7 @@ class WaiverEngine:
     def __init__(self, conn: duckdb.DuckDBPyConnection) -> None:
         self._conn = conn
         self._card_engine = RecommendationCardEngine(conn)
+        self._stats_seasons: dict[str, int | None] = {}
 
     def _league_median_remaining(self, league_id: str, total_budget: int) -> int:
         rows = self._conn.execute(
@@ -270,17 +272,28 @@ class WaiverEngine:
                 limits[position] = limit
         return limits
 
-    def _stats_map(self, player_ids: list[str]) -> dict[str, float]:
+    def _stats_map(self, player_ids: list[str], league_id: str) -> dict[str, float]:
         if not player_ids:
             return {}
+        if league_id not in self._stats_seasons:
+            league_row = self._conn.execute(
+                "SELECT season FROM leagues WHERE league_id = ? LIMIT 1", [league_id]
+            ).fetchone()
+            self._stats_seasons[league_id] = (
+                resolve_stats_season(self._conn, int(league_row[0]))
+                if league_row
+                else None
+            )
+        stats_season = self._stats_seasons[league_id]
         rows = self._conn.execute(
             """
             SELECT player_id, AVG(fantasy_points) AS avg_points
             FROM player_stats_weekly
             WHERE player_id IN (SELECT UNNEST(?))
+              AND season = ?
             GROUP BY player_id
             """,
-            [player_ids],
+            [player_ids, stats_season],
         ).fetchall()
         return {str(row[0]): float(row[1]) for row in rows if row[1] is not None}
 
@@ -350,7 +363,7 @@ class WaiverEngine:
             return []
 
         player_rows = self._player_rows(bench_ids)
-        stats_map = self._stats_map(bench_ids)
+        stats_map = self._stats_map(bench_ids, league_id)
         adp_map = self._adp_map(bench_ids)
         scored: list[tuple[float, dict[str, str]]] = []
         for player in player_rows:
@@ -494,7 +507,7 @@ class WaiverEngine:
         position_limits = self._position_limits(league_id)
         available_ids = get_available_players(self._conn, league_id)
         player_rows = self._player_rows(available_ids)
-        stats_map = self._stats_map(available_ids)
+        stats_map = self._stats_map(available_ids, league_id)
         adp_map = self._adp_map(available_ids)
         drop_candidates = self._drop_candidates(league_id, roster_id)
         league_median_remaining = self._league_median_remaining(

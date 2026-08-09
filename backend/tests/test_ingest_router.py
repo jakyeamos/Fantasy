@@ -46,10 +46,13 @@ def test_refresh_adp_baseline_uses_league_profile(monkeypatch, db):
         assert num_teams == 12
         assert ppr == 0.5
         return {
+            "refresh_run_id": 7,
             "source_rows": 10,
             "matched_rows": 9,
             "matched_unique_rows": 8,
             "unmatched_rows": 1,
+            "market_value_rows": 8,
+            "coverage_ratio": 0.8,
         }
 
     monkeypatch.setattr("fantasy.routers.ingest.refresh_adp_baseline_from_fantasycalc", _fake_refresh)
@@ -64,10 +67,13 @@ def test_refresh_adp_baseline_uses_league_profile(monkeypatch, db):
     payload = response.json()
     assert payload == {
         "source": "fantasycalc_api",
+        "refresh_run_id": 7,
         "source_rows": 10,
         "matched_rows": 9,
         "matched_unique_rows": 8,
         "unmatched_rows": 1,
+        "market_value_rows": 8,
+        "coverage_ratio": 0.8,
         "num_qbs": 2,
         "num_teams": 12,
         "ppr": 0.5,
@@ -261,10 +267,13 @@ def test_refresh_league_pipeline_runs_all_offseason_refresh_steps(monkeypatch, d
     async def _fake_refresh_adp(conn, *, num_qbs: int, num_teams: int, ppr: float):
         calls.append(("adp", (num_qbs, num_teams, ppr)))
         return {
+            "refresh_run_id": 8,
             "source_rows": 100,
             "matched_rows": 90,
             "matched_unique_rows": 80,
             "unmatched_rows": 10,
+            "market_value_rows": 80,
+            "coverage_ratio": 0.8,
         }
 
     def _fake_refresh_draft_capital(conn, *, draft_year: int):
@@ -336,10 +345,13 @@ def test_refresh_league_pipeline_runs_all_offseason_refresh_steps(monkeypatch, d
         "sleeper_status": "complete",
         "adp": {
             "source": "fantasycalc_api",
+            "refresh_run_id": 8,
             "source_rows": 100,
             "matched_rows": 90,
             "matched_unique_rows": 80,
             "unmatched_rows": 10,
+            "market_value_rows": 80,
+            "coverage_ratio": 0.8,
             "num_qbs": 2,
             "num_teams": 12,
             "ppr": 0.5,

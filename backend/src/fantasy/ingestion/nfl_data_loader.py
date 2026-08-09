@@ -133,27 +133,93 @@ def _resolve_player_id(
     return None, None
 
 
-async def refresh_adp_baseline_from_fantasycalc(
+def _next_market_refresh_run_id(conn: duckdb.DuckDBPyConnection) -> int:
+    return int(
+        conn.execute(
+            "SELECT COALESCE(MAX(id), 0) + 1 FROM market_refresh_runs"
+        ).fetchone()[0]
+    )
+
+
+def _record_market_refresh_run(
+    conn: duckdb.DuckDBPyConnection,
+    *,
+    run_id: int,
+    num_qbs: int,
+    num_teams: int,
+    ppr: float,
+    status: str,
+    source_rows: int | None = None,
+    matched_rows: int | None = None,
+    matched_unique_rows: int | None = None,
+    unmatched_rows: int | None = None,
+    market_value_rows: int | None = None,
+    coverage_ratio: float | None = None,
+    error_detail: str | None = None,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO market_refresh_runs (
+            id, source, num_qbs, num_teams, ppr, status, source_rows,
+            matched_rows, matched_unique_rows, unmatched_rows,
+            market_value_rows, coverage_ratio, error_detail
+        ) VALUES (?, 'fantasycalc_api', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            run_id,
+            num_qbs,
+            num_teams,
+            ppr,
+            status,
+            source_rows,
+            matched_rows,
+            matched_unique_rows,
+            unmatched_rows,
+            market_value_rows,
+            coverage_ratio,
+            error_detail,
+        ],
+    )
+
+
+async def refresh_market_from_fantasycalc(
     conn: duckdb.DuckDBPyConnection,
     *,
     num_qbs: int = 1,
     num_teams: int = 12,
     ppr: float = 1.0,
-) -> dict[str, int]:
+) -> dict[str, int | float]:
+    """Refresh the shared FantasyCalc ADP and market-value projections atomically."""
+
     if num_qbs <= 0:
         raise ValueError("num_qbs must be positive.")
     if num_teams <= 0:
         raise ValueError("num_teams must be positive.")
 
+    refresh_run_id = _next_market_refresh_run_id(conn)
     by_mfl, by_name = _build_player_lookup(conn)
-    async with FantasyCalcClient() as client:
-        values = await client.fetch_dynasty_values(
+    try:
+        async with FantasyCalcClient() as client:
+            values = await client.fetch_dynasty_values(
+                num_qbs=num_qbs,
+                num_teams=num_teams,
+                ppr=ppr,
+            )
+    except Exception as exc:
+        _record_market_refresh_run(
+            conn,
+            run_id=refresh_run_id,
             num_qbs=num_qbs,
             num_teams=num_teams,
             ppr=ppr,
+            status="failure",
+            error_detail=str(exc),
         )
+        raise
 
-    matched_unique: dict[str, tuple[str, str | None, float, str | None]] = {}
+    matched_unique: dict[
+        str, tuple["ExternalPlayerValue", str | None]
+    ] = {}
     matched_rows = 0
     for value in values:
         player_id, canonical_name = _resolve_player_id(value, by_mfl=by_mfl, by_name=by_name)
@@ -163,66 +229,179 @@ async def refresh_adp_baseline_from_fantasycalc(
         matched_rows += 1
         adp_rank = float(value.overall_rank)
         existing = matched_unique.get(player_id)
-        if existing is None or adp_rank < existing[2]:
-            matched_unique[player_id] = (
-                value.player_name,
-                value.position,
-                adp_rank,
-                canonical_name,
-            )
+        if existing is None or adp_rank < float(existing[0].overall_rank):
+            matched_unique[player_id] = (value, canonical_name)
 
     matched_unique_rows = len(matched_unique)
     if matched_unique_rows == 0:
+        _record_market_refresh_run(
+            conn,
+            run_id=refresh_run_id,
+            num_qbs=num_qbs,
+            num_teams=num_teams,
+            ppr=ppr,
+            status="failure",
+            source_rows=len(values),
+            matched_rows=matched_rows,
+            matched_unique_rows=0,
+            unmatched_rows=len(values),
+            market_value_rows=0,
+            coverage_ratio=0.0,
+            error_detail="FantasyCalc market refresh matched zero local players.",
+        )
         raise ValueError(
             "FantasyCalc ADP refresh matched zero players in local Sleeper IDs; baseline unchanged."
         )
 
-    rows: list[tuple[str, str | None, str | None, float, str]] = []
-    for player_id, (player_name, position, adp_rank, canonical_name) in matched_unique.items():
-        rows.append(
+    adp_rows: list[tuple[str, str | None, str | None, float, str]] = []
+    for player_id, (value, canonical_name) in matched_unique.items():
+        adp_rows.append(
             (
                 player_id,
-                canonical_name or player_name,
-                position,
-                adp_rank,
+                canonical_name or value.player_name,
+                value.position,
+                float(value.overall_rank),
                 "fantasycalc_api",
             )
         )
 
-    conn.execute("DELETE FROM player_adp_baseline")
-    conn.executemany(
-        """
-        INSERT INTO player_adp_baseline (player_id, player_name, position, adp, adp_source)
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        rows,
+    existing_ids = {
+        str(row[0]): int(row[1])
+        for row in conn.execute("SELECT player_id, id FROM market_values").fetchall()
+    }
+    next_id = int(
+        conn.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM market_values").fetchone()[0]
     )
-
-    if _players_has_mfl_column(conn):
-        mfl_updates: list[tuple[str, str]] = []
-        for value in values:
-            if value.mfl_id is None:
-                continue
-            player_id, _canonical_name = _resolve_player_id(value, by_mfl=by_mfl, by_name=by_name)
-            if player_id is None:
-                continue
-            mfl_updates.append((str(value.mfl_id), player_id))
-        if mfl_updates:
-            conn.executemany(
-                """
-                UPDATE players
-                SET mfl_id = ?
-                WHERE player_id = ?
-                """,
-                mfl_updates,
+    market_rows: list[tuple[int, str, float, int, float | None, float]] = []
+    for player_id, (value, _canonical_name) in matched_unique.items():
+        row_id = existing_ids.get(player_id)
+        if row_id is None:
+            row_id = next_id
+            next_id += 1
+        market_rows.append(
+            (
+                row_id,
+                player_id,
+                float(value.dynasty_value),
+                int(value.overall_rank),
+                float(value.trend_30day) if value.trend_30day is not None else None,
+                float(value.overall_rank),
             )
+        )
+
+    conn.execute("BEGIN TRANSACTION")
+    try:
+        conn.execute("DELETE FROM player_adp_baseline")
+        conn.executemany(
+            """
+            INSERT INTO player_adp_baseline (player_id, player_name, position, adp, adp_source)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            adp_rows,
+        )
+        conn.executemany(
+            """
+            INSERT INTO market_values (
+                id, player_id, fantasycalc_value, fantasycalc_rank,
+                fantasycalc_trend30, adp_baseline
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT (player_id) DO UPDATE SET
+                fetched_at = now(),
+                fantasycalc_value = EXCLUDED.fantasycalc_value,
+                fantasycalc_rank = EXCLUDED.fantasycalc_rank,
+                fantasycalc_trend30 = EXCLUDED.fantasycalc_trend30,
+                adp_baseline = EXCLUDED.adp_baseline
+            """,
+            market_rows,
+        )
+
+        if _players_has_mfl_column(conn):
+            mfl_updates: list[tuple[str, str]] = []
+            for value in values:
+                if value.mfl_id is None:
+                    continue
+                player_id, _canonical_name = _resolve_player_id(
+                    value, by_mfl=by_mfl, by_name=by_name
+                )
+                if player_id is None:
+                    continue
+                mfl_updates.append((str(value.mfl_id), player_id))
+            if mfl_updates:
+                conn.executemany(
+                    """
+                    UPDATE players
+                    SET mfl_id = ?
+                    WHERE player_id = ?
+                    """,
+                    mfl_updates,
+                )
+        _record_market_refresh_run(
+            conn,
+            run_id=refresh_run_id,
+            num_qbs=num_qbs,
+            num_teams=num_teams,
+            ppr=ppr,
+            status="success",
+            source_rows=len(values),
+            matched_rows=matched_rows,
+            matched_unique_rows=matched_unique_rows,
+            unmatched_rows=len(values) - matched_rows,
+            market_value_rows=len(market_rows),
+            coverage_ratio=(
+                round(matched_unique_rows / len(values), 4) if values else 0.0
+            ),
+        )
+        conn.execute("COMMIT")
+    except Exception as exc:
+        conn.execute("ROLLBACK")
+        try:
+            _record_market_refresh_run(
+                conn,
+                run_id=refresh_run_id,
+                num_qbs=num_qbs,
+                num_teams=num_teams,
+                ppr=ppr,
+                status="failure",
+                source_rows=len(values),
+                matched_rows=matched_rows,
+                matched_unique_rows=matched_unique_rows,
+                unmatched_rows=len(values) - matched_rows,
+                market_value_rows=0,
+                coverage_ratio=(
+                    round(matched_unique_rows / len(values), 4) if values else 0.0
+                ),
+                error_detail=str(exc),
+            )
+        except duckdb.Error:
+            pass
+        raise
 
     return {
+        "refresh_run_id": refresh_run_id,
         "source_rows": len(values),
         "matched_rows": matched_rows,
         "matched_unique_rows": matched_unique_rows,
         "unmatched_rows": len(values) - matched_rows,
+        "market_value_rows": len(market_rows),
+        "coverage_ratio": round(matched_unique_rows / len(values), 4) if values else 0.0,
     }
+
+
+async def refresh_adp_baseline_from_fantasycalc(
+    conn: duckdb.DuckDBPyConnection,
+    *,
+    num_qbs: int = 1,
+    num_teams: int = 12,
+    ppr: float = 1.0,
+) -> dict[str, int | float]:
+    """Backward-compatible name for the unified FantasyCalc market refresh."""
+
+    return await refresh_market_from_fantasycalc(
+        conn,
+        num_qbs=num_qbs,
+        num_teams=num_teams,
+        ppr=ppr,
+    )
 
 
 def compute_fantasy_points(

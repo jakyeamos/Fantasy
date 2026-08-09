@@ -201,8 +201,16 @@ class LineupEngine:
         )
         if not player_ids:
             return {}
+        stats_seasons = {
+            inputs.stats_season
+            for inputs in all_inputs.values()
+            if inputs.stats_season is not None
+        }
+        stats_season = max(stats_seasons) if stats_seasons else None
 
         try:
+            if stats_season is None:
+                raise duckdb.BinderException("No season-scoped inputs available")
             rows = self._conn.execute(
                 """
                 SELECT player_id, MAX(fantasy_points) AS best_week
@@ -210,16 +218,31 @@ class LineupEngine:
                 WHERE player_id IN (
                     SELECT UNNEST(?)
                 )
+                  AND season = ?
                 GROUP BY player_id
                 """,
-                [player_ids],
+                [player_ids, stats_season],
             ).fetchall()
             best_week_by_player = {
                 str(row[0]): float(row[1] or 0.0)
                 for row in rows
             }
         except duckdb.Error:
-            best_week_by_player = {}
+            try:
+                rows = self._conn.execute(
+                    """
+                    SELECT player_id, MAX(fantasy_points) AS best_week
+                    FROM player_stats_weekly
+                    WHERE player_id IN (SELECT UNNEST(?))
+                    GROUP BY player_id
+                    """,
+                    [player_ids],
+                ).fetchall()
+                best_week_by_player = {
+                    str(row[0]): float(row[1] or 0.0) for row in rows
+                }
+            except duckdb.Error:
+                best_week_by_player = {}
 
         snapshots: dict[str, CurrentStrengthSnapshot] = {}
         for inputs in all_inputs.values():

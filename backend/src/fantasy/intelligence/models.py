@@ -84,6 +84,7 @@ class ScorecardInputs(BaseModel):
     league_id: str
     roster_id: int
     season: int
+    stats_season: int | None = None
     roster_positions: list[str]
     starters: list[str]
     bench: list[str]
