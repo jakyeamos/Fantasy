@@ -43,8 +43,7 @@ export interface LeagueRosterSelectionContextValue {
   league: LeagueDetailResponse
 }
 
-const LeagueRosterSelectionContext =
-  createContext<LeagueRosterSelectionContextValue | null>(null)
+const LeagueRosterSelectionContext = createContext<LeagueRosterSelectionContextValue | null>(null)
 
 export function LeagueRosterSelectionProvider({
   value,

@@ -1,11 +1,20 @@
 import { queryOptions } from "@tanstack/react-query"
 
 import type {
+  AnalyzeUrlResponse,
+  FootballEvent,
+  EventDetail,
+  IntelligenceRunResult,
+  MorningBrief,
+} from "@/api/intelligence.generated"
+
+import type {
   ActionPlan,
   AcknowledgedResponse,
   CalendarContext,
   CommandCenterResponse,
   FreshnessTag,
+  HealthResponse,
   CorrelatedRiskRow,
   DashboardLeagueSummary,
   DraftGradesResponse,
@@ -42,7 +51,10 @@ import type {
   WaiverRecommendationsResponse,
   WeeklyContextRefreshResponse,
   WeeklyEdgeResponse,
+  ReadyResponse,
 } from "@/api/types"
+import type { DecisionCard, DecisionCardWire } from "@/v2/contracts/decision-card"
+import { decisionCardFromWire } from "@/v2/contracts/decision-card"
 
 export async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, init)
@@ -64,6 +76,49 @@ export async function postJson<T>(path: string, body: unknown): Promise<T> {
   return (await response.json()) as T
 }
 
+export const todayBriefOptions = queryOptions({
+  queryKey: ["v2", "briefs", "today"],
+  queryFn: () => getJson<MorningBrief>("/v2/briefs/today"),
+  retry: false,
+  staleTime: 60 * 1000,
+})
+
+export const intelligenceReviewOptions = queryOptions({
+  queryKey: ["v2", "intelligence", "review"],
+  queryFn: () => getJson<FootballEvent[]>("/v2/intelligence/review"),
+  retry: false,
+  staleTime: 60 * 1000,
+})
+
+export function refreshIntelligence(): Promise<IntelligenceRunResult> {
+  return postJson<IntelligenceRunResult>("/v2/intelligence/refresh", {
+    scheduled: false,
+    source_ids: [],
+    league_ids: [],
+  })
+}
+
+export function analyzeIntelligenceUrl(url: string): Promise<AnalyzeUrlResponse> {
+  return postJson<AnalyzeUrlResponse>("/v2/intelligence/analyze-url", { url })
+}
+
+export function reviewIntelligenceEvent(
+  eventId: string,
+  decision: "confirm" | "reject",
+): Promise<EventDetail> {
+  return postJson<EventDetail>(`/v2/events/${eventId}/review`, { decision })
+}
+
+export function recordBriefFeedback(
+  briefId: string,
+  itemId: string,
+  verdict: "acted" | "useful" | "not_relevant" | "dismissed",
+): Promise<{ feedback_id: string }> {
+  return postJson<{ feedback_id: string }>(`/v2/briefs/${briefId}/items/${itemId}/feedback`, {
+    verdict,
+  })
+}
+
 export async function deleteJson<T>(path: string): Promise<T> {
   const response = await fetch(`/api${path}`, { method: "DELETE" })
   if (!response.ok) {
@@ -71,6 +126,38 @@ export async function deleteJson<T>(path: string): Promise<T> {
   }
   return (await response.json()) as T
 }
+
+export const healthOptions = queryOptions({
+  queryKey: ["ops", "healthz"],
+  queryFn: () => getJson<HealthResponse>("/healthz"),
+  retry: false,
+  staleTime: 30_000,
+})
+
+export const readyOptions = queryOptions({
+  queryKey: ["ops", "readyz"],
+  queryFn: () => getJson<ReadyResponse>("/readyz"),
+  retry: false,
+  staleTime: 30_000,
+})
+
+export const decisionCardsOptions = queryOptions({
+  queryKey: ["v2", "decisions"],
+  queryFn: async () => {
+    const response = await getJson<{
+      cards: DecisionCardWire[]
+      total: number
+      computed_at: string
+    }>("/v2/decisions")
+    return {
+      cards: response.cards.map((card): DecisionCard => decisionCardFromWire(card)),
+      total: response.total,
+      computedAt: response.computed_at,
+    }
+  },
+  retry: false,
+  staleTime: 60_000,
+})
 
 export const dashboardSummaryOptions = queryOptions({
   queryKey: ["dashboard", "summary"],
@@ -160,18 +247,14 @@ export const snapshotStatusOptions = queryOptions({
 export const managerSummariesOptions = (leagueId: string) =>
   queryOptions({
     queryKey: ["profiling", "managers", leagueId],
-    queryFn: () =>
-      getJson<ManagerSummary[]>(`/profiling/leagues/${leagueId}/managers`),
+    queryFn: () => getJson<ManagerSummary[]>(`/profiling/leagues/${leagueId}/managers`),
     staleTime: 60_000,
   })
 
 export const managerProfileOptions = (leagueId: string, managerId: string) =>
   queryOptions({
     queryKey: ["profiling", "manager", leagueId, managerId],
-    queryFn: () =>
-      getJson<ManagerProfile>(
-        `/profiling/leagues/${leagueId}/managers/${managerId}`,
-      ),
+    queryFn: () => getJson<ManagerProfile>(`/profiling/leagues/${leagueId}/managers/${managerId}`),
     staleTime: 60_000,
   })
 
@@ -244,10 +327,7 @@ export async function saveDraftOrderRule(
   return (await response.json()) as DraftOrderRuleResponse
 }
 
-export const pickInventoryOptions = (
-  leagueId: string,
-  rosterId?: number | null,
-) =>
+export const pickInventoryOptions = (leagueId: string, rosterId?: number | null) =>
   queryOptions({
     queryKey: ["trade", "picks", "inventory", leagueId, rosterId ?? "all"],
     queryFn: () => {
@@ -310,9 +390,7 @@ export const opportunityFeedOptions = queryOptions({
       })
     } catch (error) {
       if (controller.signal.aborted) {
-        const timeoutError = new Error(
-          "Opportunity feed request timed out after 10 seconds.",
-        )
+        const timeoutError = new Error("Opportunity feed request timed out after 10 seconds.")
         timeoutError.name = "TimeoutError"
         throw timeoutError
       }
@@ -356,11 +434,7 @@ export const freshnessOptions = (leagueId: string) =>
     enabled: leagueId.trim().length > 0,
   })
 
-export const snapshotDiffOptions = (
-  leagueId: string,
-  snapshotId: number,
-  rosterId: number,
-) =>
+export const snapshotDiffOptions = (leagueId: string, snapshotId: number, rosterId: number) =>
   queryOptions({
     queryKey: ["snapshot-diff", leagueId, snapshotId, rosterId],
     queryFn: () =>
@@ -474,10 +548,7 @@ export function refreshWeeklyContext(
   )
 }
 
-export async function runOrphanIntake(
-  leagueId: string,
-  rosterId: number,
-): Promise<OrphanIntake> {
+export async function runOrphanIntake(leagueId: string, rosterId: number): Promise<OrphanIntake> {
   return postJson<OrphanIntake>(`/waiver/${leagueId}/${rosterId}/orphan-intake`, {})
 }
 

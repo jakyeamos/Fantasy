@@ -1162,13 +1162,14 @@ def _portfolio_owner_selection(
     if settings.PORTFOLIO_OWNER_DISPLAY_NAME:
         row = conn.execute(
             """
-            SELECT owner_id, COUNT(DISTINCT league_id) AS league_count
+            SELECT owner_id, COUNT(DISTINCT league_id) AS league_count,
+                   MIN(roster_id) AS first_roster_id
             FROM rosters
             WHERE owner_id IS NOT NULL
               AND owner_display_name IS NOT NULL
               AND lower(owner_display_name) = lower(?)
             GROUP BY owner_id
-            ORDER BY league_count DESC, owner_id ASC
+            ORDER BY league_count DESC, first_roster_id ASC, owner_id ASC
             LIMIT 1
             """,
             [settings.PORTFOLIO_OWNER_DISPLAY_NAME],
@@ -1177,11 +1178,12 @@ def _portfolio_owner_selection(
 
     row = conn.execute(
         """
-        SELECT owner_id, COUNT(DISTINCT league_id) AS league_count
+        SELECT owner_id, COUNT(DISTINCT league_id) AS league_count,
+               MIN(roster_id) AS first_roster_id
         FROM rosters
         WHERE owner_id IS NOT NULL
         GROUP BY owner_id
-        ORDER BY league_count DESC, owner_id ASC
+        ORDER BY league_count DESC, first_roster_id ASC, owner_id ASC
         LIMIT 1
         """
     ).fetchone()

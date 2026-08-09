@@ -63,9 +63,7 @@ export function RecommendationCard({
       <CardContent className="space-y-4 p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
-            <p className="terminal-label text-muted-foreground">
-              {card.recommendation_type}
-            </p>
+            <p className="terminal-label text-muted-foreground">{card.recommendation_type}</p>
             <p className="text-base font-semibold">{card.headline}</p>
             <p className="text-sm leading-relaxed text-muted-foreground">
               <span className="font-medium text-foreground">One-sentence action:</span>{" "}
@@ -80,9 +78,7 @@ export function RecommendationCard({
 
         <div className="space-y-1">
           <p className="terminal-label text-muted-foreground">What I Would Do</p>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            {card.why_summary}
-          </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">{card.why_summary}</p>
           <p className="text-sm leading-relaxed text-muted-foreground">
             <span className="font-medium text-foreground">Acceptable price:</span>{" "}
             {acceptablePrice(card)}
@@ -97,9 +93,7 @@ export function RecommendationCard({
 
         {card.supporting_factors.length > 0 ? (
           <div className="space-y-2">
-            <p className="terminal-label text-muted-foreground">
-              Supporting Factors
-            </p>
+            <p className="terminal-label text-muted-foreground">Supporting Factors</p>
             {card.supporting_factors.map((factor, index) =>
               isLikelyContextFlag(factor.factor_name) ? (
                 <PlayerContextFlagRow
@@ -107,18 +101,13 @@ export function RecommendationCard({
                   flag={factor.factor_name}
                 />
               ) : (
-                <SupportingFactorRow
-                  key={`${factor.factor_name}-${index}`}
-                  factor={factor}
-                />
+                <SupportingFactorRow key={`${factor.factor_name}-${index}`} factor={factor} />
               ),
             )}
           </div>
         ) : null}
 
-        {card.model_vs_market_gap ? (
-          <MarketGapPanel gap={card.model_vs_market_gap} />
-        ) : null}
+        {card.model_vs_market_gap ? <MarketGapPanel gap={card.model_vs_market_gap} /> : null}
 
         {card.trend_result ? (
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -132,8 +121,7 @@ export function RecommendationCard({
 
         <div className="space-y-2 text-sm text-muted-foreground">
           <p>
-            <span className="font-medium text-foreground">Why now:</span>{" "}
-            {card.why_summary}
+            <span className="font-medium text-foreground">Why now:</span> {card.why_summary}
           </p>
           <p>
             <span className="font-medium text-foreground">What would make this wrong:</span>{" "}
@@ -145,17 +133,13 @@ export function RecommendationCard({
           </p>
           {card.league_specificity_notes ? (
             <p>
-              <span className="font-medium text-foreground">
-                League context:
-              </span>{" "}
+              <span className="font-medium text-foreground">League context:</span>{" "}
               {card.league_specificity_notes}
             </p>
           ) : null}
           {card.manager_specificity_notes ? (
             <p>
-              <span className="font-medium text-foreground">
-                Specific note:
-              </span>{" "}
+              <span className="font-medium text-foreground">Specific note:</span>{" "}
               {card.manager_specificity_notes}
             </p>
           ) : null}

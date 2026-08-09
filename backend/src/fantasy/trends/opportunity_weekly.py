@@ -69,16 +69,6 @@ def weekly_fit_context(
     return None
 
 
-def weekly_fit_multiplier(weekly_fit: WeeklyFitContext | None) -> float:
-    if weekly_fit is None:
-        return 1.0
-    gap = float(weekly_fit.get("gap_to_title_target") or 0.0)
-    multiplier = 1.0 + min(0.75, max(0.0, gap) / 20.0)
-    if weekly_fit.get("is_stale"):
-        multiplier *= 0.72
-    return multiplier
-
-
 def weekly_fit_note(weekly_fit: WeeklyFitContext | None) -> str:
     if weekly_fit is None:
         return ""
@@ -98,7 +88,9 @@ def weekly_fit_note(weekly_fit: WeeklyFitContext | None) -> str:
     )
 
 
-def weekly_fit_payload(weekly_fit: WeeklyFitContext | None) -> OpportunityWeeklyFit | None:
+def weekly_fit_payload(
+    weekly_fit: WeeklyFitContext | None,
+) -> OpportunityWeeklyFit | None:
     if weekly_fit is None:
         return None
     slot = weekly_fit.get("slot")

@@ -61,13 +61,9 @@ export function HygieneSuggestionRow({ suggestion, leagueId }: HygieneSuggestion
         </span>
       </div>
       <p className="text-sm text-muted-foreground leading-relaxed">{suggestion.reasoning}</p>
-      <p className="text-xs text-muted-foreground">
-        Timing: {suggestion.timing_rationale}
-      </p>
+      <p className="text-xs text-muted-foreground">Timing: {suggestion.timing_rationale}</p>
       {suggestion.packaging_rationale ? (
-        <p className="text-xs text-muted-foreground">
-          Packaging: {suggestion.packaging_rationale}
-        </p>
+        <p className="text-xs text-muted-foreground">Packaging: {suggestion.packaging_rationale}</p>
       ) : null}
       {suggestion.player_context_flags.length > 0 ? (
         <div className="flex flex-wrap gap-2 pt-1">

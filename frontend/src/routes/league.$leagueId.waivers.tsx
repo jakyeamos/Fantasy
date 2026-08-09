@@ -61,10 +61,7 @@ function WaiversPage() {
 
   return (
     <div className="space-y-8">
-      <WaiverIntelHeader
-        directionLabel={league.direction_label}
-        waiver={waiverQuery.data}
-      />
+      <WaiverIntelHeader directionLabel={league.direction_label} waiver={waiverQuery.data} />
       <WaiverPlayerList
         recommendations={waiverQuery.data.recommendations}
         dataFreshnessWarning={waiverQuery.data.data_freshness_warning}

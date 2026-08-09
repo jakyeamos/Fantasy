@@ -36,9 +36,7 @@ function stringParam(search: Record<string, unknown>, key: string): string | und
   return undefined
 }
 
-export function validateTradeSearch(
-  search: Record<string, unknown>,
-): TradeRouteSearch {
+export function validateTradeSearch(search: Record<string, unknown>): TradeRouteSearch {
   return {
     leagueId: stringParam(search, "leagueId"),
     userRosterId: numberParam(search.userRosterId),

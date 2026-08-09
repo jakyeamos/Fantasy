@@ -1,13 +1,7 @@
 import type { DimensionScore } from "@/api/types"
 import { textToneClasses } from "@/lib/ui-tokens"
 
-export function DimensionScoreRow({
-  label,
-  score,
-}: {
-  label: string
-  score: DimensionScore
-}) {
+export function DimensionScoreRow({ label, score }: { label: string; score: DimensionScore }) {
   const scoreColor =
     score.score >= 80
       ? textToneClasses.success

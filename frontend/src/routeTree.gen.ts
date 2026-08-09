@@ -10,8 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TradesRouteImport } from './routes/trades'
+import { Route as ResearchRouteImport } from './routes/research'
 import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as OpportunitiesRouteImport } from './routes/opportunities'
+import { Route as OperationsRouteImport } from './routes/operations'
+import { Route as LeaguesRouteImport } from './routes/leagues'
 import { Route as DraftRoomRouteImport } from './routes/draft-room'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LeagueLeagueIdRouteImport } from './routes/league.$leagueId'
@@ -33,6 +36,11 @@ const TradesRoute = TradesRouteImport.update({
   path: '/trades',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResearchRoute = ResearchRouteImport.update({
+  id: '/research',
+  path: '/research',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PortfolioRoute = PortfolioRouteImport.update({
   id: '/portfolio',
   path: '/portfolio',
@@ -41,6 +49,16 @@ const PortfolioRoute = PortfolioRouteImport.update({
 const OpportunitiesRoute = OpportunitiesRouteImport.update({
   id: '/opportunities',
   path: '/opportunities',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OperationsRoute = OperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaguesRoute = LeaguesRouteImport.update({
+  id: '/leagues',
+  path: '/leagues',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DraftRoomRoute = DraftRoomRouteImport.update({
@@ -130,8 +148,11 @@ const LeagueLeagueIdManagersManagerIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/draft-room': typeof DraftRoomRoute
+  '/leagues': typeof LeaguesRoute
+  '/operations': typeof OperationsRoute
   '/opportunities': typeof OpportunitiesRoute
   '/portfolio': typeof PortfolioRoute
+  '/research': typeof ResearchRoute
   '/trades': typeof TradesRoute
   '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
   '/league/$leagueId/comparison': typeof LeagueLeagueIdComparisonRoute
@@ -150,8 +171,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/draft-room': typeof DraftRoomRoute
+  '/leagues': typeof LeaguesRoute
+  '/operations': typeof OperationsRoute
   '/opportunities': typeof OpportunitiesRoute
   '/portfolio': typeof PortfolioRoute
+  '/research': typeof ResearchRoute
   '/trades': typeof TradesRoute
   '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
   '/league/$leagueId/comparison': typeof LeagueLeagueIdComparisonRoute
@@ -171,8 +195,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/draft-room': typeof DraftRoomRoute
+  '/leagues': typeof LeaguesRoute
+  '/operations': typeof OperationsRoute
   '/opportunities': typeof OpportunitiesRoute
   '/portfolio': typeof PortfolioRoute
+  '/research': typeof ResearchRoute
   '/trades': typeof TradesRoute
   '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
   '/league/$leagueId/comparison': typeof LeagueLeagueIdComparisonRoute
@@ -193,8 +220,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/draft-room'
+    | '/leagues'
+    | '/operations'
     | '/opportunities'
     | '/portfolio'
+    | '/research'
     | '/trades'
     | '/league/$leagueId'
     | '/league/$leagueId/comparison'
@@ -213,8 +243,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/draft-room'
+    | '/leagues'
+    | '/operations'
     | '/opportunities'
     | '/portfolio'
+    | '/research'
     | '/trades'
     | '/league/$leagueId'
     | '/league/$leagueId/comparison'
@@ -233,8 +266,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/draft-room'
+    | '/leagues'
+    | '/operations'
     | '/opportunities'
     | '/portfolio'
+    | '/research'
     | '/trades'
     | '/league/$leagueId'
     | '/league/$leagueId/comparison'
@@ -254,8 +290,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DraftRoomRoute: typeof DraftRoomRoute
+  LeaguesRoute: typeof LeaguesRoute
+  OperationsRoute: typeof OperationsRoute
   OpportunitiesRoute: typeof OpportunitiesRoute
   PortfolioRoute: typeof PortfolioRoute
+  ResearchRoute: typeof ResearchRoute
   TradesRoute: typeof TradesRoute
   LeagueLeagueIdRoute: typeof LeagueLeagueIdRouteWithChildren
 }
@@ -267,6 +306,13 @@ declare module '@tanstack/react-router' {
       path: '/trades'
       fullPath: '/trades'
       preLoaderRoute: typeof TradesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/research': {
+      id: '/research'
+      path: '/research'
+      fullPath: '/research'
+      preLoaderRoute: typeof ResearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/portfolio': {
@@ -281,6 +327,20 @@ declare module '@tanstack/react-router' {
       path: '/opportunities'
       fullPath: '/opportunities'
       preLoaderRoute: typeof OpportunitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/operations': {
+      id: '/operations'
+      path: '/operations'
+      fullPath: '/operations'
+      preLoaderRoute: typeof OperationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leagues': {
+      id: '/leagues'
+      path: '/leagues'
+      fullPath: '/leagues'
+      preLoaderRoute: typeof LeaguesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/draft-room': {
@@ -440,8 +500,11 @@ const LeagueLeagueIdRouteWithChildren = LeagueLeagueIdRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DraftRoomRoute: DraftRoomRoute,
+  LeaguesRoute: LeaguesRoute,
+  OperationsRoute: OperationsRoute,
   OpportunitiesRoute: OpportunitiesRoute,
   PortfolioRoute: PortfolioRoute,
+  ResearchRoute: ResearchRoute,
   TradesRoute: TradesRoute,
   LeagueLeagueIdRoute: LeagueLeagueIdRouteWithChildren,
 }

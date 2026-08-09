@@ -47,10 +47,7 @@ function StartupPage() {
 
   return (
     <div className="space-y-8">
-      <StartupDraftContextCard
-        leagueName={league.league_name}
-        context={startupQuery.data}
-      />
+      <StartupDraftContextCard leagueName={league.league_name} context={startupQuery.data} />
       <StartupPickValuationList picks={startupQuery.data.pick_valuations} />
       <StartupBuildTemplatePanel buildTemplate={startupQuery.data.build_template} />
     </div>

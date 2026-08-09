@@ -20,9 +20,10 @@ export function OverUndervalueFlag({
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const panelId = useId()
-  const label = lowConfidence || !direction || magnitude == null
-    ? "Insufficient comps - low confidence"
-    : `${magnitude} spots ${direction}`
+  const label =
+    lowConfidence || !direction || magnitude == null
+      ? "Insufficient comps - low confidence"
+      : `${magnitude} spots ${direction}`
 
   return (
     <div className="mt-3">

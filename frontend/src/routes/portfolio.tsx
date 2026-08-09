@@ -63,16 +63,11 @@ function PortfolioPage() {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <p className="terminal-label text-muted-foreground">
-          Cross-League View
-        </p>
-        <h2 className="font-headline text-4xl font-extrabold tracking-tight">
-          Portfolio
-        </h2>
+        <p className="terminal-label text-muted-foreground">Cross-League View</p>
+        <h2 className="font-headline text-4xl font-extrabold tracking-tight">Portfolio</h2>
         <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-          Track repeated bets across leagues, spot concentrated exposure, and
-          surface correlated team risk before a single NFL outcome hits multiple
-          rosters at once.
+          Track repeated bets across leagues, spot concentrated exposure, and surface correlated
+          team risk before a single NFL outcome hits multiple rosters at once.
         </p>
       </div>
 
@@ -117,9 +112,7 @@ function PortfolioPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="font-headline text-3xl font-extrabold tracking-tight">
-                {item.value}
-              </p>
+              <p className="font-headline text-3xl font-extrabold tracking-tight">{item.value}</p>
               <p className="mt-2 text-sm text-muted-foreground">{item.helper}</p>
             </CardContent>
           </Card>
@@ -130,8 +123,8 @@ function PortfolioPage() {
         <CardHeader>
           <CardTitle>Player Exposure</CardTitle>
           <p className="mt-2 text-sm text-muted-foreground">
-            Audit ownership overlap by league, then review hedge notes and team-level
-            correlation underneath the matrix.
+            Audit ownership overlap by league, then review hedge notes and team-level correlation
+            underneath the matrix.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">

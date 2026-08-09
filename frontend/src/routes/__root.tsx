@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react"
 import {
   Activity,
-  ArrowLeftRight,
+  BookOpen,
   Briefcase,
-  ChevronRight,
+  Database,
   LayoutDashboard,
   Menu,
   Moon,
-  Star,
+  Settings2,
   Sun,
   Terminal,
   Users,
@@ -19,9 +19,7 @@ import {
   useNavigate,
 } from "@tanstack/react-router"
 import type { QueryClient } from "@tanstack/react-query"
-import { useQuery } from "@tanstack/react-query"
 
-import { dashboardSummaryOptions } from "@/api/queries"
 import { Button } from "@/components/ui/button"
 import {
   SYSTEM_THEME_MEDIA_QUERY,
@@ -44,7 +42,6 @@ function RootLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
-  const dashboardQuery = useQuery(dashboardSummaryOptions)
 
   useEffect(() => {
     applyTheme(theme)
@@ -52,156 +49,49 @@ function RootLayout() {
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(SYSTEM_THEME_MEDIA_QUERY)
-
     const handleSystemThemeChange = (event: MediaQueryListEvent) => {
-      if (!getStoredTheme()) {
-        setTheme(event.matches ? "dark" : "light")
-      }
+      if (!getStoredTheme()) setTheme(event.matches ? "dark" : "light")
     }
-
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === THEME_STORAGE_KEY) {
-        setTheme(getPreferredTheme())
-      }
+      if (event.key === THEME_STORAGE_KEY) setTheme(getPreferredTheme())
     }
-
     mediaQuery.addEventListener("change", handleSystemThemeChange)
     window.addEventListener("storage", handleStorageChange)
-
     return () => {
       mediaQuery.removeEventListener("change", handleSystemThemeChange)
       window.removeEventListener("storage", handleStorageChange)
     }
   }, [])
 
-  useEffect(() => {
-    setMobileNavOpen(false)
-  }, [location.pathname])
-
-  const isDark = theme === "dark"
-  const primaryLeagueId = dashboardQuery.data?.[0]?.league_id ?? null
+  useEffect(() => setMobileNavOpen(false), [location.pathname])
 
   const routeMeta = useMemo(() => {
     const pathname = location.pathname
-
-    if (pathname === "/") {
+    if (pathname === "/") return { title: "Today", subtitle: "Prepared decisions" }
+    if (pathname === "/leagues" || pathname.startsWith("/league/"))
+      return { title: "Leagues", subtitle: "Briefing and roster context" }
+    if (pathname === "/portfolio") return { title: "Portfolio", subtitle: "Cross-league exposure" }
+    if (
+      pathname === "/research" ||
+      pathname === "/opportunities" ||
+      pathname.includes("rookie-board") ||
+      pathname === "/draft-room"
+    )
+      return { title: "Research", subtitle: "Evidence and model context" }
+    if (pathname === "/operations")
       return {
-        title: "Dashboard",
-        subtitle: "League overview",
+        title: "Operations",
+        subtitle: "Health, freshness, and rollback",
       }
-    }
-
-    if (pathname === "/portfolio") {
+    if (pathname === "/trades")
       return {
-        title: "Portfolio",
-        subtitle: "Cross-league risk",
+        title: "Trade Preparation",
+        subtitle: "Manual execution boundary",
       }
-    }
-
-    if (pathname === "/opportunities") {
-      return {
-        title: "Opportunity Feed",
-        subtitle: "Market inefficiencies",
-      }
-    }
-
-    if (pathname === "/trades") {
-      return {
-        title: "Trade Evaluator",
-        subtitle: "Deal intelligence",
-      }
-    }
-
-    if (pathname === "/draft-room") {
-      return {
-        title: "Draft Room",
-        subtitle: "Live pick guidance",
-      }
-    }
-
-    if (pathname.includes("/rookie-board")) {
-      return {
-        title: "Rookie Board",
-        subtitle: "Tiered class view",
-      }
-    }
-
-    if (pathname.includes("/managers/")) {
-      return {
-        title: "Manager Dossier",
-        subtitle: "Behavioral profile",
-      }
-    }
-
-    if (pathname.includes("/roster-moves")) {
-      return {
-        title: "Roster Moves",
-        subtitle: "Actionable roster hygiene",
-      }
-    }
-
-    if (pathname.includes("/comparison")) {
-      return {
-        title: "Comparison",
-        subtitle: "League standing context",
-      }
-    }
-
-    if (pathname.includes("/league-ops")) {
-      return {
-        title: "League Ops",
-        subtitle: "Picks, rules, and taxi setup",
-      }
-    }
-
-    if (pathname.includes("/player-rankings")) {
-      return {
-        title: "Player Rankings",
-        subtitle: "Market board and ownership",
-      }
-    }
-
-    if (pathname.endsWith("/managers")) {
-      return {
-        title: "Managers",
-        subtitle: "League trade profiles",
-      }
-    }
-
-    if (pathname.startsWith("/league/")) {
-      return {
-        title: "League Briefing",
-        subtitle: "Direction and market notes",
-      }
-    }
-
-    return {
-      title: "Dynasty Intelligence",
-      subtitle: "Front-office cockpit",
-    }
+    return { title: "Dynasty Intelligence", subtitle: "Local front office" }
   }, [location.pathname])
 
-  const latestSnapshot = useMemo(() => {
-    const snapshot = dashboardQuery.data
-      ?.map((league) => league.last_snapshot_at)
-      .filter(Boolean)
-      .sort()
-      .at(-1)
-
-    if (!snapshot) {
-      return "No snapshot"
-    }
-
-    const minutes = Math.max(
-      1,
-      Math.round((Date.now() - Date.parse(snapshot)) / 60_000),
-    )
-    if (minutes < 60) return `${minutes}m ago`
-    const hours = Math.round(minutes / 60)
-    if (hours < 24) return `${hours}h ago`
-    return new Date(snapshot).toLocaleDateString()
-  }, [dashboardQuery.data])
-
+  const isDark = theme === "dark"
   const toggleTheme = () => {
     setTheme((currentTheme) => {
       const nextTheme = currentTheme === "dark" ? "light" : "dark"
@@ -212,26 +102,18 @@ function RootLayout() {
 
   const navItems = [
     {
-      id: "dashboard",
-      label: "Dashboard",
+      id: "today",
+      label: "Today",
       icon: LayoutDashboard,
       active: location.pathname === "/",
       action: () => void navigate({ to: "/" }),
-      disabled: false,
     },
     {
-      id: "managers",
-      label: "Managers",
+      id: "leagues",
+      label: "Leagues",
       icon: Users,
-      active: location.pathname.includes("/managers"),
-      action: () => {
-        if (!primaryLeagueId) return
-        void navigate({
-          to: "/league/$leagueId/managers",
-          params: { leagueId: primaryLeagueId },
-        })
-      },
-      disabled: !primaryLeagueId,
+      active: location.pathname === "/leagues" || location.pathname.startsWith("/league/"),
+      action: () => void navigate({ to: "/leagues" }),
     },
     {
       id: "portfolio",
@@ -239,29 +121,23 @@ function RootLayout() {
       icon: Briefcase,
       active: location.pathname === "/portfolio",
       action: () => void navigate({ to: "/portfolio" }),
-      disabled: false,
     },
     {
-      id: "trade",
-      label: "Trade Lab",
-      icon: ArrowLeftRight,
-      active: location.pathname === "/trades",
-      action: () => void navigate({ to: "/trades" }),
-      disabled: false,
+      id: "research",
+      label: "Research",
+      icon: BookOpen,
+      active:
+        location.pathname === "/research" ||
+        location.pathname === "/opportunities" ||
+        location.pathname === "/draft-room",
+      action: () => void navigate({ to: "/research" }),
     },
     {
-      id: "rookie",
-      label: "Rookie Board",
-      icon: Star,
-      active: location.pathname.includes("/rookie-board"),
-      action: () => {
-        if (!primaryLeagueId) return
-        void navigate({
-          to: "/league/$leagueId/rookie-board",
-          params: { leagueId: primaryLeagueId },
-        })
-      },
-      disabled: !primaryLeagueId,
+      id: "operations",
+      label: "Operations",
+      icon: Settings2,
+      active: location.pathname === "/operations",
+      action: () => void navigate({ to: "/operations" }),
     },
   ]
 
@@ -282,25 +158,19 @@ function RootLayout() {
                 <p className="font-headline text-lg font-extrabold tracking-tight">
                   Dynasty Intelligence
                 </p>
-                <p className="terminal-label text-primary/80">
-                  Front-Office Cockpit
+                <p className="font-label text-label-xs uppercase tracking-label text-primary/80">
+                  Local front office
                 </p>
               </div>
             </button>
           </div>
-
-          <nav className="flex-1 space-y-1 px-4 py-5">
+          <nav className="flex-1 space-y-1 px-4 py-5" aria-label="Primary navigation">
             {navItems.map((item) => (
               <button
                 key={item.id}
                 type="button"
-                disabled={item.disabled}
                 onClick={item.action}
-                className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left ${
-                  item.active
-                    ? "border-primary/30 bg-primary/10 text-primary"
-                    : "border-transparent text-muted-foreground hover:border-border/60 hover:bg-card/55 hover:text-foreground"
-                } ${item.disabled ? "cursor-not-allowed opacity-45" : ""}`}
+                className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left ${item.active ? "border-primary/30 bg-primary/10 text-primary" : "border-transparent text-muted-foreground hover:border-border/60 hover:bg-card/55 hover:text-foreground"}`}
               >
                 <item.icon className="size-4" />
                 <span className="font-label text-label-sm uppercase tracking-label">
@@ -308,41 +178,45 @@ function RootLayout() {
                 </span>
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => void navigate({ to: "/trades" })}
+              className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left ${location.pathname === "/trades" ? "border-primary/30 bg-primary/10 text-primary" : "border-transparent text-muted-foreground hover:border-border/60 hover:bg-card/55 hover:text-foreground"}`}
+            >
+              <ArrowLeftRightIcon />
+              <span className="font-label text-label-sm uppercase tracking-label">Trade prep</span>
+            </button>
           </nav>
-
           <div className="space-y-4 border-t border-border/30 px-4 py-5">
             <div className="rounded-xl border border-border/40 bg-card/50 p-4">
               <div className="mb-3 flex items-center justify-between">
-                <span className="terminal-label text-muted-foreground">
-                  System Status
+                <span className="font-label text-label-xs uppercase tracking-label text-muted-foreground">
+                  System status
                 </span>
-                <span className="terminal-label text-accent">Synced</span>
+                <span className="font-label text-label-xs uppercase tracking-label text-accent">
+                  Local
+                </span>
               </div>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex items-center justify-between">
-                  <span>Tracked leagues</span>
-                  <span className="font-mono text-foreground">
-                    {dashboardQuery.data?.length ?? 0}
-                  </span>
+                  <span>Data scope</span>
+                  <span className="font-mono text-foreground">Page-owned</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Last snapshot</span>
-                  <span className="font-mono text-foreground">
-                    {latestSnapshot}
-                  </span>
+                  <span>Actions</span>
+                  <span className="font-mono text-foreground">Manual</span>
                 </div>
               </div>
             </div>
-
             <div className="flex items-center gap-3 rounded-xl border border-border/40 bg-card/50 p-4">
               <div className="flex size-10 items-center justify-center rounded-md border border-primary/25 bg-primary/10 font-headline text-sm font-bold text-primary">
                 JY
               </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-foreground">
-                  Analyst Desk
+              <div>
+                <p className="text-sm font-semibold text-foreground">Analyst desk</p>
+                <p className="font-label text-label-xs uppercase tracking-label text-muted-foreground">
+                  Owner controlled
                 </p>
-                <p className="terminal-label text-muted-foreground">Proven</p>
               </div>
             </div>
           </div>
@@ -362,95 +236,79 @@ function RootLayout() {
                     <Menu className="size-4" />
                   </button>
                   <div>
-                    <p className="font-headline text-base font-bold tracking-tight">
-                      Dynasty Intelligence
-                    </p>
-                    <p className="terminal-label text-primary/75">
-                      Front-Office Cockpit
+                    <p className="font-headline text-base font-bold">Dynasty Intelligence</p>
+                    <p className="font-label text-label-xs uppercase tracking-label text-primary/75">
+                      Local front office
                     </p>
                   </div>
                 </div>
-
                 <div className="hidden min-w-0 flex-1 xl:block">
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <span className="terminal-label">Terminal</span>
-                    <ChevronRight className="size-3" />
-                    <span className="terminal-label text-primary">
+                    <span className="font-label text-label-xs uppercase tracking-label">
+                      Front office
+                    </span>
+                    <span>/</span>
+                    <span className="font-label text-label-xs uppercase tracking-label text-primary">
                       {routeMeta.title}
                     </span>
-                    <ChevronRight className="size-3" />
-                    <span className="terminal-label">{routeMeta.subtitle}</span>
+                    <span>/</span>
+                    <span className="font-label text-label-xs uppercase tracking-label">
+                      {routeMeta.subtitle}
+                    </span>
                   </div>
                 </div>
-
                 <div className="flex items-center gap-3">
+                  <div className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
+                    <Activity className="size-3.5 text-accent" /> Data loads by destination
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     className="w-10 px-0"
                     onClick={toggleTheme}
-                    aria-label={
-                      isDark ? "Switch to light mode" : "Switch to dark mode"
-                    }
-                    title={
-                      isDark ? "Switch to light mode" : "Switch to dark mode"
-                    }
+                    aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
                   >
-                    {isDark ? (
-                      <Sun className="size-4" />
-                    ) : (
-                      <Moon className="size-4" />
-                    )}
+                    {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
                   </Button>
                 </div>
               </div>
-
               <div className="hidden items-center justify-between xl:flex">
                 <div>
                   <h1 className="font-headline text-3xl font-extrabold tracking-tight">
                     {routeMeta.title}
                   </h1>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {routeMeta.subtitle}
-                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">{routeMeta.subtitle}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="rounded-lg border border-border/40 bg-card/50 px-3 py-2">
                     <div className="flex items-center gap-2">
-                      <Activity className="size-3.5 text-accent" />
-                      <span className="terminal-label text-muted-foreground">
-                        Active Sync
+                      <Database className="size-3.5 text-accent" />
+                      <span className="font-label text-label-xs uppercase tracking-label text-muted-foreground">
+                        Storage
                       </span>
                     </div>
-                    <p className="mt-1 font-mono text-sm text-foreground">
-                      {dashboardQuery.data?.length ?? 0} leagues tracked
-                    </p>
+                    <p className="mt-1 font-mono text-sm text-foreground">Local DuckDB</p>
                   </div>
                   <div className="rounded-lg border border-border/40 bg-card/50 px-3 py-2">
-                    <span className="terminal-label text-muted-foreground">
-                      Last Snapshot
+                    <span className="font-label text-label-xs uppercase tracking-label text-muted-foreground">
+                      Execution
                     </span>
-                    <p className="mt-1 font-mono text-sm text-foreground">
-                      {latestSnapshot}
-                    </p>
+                    <p className="mt-1 font-mono text-sm text-foreground">Manual only</p>
                   </div>
                 </div>
               </div>
-
               {mobileNavOpen ? (
-                <div className="grid gap-2 border-t border-border/30 pt-4 xl:hidden">
+                <nav
+                  className="grid gap-2 border-t border-border/30 pt-4 xl:hidden"
+                  aria-label="Mobile navigation"
+                >
                   {navItems.map((item) => (
                     <button
                       key={item.id}
                       type="button"
-                      disabled={item.disabled}
                       onClick={item.action}
-                      className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left ${
-                        item.active
-                          ? "border-primary/30 bg-primary/10 text-primary"
-                          : "border-border/40 bg-card/50 text-muted-foreground"
-                      } ${item.disabled ? "cursor-not-allowed opacity-45" : ""}`}
+                      className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left ${item.active ? "border-primary/30 bg-primary/10 text-primary" : "border-border/40 bg-card/50 text-muted-foreground"}`}
                     >
                       <item.icon className="size-4" />
                       <span className="font-label text-label-sm uppercase tracking-label">
@@ -458,37 +316,31 @@ function RootLayout() {
                       </span>
                     </button>
                   ))}
-                </div>
+                </nav>
               ) : null}
             </div>
           </header>
-
           <main className="flex-1 px-5 py-6 lg:px-8 lg:py-8">
             <div className="mx-auto w-full max-w-[1600px]">
               <Outlet />
             </div>
           </main>
-
-          <footer className="glass-panel border-t border-border/40 px-5 py-3 text-label-xs uppercase tracking-label-wide text-muted-foreground lg:px-8">
+          <footer className="glass-panel border-t border-border/40 px-5 py-3 font-label text-label-xs uppercase tracking-label-wide text-muted-foreground lg:px-8">
             <div className="mx-auto flex max-w-[1600px] flex-col gap-2 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-3">
-                <span className="font-mono">Terminal status: operational</span>
-                <span className="hidden md:inline">|</span>
-                <span className="font-mono">
-                  Latest snapshot: {latestSnapshot}
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="font-mono">
-                  Leagues: {dashboardQuery.data?.length ?? 0}
-                </span>
-                <span className="hidden md:inline">|</span>
-                <span className="font-mono">{routeMeta.title}</span>
-              </div>
+              <span className="font-mono">Local-only · manual execution boundary</span>
+              <span className="font-mono">{routeMeta.title} · evidence stays attached</span>
             </div>
           </footer>
         </div>
       </div>
     </div>
+  )
+}
+
+function ArrowLeftRightIcon() {
+  return (
+    <span className="flex size-4 items-center justify-center text-sm" aria-hidden="true">
+      ↔
+    </span>
   )
 }

@@ -53,7 +53,9 @@ const server = await createServer({
 })
 
 try {
-  const { RookiePlayerCard } = await server.ssrLoadModule("/src/components/rookie/RookiePlayerCard.tsx")
+  const { RookiePlayerCard } = await server.ssrLoadModule(
+    "/src/components/rookie/RookiePlayerCard.tsx",
+  )
   const { HygieneSuggestionRow } = await server.ssrLoadModule(
     "/src/components/hygiene/HygieneSuggestionRow.tsx",
   )
@@ -63,7 +65,10 @@ try {
   assert.match(rookieMarkup, /BUY LOW/)
 
   const hygieneMarkup = renderToStaticMarkup(
-    createElement(HygieneSuggestionRow, { suggestion: hygieneSuggestion, leagueId: "league_x" }),
+    createElement(HygieneSuggestionRow, {
+      suggestion: hygieneSuggestion,
+      leagueId: "league_x",
+    }),
   )
   assert.match(hygieneMarkup, /SELL HIGH/)
   assert.match(hygieneMarkup, /Veteran WR/)

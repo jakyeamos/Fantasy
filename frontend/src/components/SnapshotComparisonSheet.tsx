@@ -44,10 +44,7 @@ export function SnapshotComparisonSheet({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/40"
-      onClick={() => onOpenChange(false)}
-    >
+    <div className="fixed inset-0 z-50 bg-black/40" onClick={() => onOpenChange(false)}>
       <div
         role="dialog"
         aria-modal="true"
@@ -64,12 +61,7 @@ export function SnapshotComparisonSheet({
               Select a snapshot anchor to see what changed.
             </p>
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-          >
+          <Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             Close
           </Button>
         </div>

@@ -39,9 +39,15 @@ export function TaxiConfigForm({ leagueId }: TaxiConfigFormProps) {
     mutationFn: (next: LeagueTaxiConfig) => saveTaxiConfig(leagueId, next),
     onSuccess: async (data) => {
       queryClient.setQueryData(["leagues", leagueId, "taxi-config"], data)
-      await queryClient.invalidateQueries({ queryKey: ["intelligence", "lineup", leagueId] })
-      await queryClient.invalidateQueries({ queryKey: ["intelligence", "hygiene", leagueId] })
-      await queryClient.invalidateQueries({ queryKey: ["leagues", leagueId, "slot-occupancy"] })
+      await queryClient.invalidateQueries({
+        queryKey: ["intelligence", "lineup", leagueId],
+      })
+      await queryClient.invalidateQueries({
+        queryKey: ["intelligence", "hygiene", leagueId],
+      })
+      await queryClient.invalidateQueries({
+        queryKey: ["leagues", leagueId, "slot-occupancy"],
+      })
       setEditing(false)
     },
   })

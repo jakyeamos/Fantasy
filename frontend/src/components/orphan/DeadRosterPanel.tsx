@@ -34,9 +34,7 @@ export function DeadRosterPanel({ suggestions }: DeadRosterPanelProps) {
             </div>
           ))
         ) : (
-          <p className="text-sm leading-6 text-muted-foreground">
-            No dead roster spots detected.
-          </p>
+          <p className="text-sm leading-6 text-muted-foreground">No dead roster spots detected.</p>
         )}
       </CardContent>
     </Card>

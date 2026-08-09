@@ -7,10 +7,7 @@ type LiquidationOptionsPanelProps = {
   plan: ActionPlan | null
 }
 
-export function LiquidationOptionsPanel({
-  intake,
-  plan,
-}: LiquidationOptionsPanelProps) {
+export function LiquidationOptionsPanel({ intake, plan }: LiquidationOptionsPanelProps) {
   const tradeItems = plan?.items.filter((item) => item.category === "trade") ?? []
 
   return (

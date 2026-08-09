@@ -8,10 +8,7 @@ type StartupDraftContextCardProps = {
   context: StartupContext
 }
 
-export function StartupDraftContextCard({
-  leagueName,
-  context,
-}: StartupDraftContextCardProps) {
+export function StartupDraftContextCard({ leagueName, context }: StartupDraftContextCardProps) {
   return (
     <Card>
       <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

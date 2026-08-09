@@ -40,7 +40,9 @@ export function WaiverPlayerRow({ recommendation }: WaiverPlayerRowProps) {
             {recommendation.team ? (
               <span className="text-xs text-muted-foreground">{recommendation.team}</span>
             ) : null}
-            {recommendation.is_immediate_start ? <Badge variant="secondary">Startable</Badge> : null}
+            {recommendation.is_immediate_start ? (
+              <Badge variant="secondary">Startable</Badge>
+            ) : null}
             {recommendation.dynasty_stash ? <Badge variant="outline">Stash</Badge> : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">

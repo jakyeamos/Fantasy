@@ -68,16 +68,10 @@ function OrphanIntakePage() {
     <div className="space-y-8">
       <OrphanIntakeStatusCard intake={intakeQuery.data} />
       <AgeCurveRiskPanel intake={intakeQuery.data} />
-      <PickCapitalPanel
-        intake={intakeQuery.data}
-        picks={pickQuery.data?.picks ?? []}
-      />
+      <PickCapitalPanel intake={intakeQuery.data} picks={pickQuery.data?.picks ?? []} />
       <DeadRosterPanel suggestions={hygieneQuery.data?.suggestions ?? []} />
       <LineupViabilityPanel lineup={lineupQuery.data ?? null} />
-      <LiquidationOptionsPanel
-        intake={intakeQuery.data}
-        plan={actionPlanQuery.data ?? null}
-      />
+      <LiquidationOptionsPanel intake={intakeQuery.data} plan={actionPlanQuery.data ?? null} />
       <ThirtyDayActionPlanCard plan={actionPlanQuery.data ?? null} />
     </div>
   )

@@ -2,11 +2,13 @@ import type { PackageBuilderResult, PackageOffer, TradeAsset } from "@/api/types
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 function renderAssets(assets: TradeAsset[]) {
-  return assets.map((asset, index) => {
-    if (asset.label) return asset.label
-    if (asset.asset_type === "player") return asset.player_id ?? `Player ${index + 1}`
-    return `${asset.pick_year} Round ${asset.pick_round}`
-  }).join(", ")
+  return assets
+    .map((asset, index) => {
+      if (asset.label) return asset.label
+      if (asset.asset_type === "player") return asset.player_id ?? `Player ${index + 1}`
+      return `${asset.pick_year} Round ${asset.pick_round}`
+    })
+    .join(", ")
 }
 
 export function PackageBuilderPanel({

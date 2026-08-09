@@ -1,11 +1,7 @@
 import type { TendencyWarning } from "@/api/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-export function TendencyWarningList({
-  warnings,
-}: {
-  warnings: TendencyWarning[]
-}) {
+export function TendencyWarningList({ warnings }: { warnings: TendencyWarning[] }) {
   if (!warnings.length) {
     return (
       <Card className="border-dashed">
@@ -13,9 +9,7 @@ export function TendencyWarningList({
           <CardTitle>League Tendencies</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            No major tendency warnings for this slot.
-          </p>
+          <p className="text-sm text-muted-foreground">No major tendency warnings for this slot.</p>
         </CardContent>
       </Card>
     )

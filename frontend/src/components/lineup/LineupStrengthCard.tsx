@@ -176,8 +176,8 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
       <CardHeader>
         <CardTitle>Lineup strength</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Slot strength and overall lineup score vs. playoff, title, and elite roster bars for
-          this league.
+          Slot strength and overall lineup score vs. playoff, title, and elite roster bars for this
+          league.
         </p>
       </CardHeader>
       <CardContent>
@@ -200,9 +200,7 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
               </Badge>
             ) : null}
             {hasEliteInsulation ? (
-              <Badge className={badgeToneClasses.success}>
-                Elite insulation
-              </Badge>
+              <Badge className={badgeToneClasses.success}>Elite insulation</Badge>
             ) : null}
           </div>
           <p className="mt-2 text-xs text-muted-foreground">{overallGapSummary(data)}</p>
@@ -219,17 +217,16 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
               Best upgrade leverage: {data.upgrade_leverage_point}
             </p>
             <p className="text-xs text-muted-foreground">
-              Est. title equity improvement: +
-              {(data.upgrade_title_equity_delta * 100).toFixed(1)}%
+              Est. title equity improvement: +{(data.upgrade_title_equity_delta * 100).toFixed(1)}%
             </p>
           </div>
         ) : null}
-	        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-	          {data.slot_scores.map((row) => {
-	            const status = tierStatus(row)
-	            const slotSummary = slotGapSummary(row)
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {data.slot_scores.map((row) => {
+            const status = tierStatus(row)
+            const slotSummary = slotGapSummary(row)
 
-	            return (
+            return (
               <div
                 key={`${row.position}-${row.player_id}`}
                 className="flex min-h-[40px] flex-col gap-1 rounded-lg border border-border/50 bg-card/40 p-3"
@@ -267,18 +264,16 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
                     <Badge variant="secondary">Below playoff target</Badge>
                   ) : null}
                   {row.below_title_target ? (
-                    <Badge className={badgeToneClasses.warning}>
-                      Below title target
-                    </Badge>
+                    <Badge className={badgeToneClasses.warning}>Below title target</Badge>
                   ) : null}
                   {row.below_elite_target ? (
                     <Badge variant="outline">Below elite target</Badge>
                   ) : null}
-	                  {hasVisibleGap(row.gap_to_title_target) ? (
-	                    <Badge className={badgeToneClasses.info}>
-	                      Title gap {row.gap_to_title_target.toFixed(2)}
-	                    </Badge>
-	                  ) : null}
+                  {hasVisibleGap(row.gap_to_title_target) ? (
+                    <Badge className={badgeToneClasses.info}>
+                      Title gap {row.gap_to_title_target.toFixed(2)}
+                    </Badge>
+                  ) : null}
                   {row.position === "TE" && row.format_urgency_weight < 1 ? (
                     <Badge variant="outline">
                       TE urgency x{row.format_urgency_weight.toFixed(1)}
@@ -294,19 +289,20 @@ export function LineupStrengthCard({ leagueId, rosterId }: LineupStrengthCardPro
                     ))}
                   </div>
                 ) : null}
-	                {data.contender_benchmark_used && slotSummary ? (
-	                  <p className="text-xs text-muted-foreground">{slotSummary}</p>
-	                ) : null}
-	                {row.player_context_flags.length === 0 &&
-	                !hasVisibleGap(row.gap_to_title_target) &&
-	                !hasVisibleGap(row.gap_to_elite_target) ? (
-	                  <p className="text-xs text-muted-foreground">
-	                    This slot is holding baseline or better without an active context warning.
-	                  </p>
+                {data.contender_benchmark_used && slotSummary ? (
+                  <p className="text-xs text-muted-foreground">{slotSummary}</p>
+                ) : null}
+                {row.player_context_flags.length === 0 &&
+                !hasVisibleGap(row.gap_to_title_target) &&
+                !hasVisibleGap(row.gap_to_elite_target) ? (
+                  <p className="text-xs text-muted-foreground">
+                    This slot is holding baseline or better without an active context warning.
+                  </p>
                 ) : null}
                 {row.player_context_flags.length > 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    Context notes: {row.player_context_flags.map((flag) => flag.replaceAll("_", " ")).join(", ")}.
+                    Context notes:{" "}
+                    {row.player_context_flags.map((flag) => flag.replaceAll("_", " ")).join(", ")}.
                   </p>
                 ) : null}
               </div>

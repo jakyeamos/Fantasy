@@ -1,1 +1,2 @@
 oversized-source frontend/src/api/types.ts - shared backend API contract file; split is out of scope for opportunity-feed CTA wiring.
+typescript-any frontend/src/routeTree.gen.ts - TanStack Router owns this generated route manifest and emits the required structural casts; application TypeScript remains subject to the normal typecheck.

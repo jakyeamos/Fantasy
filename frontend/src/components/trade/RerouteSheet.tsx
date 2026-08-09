@@ -27,18 +27,14 @@ export function RerouteSheet({
           </Button>
         </div>
         {!reroutes || reroutes.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No reroutes available for this trade.
-          </p>
+          <p className="text-sm text-muted-foreground">No reroutes available for this trade.</p>
         ) : (
           <div className="space-y-3">
             {reroutes.map((reroute, index) => (
               <Card key={`${reroute.headline}-${index}`}>
                 <CardContent className="space-y-2 p-4">
                   {reroute.target_label ? (
-                    <p className="terminal-label text-muted-foreground">
-                      {reroute.target_label}
-                    </p>
+                    <p className="terminal-label text-muted-foreground">{reroute.target_label}</p>
                   ) : null}
                   <p className="text-sm font-semibold">{reroute.headline}</p>
                   <p className="text-sm italic text-muted-foreground">{reroute.reasoning}</p>

@@ -12,12 +12,12 @@ const postureByDirection: Record<string, string> = {
   true_contender: "Bid aggressively for players who can score for you immediately.",
   fragile_contender: "Protect the starting lineup and pay for stability, not roster clutter.",
   hard_rebuild: "Keep bids disciplined and prioritize young upside stashes over short-term points.",
-  elite_value_accumulation: "Stay patient and spend only when the market gives you insulation or upside.",
+  elite_value_accumulation:
+    "Stay patient and spend only when the market gives you insulation or upside.",
 }
 
 export function WaiverIntelHeader({ directionLabel, waiver }: WaiverIntelHeaderProps) {
-  const budgetLabel =
-    waiver.remaining_faab === null ? "—" : `$${waiver.remaining_faab.toFixed(0)}`
+  const budgetLabel = waiver.remaining_faab === null ? "—" : `$${waiver.remaining_faab.toFixed(0)}`
   const posture =
     postureByDirection[directionLabel] ??
     "Let direction drive aggression: pay for immediate starters, not empty depth."

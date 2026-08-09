@@ -8,10 +8,7 @@ type WaiverPlayerListProps = {
   dataFreshnessWarning: boolean
 }
 
-export function WaiverPlayerList({
-  recommendations,
-  dataFreshnessWarning,
-}: WaiverPlayerListProps) {
+export function WaiverPlayerList({ recommendations, dataFreshnessWarning }: WaiverPlayerListProps) {
   if (!recommendations.length) {
     return (
       <Card className="border-dashed border-border/45">
@@ -21,9 +18,9 @@ export function WaiverPlayerList({
         </CardHeader>
         <CardContent>
           <p className="text-sm leading-6 text-muted-foreground">
-            The engine found no add/drop moves worth forcing. This can mean every
-            available player is below the bench threshold, league waiver data has
-            not been ingested, or the selected roster has no safe drop candidate.
+            The engine found no add/drop moves worth forcing. This can mean every available player
+            is below the bench threshold, league waiver data has not been ingested, or the selected
+            roster has no safe drop candidate.
           </p>
         </CardContent>
       </Card>
@@ -38,16 +35,15 @@ export function WaiverPlayerList({
       </CardHeader>
       <CardContent>
         {dataFreshnessWarning ? (
-          <div className={`mb-4 rounded border px-3 py-2 text-sm ${surfaceToneClasses.attention} ${textToneClasses.attention}`}>
+          <div
+            className={`mb-4 rounded border px-3 py-2 text-sm ${surfaceToneClasses.attention} ${textToneClasses.attention}`}
+          >
             Waiver data may be stale. Re-run ingest for accurate FAAB budgets.
           </div>
         ) : null}
         <div className="divide-y divide-border/40">
           {recommendations.map((recommendation) => (
-            <WaiverPlayerRow
-              key={recommendation.player_id}
-              recommendation={recommendation}
-            />
+            <WaiverPlayerRow key={recommendation.player_id} recommendation={recommendation} />
           ))}
         </div>
       </CardContent>

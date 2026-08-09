@@ -60,9 +60,7 @@ export function WeeklyEdgePanel({
   const topStartSit = query.data.start_sit[0] ?? null
   const topGap = query.data.lineup_gaps[0] ?? null
   const topStartSignal = topStartSit
-    ? query.data.player_signals.find(
-        (signal) => signal.player_id === topStartSit.start_player_id,
-      )
+    ? query.data.player_signals.find((signal) => signal.player_id === topStartSit.start_player_id)
     : null
   const startSitFocused =
     focus === "weekly" &&
@@ -77,7 +75,10 @@ export function WeeklyEdgePanel({
   const isFocused = startSitFocused || gapFocused
 
   return (
-    <Card id="weekly-edge" className={cn("border-primary/25", isFocused && "ring-2 ring-primary/55")}>
+    <Card
+      id="weekly-edge"
+      className={cn("border-primary/25", isFocused && "ring-2 ring-primary/55")}
+    >
       <CardHeader className="space-y-2">
         <p className="terminal-label text-primary/85">Weekly Edge</p>
         <CardTitle>Start, sit, and lineup pressure</CardTitle>
@@ -87,7 +88,9 @@ export function WeeklyEdgePanel({
           </div>
         ) : null}
         {query.data.stale_domains.length ? (
-          <div className={`flex flex-wrap items-center gap-2 rounded border px-3 py-2 text-xs ${surfaceToneClasses.attention} ${textToneClasses.attention}`}>
+          <div
+            className={`flex flex-wrap items-center gap-2 rounded border px-3 py-2 text-xs ${surfaceToneClasses.attention} ${textToneClasses.attention}`}
+          >
             <AlertTriangle className="size-3.5" />
             Refresh {query.data.stale_domains.join(", ")} before treating this as final.
           </div>
@@ -106,25 +109,15 @@ export function WeeklyEdgePanel({
               <Badge variant={confidenceVariant(topStartSit.confidence)}>
                 {topStartSit.confidence}
               </Badge>
-              <span className="terminal-label text-muted-foreground">
-                Start/Sit
-              </span>
+              <span className="terminal-label text-muted-foreground">Start/Sit</span>
             </div>
-            <p className="mt-3 text-sm font-semibold">
-              {topStartSit.recommendation}
-            </p>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              {topStartSit.why_now}
-            </p>
+            <p className="mt-3 text-sm font-semibold">{topStartSit.recommendation}</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">{topStartSit.why_now}</p>
             {topStartSit.stale_domains.length ? null : topStartSignal?.usage_note ? (
-              <p className="mt-2 text-xs text-muted-foreground">
-                {topStartSignal.usage_note}
-              </p>
+              <p className="mt-2 text-xs text-muted-foreground">{topStartSignal.usage_note}</p>
             ) : null}
             {topStartSignal?.role_note ? (
-              <p className="mt-2 text-xs text-muted-foreground">
-                {topStartSignal.role_note}
-              </p>
+              <p className="mt-2 text-xs text-muted-foreground">{topStartSignal.role_note}</p>
             ) : null}
             {topStartSignal?.bye_week_warning ? (
               <p className={`mt-2 text-xs ${textToneClasses.attention}`}>
@@ -139,8 +132,8 @@ export function WeeklyEdgePanel({
           <div className="rounded-lg border border-border/45 bg-card/45 p-4">
             <p className="terminal-label text-muted-foreground">Start/Sit</p>
             <p className="mt-3 text-sm text-muted-foreground">
-              No bench player currently clears the swap threshold from recent
-              production and opportunity.
+              No bench player currently clears the swap threshold from recent production and
+              opportunity.
             </p>
           </div>
         )}
@@ -153,19 +146,11 @@ export function WeeklyEdgePanel({
             )}
           >
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant={confidenceVariant(topGap.confidence)}>
-                {topGap.confidence}
-              </Badge>
-              <span className="terminal-label text-muted-foreground">
-                Lineup Gap
-              </span>
+              <Badge variant={confidenceVariant(topGap.confidence)}>{topGap.confidence}</Badge>
+              <span className="terminal-label text-muted-foreground">Lineup Gap</span>
             </div>
-            <p className="mt-3 text-sm font-semibold">
-              {topGap.recommended_action}
-            </p>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              {topGap.why_now}
-            </p>
+            <p className="mt-3 text-sm font-semibold">{topGap.recommended_action}</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">{topGap.why_now}</p>
           </div>
         ) : (
           <div className="rounded-lg border border-border/45 bg-card/45 p-4">

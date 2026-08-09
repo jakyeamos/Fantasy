@@ -48,7 +48,9 @@ export function AssetChip({
             ×
           </Button>
         </div>
-        {!isBlocked ? <p className="text-xs text-muted-foreground">{pickValue.timing_reasoning}</p> : null}
+        {!isBlocked ? (
+          <p className="text-xs text-muted-foreground">{pickValue.timing_reasoning}</p>
+        ) : null}
         <RuleCitation citation={pickValue.rule_citation} leagueId={leagueId} />
       </div>
     )

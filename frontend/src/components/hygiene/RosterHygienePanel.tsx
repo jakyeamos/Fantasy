@@ -89,8 +89,8 @@ export function RosterHygienePanel({ leagueId, rosterId }: RosterHygienePanelPro
           <>
             <p className="text-sm font-medium">Roster Looks Clean</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              No roster triage, package, or taxi suggestions are active right now. Check back
-              after the next ingest.
+              No roster triage, package, or taxi suggestions are active right now. Check back after
+              the next ingest.
             </p>
           </>
         ) : (

@@ -29,3 +29,5 @@ outputs/
 !.agents/context/
 .agents/context/*
 !.agents/context/*.md
+# Ephemeral public-page bodies for Fresh Intelligence (7-day local cache)
+data/cache/intelligence/

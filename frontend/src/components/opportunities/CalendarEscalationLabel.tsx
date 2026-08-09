@@ -1,10 +1,6 @@
 import { CalendarClock } from "lucide-react"
 
-export function CalendarEscalationLabel({
-  label,
-}: {
-  label: string | null
-}) {
+export function CalendarEscalationLabel({ label }: { label: string | null }) {
   if (!label) {
     return null
   }

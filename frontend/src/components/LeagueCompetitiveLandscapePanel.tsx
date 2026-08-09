@@ -60,12 +60,11 @@ function buildLineupPlan(lineup: LineupResult | null): LineupPlanItem[] {
     return []
   }
 
-  const urgentSlot = [...lineup.slot_scores]
-    .sort(
-      (left, right) =>
-        right.gap_to_title_target - left.gap_to_title_target ||
-        right.upgrade_leverage_score - left.upgrade_leverage_score,
-    )[0]
+  const urgentSlot = [...lineup.slot_scores].sort(
+    (left, right) =>
+      right.gap_to_title_target - left.gap_to_title_target ||
+      right.upgrade_leverage_score - left.upgrade_leverage_score,
+  )[0]
 
   const leverageSlot = [...lineup.slot_scores]
     .sort(
@@ -79,7 +78,7 @@ function buildLineupPlan(lineup: LineupResult | null): LineupPlanItem[] {
   const anchorSlot = [...lineup.slot_scores]
     .sort(
       (left, right) =>
-        (right.score - right.title_target) - (left.score - left.title_target) ||
+        right.score - right.title_target - (left.score - left.title_target) ||
         right.score - left.score,
     )
     .find(
@@ -265,8 +264,8 @@ export function LeagueCompetitiveLandscapePanel({
             <CardHeader>
               <CardTitle>Head-to-Head Outlook</CardTitle>
               <p className="mt-2 text-sm text-muted-foreground">
-                Model-based matchup reads from title-window strength, ceiling, stability, and
-                depth. These are opponent comparisons, not schedule assumptions.
+                Model-based matchup reads from title-window strength, ceiling, stability, and depth.
+                These are opponent comparisons, not schedule assumptions.
               </p>
             </CardHeader>
             <CardContent className="space-y-4">

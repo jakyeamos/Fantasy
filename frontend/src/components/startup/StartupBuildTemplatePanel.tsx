@@ -36,9 +36,7 @@ const templateSections = [
   },
 ] as const
 
-export function StartupBuildTemplatePanel({
-  buildTemplate,
-}: StartupBuildTemplatePanelProps) {
+export function StartupBuildTemplatePanel({ buildTemplate }: StartupBuildTemplatePanelProps) {
   return (
     <Card>
       <CardHeader>

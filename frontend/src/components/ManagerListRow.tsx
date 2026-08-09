@@ -33,12 +33,9 @@ export function ManagerListRow({
                 <p className="mt-2 text-sm font-semibold">{summary.manager_name}</p>
               </div>
               {summary.direction_label ? (
-                <Badge variant="secondary">
-                  {formatModelLabel(summary.direction_label)}
-                </Badge>
+                <Badge variant="secondary">{formatModelLabel(summary.direction_label)}</Badge>
               ) : null}
-              {summary.pick_premium_score !== null &&
-              summary.pick_premium_score !== undefined ? (
+              {summary.pick_premium_score !== null && summary.pick_premium_score !== undefined ? (
                 <Badge variant="default">Picks Buyer</Badge>
               ) : null}
             </div>
@@ -54,10 +51,7 @@ export function ManagerListRow({
                 {summary.exploitability_score.toFixed(0)}
               </span>{" "}
               | {summary.evidence_count} trades
-              <Badge
-                className="ml-2"
-                variant={summary.low_confidence ? "outline" : "secondary"}
-              >
+              <Badge className="ml-2" variant={summary.low_confidence ? "outline" : "secondary"}>
                 {confidenceLabel}
               </Badge>
             </div>

@@ -23,9 +23,7 @@ function Column({
       </CardHeader>
       <CardContent>
         {items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No actionable movers since last ingest.
-          </p>
+          <p className="text-sm text-muted-foreground">No actionable movers since last ingest.</p>
         ) : (
           <div className="space-y-3">
             {items.map((item) => (

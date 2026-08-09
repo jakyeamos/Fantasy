@@ -7,10 +7,7 @@ import type {
 } from "@/api/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  AssetBucketPanel,
-  RosterField,
-} from "@/components/trade/TradeBuilderFields"
+import { AssetBucketPanel, RosterField } from "@/components/trade/TradeBuilderFields"
 import type { AssetBucket, QueryTarget } from "@/lib/tradeAssetSearch"
 import type { ThirdPartyTradeDraft } from "@/lib/tradeRouteHelpers"
 
@@ -38,34 +35,34 @@ export function SuggestedOfferStartCard({
       <CardContent className="space-y-3 text-sm leading-6 text-muted-foreground">
         {prefilledSendAsset || prefilledReceiveAsset ? (
           <p>
-            This command-center offer is queued with a concrete send and receive
-            side. Evaluate the score before sending, then adjust the balancing
-            asset if the counterparty needs a cleaner close.
+            This command-center offer is queued with a concrete send and receive side. Evaluate the
+            score before sending, then adjust the balancing asset if the counterparty needs a
+            cleaner close.
           </p>
         ) : prefilledPlayerAsset ? (
           <p>
-            The recommendation target is queued as your receive side once the
-            roster context resolves. Start with a fair-value liquid asset or a
-            tier-down plus a pick, then evaluate before sending.
+            The recommendation target is queued as your receive side once the roster context
+            resolves. Start with a fair-value liquid asset or a tier-down plus a pick, then evaluate
+            before sending.
           </p>
         ) : (
           <p>
-            Open a command-center or opportunity CTA for a prefilled target, or
-            select a counterparty and add a player you want to receive.
+            Open a command-center or opportunity CTA for a prefilled target, or select a
+            counterparty and add a player you want to receive.
           </p>
         )}
         <div className="grid gap-2 md:grid-cols-3">
           <p>
-            <span className="font-semibold text-foreground">Send shape:</span>{" "}
-            liquid player, pick, or tier-down package.
+            <span className="font-semibold text-foreground">Send shape:</span> liquid player, pick,
+            or tier-down package.
           </p>
           <p>
-            <span className="font-semibold text-foreground">Receive shape:</span>{" "}
-            target player plus optional balancing asset.
+            <span className="font-semibold text-foreground">Receive shape:</span> target player plus
+            optional balancing asset.
           </p>
           <p>
-            <span className="font-semibold text-foreground">Pitch angle:</span>{" "}
-            solve the other manager&apos;s roster need, not your model score.
+            <span className="font-semibold text-foreground">Pitch angle:</span> solve the other
+            manager&apos;s roster need, not your model score.
           </p>
         </div>
       </CardContent>
@@ -176,11 +173,7 @@ export function ThirdPartyTradeCards({
           return (
             <Card
               key={trade.clientId}
-              className={
-                isActiveTrade
-                  ? "border-warning/70"
-                  : "border-dashed border-border/45"
-              }
+              className={isActiveTrade ? "border-warning/70" : "border-dashed border-border/45"}
             >
               <CardHeader className="flex flex-row items-start justify-between gap-4">
                 <div className="space-y-1">
@@ -190,8 +183,8 @@ export function ThirdPartyTradeCards({
                       : `Third Team ${index + 1}`}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Score this participant&apos;s send and receive leg for package and
-                    reroute explanations.
+                    Score this participant&apos;s send and receive leg for package and reroute
+                    explanations.
                   </p>
                 </div>
                 <Button size="sm" variant="ghost" onClick={() => onRemoveTrade(trade.clientId)}>
@@ -234,9 +227,7 @@ export function ThirdPartyTradeCards({
                         bucket: "send",
                       })
                     }
-                    onRemove={(assetIndex) =>
-                      onRemoveAsset(trade.clientId, "send", assetIndex)
-                    }
+                    onRemove={(assetIndex) => onRemoveAsset(trade.clientId, "send", assetIndex)}
                   />
                   <AssetBucketPanel
                     title="Team Receives"
@@ -257,9 +248,7 @@ export function ThirdPartyTradeCards({
                         bucket: "receive",
                       })
                     }
-                    onRemove={(assetIndex) =>
-                      onRemoveAsset(trade.clientId, "receive", assetIndex)
-                    }
+                    onRemove={(assetIndex) => onRemoveAsset(trade.clientId, "receive", assetIndex)}
                   />
                 </div>
               </CardContent>
@@ -356,7 +345,10 @@ export function TradeAssetSearchCard({
           <p className="text-sm text-muted-foreground">No players matched this target.</p>
         ) : null}
 
-        {activeRosterId && playerSearchSuccess && trimmedQuery.length === 0 && !playerResults?.length ? (
+        {activeRosterId &&
+        playerSearchSuccess &&
+        trimmedQuery.length === 0 &&
+        !playerResults?.length ? (
           <p className="text-sm text-muted-foreground">
             No roster players were available for this team.
           </p>

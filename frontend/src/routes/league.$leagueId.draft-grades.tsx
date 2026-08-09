@@ -28,15 +28,7 @@ function gradeTone(score: number): string {
   return "text-destructive"
 }
 
-function SummaryCard({
-  label,
-  title,
-  detail,
-}: {
-  label: string
-  title: string
-  detail: string
-}) {
+function SummaryCard({ label, title, detail }: { label: string; title: string; detail: string }) {
   return (
     <div className="rounded-xl border border-border/40 bg-card/45 p-4">
       <p className="terminal-label text-muted-foreground">{label}</p>
@@ -70,8 +62,8 @@ function SelectionRow({
         <div>
           <p className="font-semibold">{selection.player_name}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {selection.roster_name} · {selection.position ?? "UNK"} ·{" "}
-            {selection.season} {selection.draft_type}
+            {selection.roster_name} · {selection.position ?? "UNK"} · {selection.season}{" "}
+            {selection.draft_type}
           </p>
         </div>
         <Badge variant="outline">Round {selection.round_number}</Badge>
@@ -93,12 +85,8 @@ function SelectionRow({
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{selection.rationale}</p>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">
-                Current {selection.current_value.toFixed(2)}
-              </Badge>
-              <Badge variant="outline">
-                Slot baseline {selection.expected_value.toFixed(2)}
-              </Badge>
+              <Badge variant="outline">Current {selection.current_value.toFixed(2)}</Badge>
+              <Badge variant="outline">Slot baseline {selection.expected_value.toFixed(2)}</Badge>
               <Badge variant="outline">Rank delta {selection.rank_delta}</Badge>
             </div>
           </div>
@@ -175,8 +163,8 @@ function LeagueDraftGradesPage() {
           <p className="terminal-label text-primary/85">League Draft Gradebook</p>
           <CardTitle className="mt-2 text-3xl">Draft Grades</CardTitle>
           <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-            Rookie and startup selections graded by current replay value, slot baseline,
-            roster fit, and historical snapshot coverage where available.
+            Rookie and startup selections graded by current replay value, slot baseline, roster fit,
+            and historical snapshot coverage where available.
           </p>
         </CardHeader>
         <CardContent className="space-y-5">

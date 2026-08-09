@@ -67,9 +67,7 @@ export function FormatWarningBanner({ leagueId }: { leagueId: string }) {
     (entry) => entry.support_level === "unsupported",
   )
   const partialEntries = scanQuery.data.entries.filter(
-    (entry) =>
-      entry.support_level === "partially_supported" &&
-      entry.distorts_recommendations,
+    (entry) => entry.support_level === "partially_supported" && entry.distorts_recommendations,
   )
 
   if (unsupportedEntries.length > 0) {
@@ -119,8 +117,8 @@ export function FormatWarningBanner({ leagueId }: { leagueId: string }) {
           <div className="space-y-1">
             <p className="terminal-label text-primary/85">Partially supported league rules</p>
             <p className="text-sm text-muted-foreground">
-              This league uses format settings that can distort confidence. Review the flagged
-              rules before relying on lineup, trade, or roster recommendations.
+              This league uses format settings that can distort confidence. Review the flagged rules
+              before relying on lineup, trade, or roster recommendations.
             </p>
           </div>
           <RuleList
@@ -137,9 +135,7 @@ export function FormatWarningBanner({ leagueId }: { leagueId: string }) {
               {acknowledgeMutation.isPending ? "Saving..." : "I understand, continue"}
             </Button>
             {acknowledgeMutation.isError ? (
-              <p className="text-sm text-destructive">
-                Failed to persist the acknowledgment.
-              </p>
+              <p className="text-sm text-destructive">Failed to persist the acknowledgment.</p>
             ) : null}
           </div>
         </div>

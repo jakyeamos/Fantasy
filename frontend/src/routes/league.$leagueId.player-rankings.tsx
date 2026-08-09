@@ -105,7 +105,9 @@ function PlayerRankingsPage() {
     )
   }
 
-  const topOwnedCount = rankings.filter((player) => player.is_user_roster && player.rank <= 48).length
+  const topOwnedCount = rankings.filter(
+    (player) => player.is_user_roster && player.rank <= 48,
+  ).length
   const topTierCount = rankings.filter((player) => player.tier === 1).length
   const activeUserRosterId = requestedRosterId ?? league.user_roster_id
   const renderedRankings = visibleRankings.slice(0, MAX_RENDERED_RANKINGS)
@@ -121,12 +123,13 @@ function PlayerRankingsPage() {
               <CardTitle className="text-3xl">Dynasty rankings with live ownership</CardTitle>
               <p className="text-sm leading-6 text-muted-foreground">
                 Ranked board for {league.league_name}. Values blend market lens, production,
-                insulation, and roster-direction fit; each row shows who owns the player in this league.
+                insulation, and roster-direction fit; each row shows who owns the player in this
+                league.
               </p>
               <p className="text-xs text-muted-foreground">
                 Showing {renderedRankings.length.toLocaleString()} of{" "}
-                {visibleRankings.length.toLocaleString()} matching players. Search or filter to narrow
-                the board.
+                {visibleRankings.length.toLocaleString()} matching players. Search or filter to
+                narrow the board.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:min-w-[320px]">
@@ -213,7 +216,10 @@ function PlayerRankingsPage() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate font-headline text-lg font-bold">{player.player_name}</p>
-                    <Badge>{player.position}{player.position_rank}</Badge>
+                    <Badge>
+                      {player.position}
+                      {player.position_rank}
+                    </Badge>
                     {player.team ? <Badge variant="outline">{player.team}</Badge> : null}
                     {player.age !== null ? <Badge variant="outline">Age {player.age}</Badge> : null}
                   </div>
@@ -287,8 +293,8 @@ function PlayerRankingsPage() {
           </div>
           {hiddenRankingCount > 0 ? (
             <div className="border-t border-border/45 p-5 text-sm text-muted-foreground">
-              {hiddenRankingCount.toLocaleString()} more players are available. Use search, position,
-              or ownership filters to narrow the board.
+              {hiddenRankingCount.toLocaleString()} more players are available. Use search,
+              position, or ownership filters to narrow the board.
             </div>
           ) : null}
           {visibleRankings.length === 0 ? (

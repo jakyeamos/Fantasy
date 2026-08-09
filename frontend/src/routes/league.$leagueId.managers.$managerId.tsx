@@ -19,12 +19,7 @@ export const Route = createFileRoute("/league/$leagueId/managers/$managerId")({
   component: ManagerDossierPlaceholderPage,
 })
 
-type DossierTab =
-  | "overview"
-  | "profile"
-  | "trade-history"
-  | "pitch-angles"
-  | "draft-picks"
+type DossierTab = "overview" | "profile" | "trade-history" | "pitch-angles" | "draft-picks"
 
 function ManagerDossierPlaceholderPage() {
   const { leagueId, managerId } = Route.useParams()
@@ -42,9 +37,7 @@ function ManagerDossierPlaceholderPage() {
 
   if (profileQuery.isError || !profileQuery.data) {
     return (
-      <p className="text-sm text-muted-foreground">
-        Manager dossier unavailable. Try refreshing.
-      </p>
+      <p className="text-sm text-muted-foreground">Manager dossier unavailable. Try refreshing.</p>
     )
   }
 
@@ -63,14 +56,14 @@ function ManagerDossierPlaceholderPage() {
                 </CardTitle>
               </div>
               {profile.direction_label ? (
-                <Badge variant="secondary">
-                  {formatModelLabel(profile.direction_label)}
-                </Badge>
+                <Badge variant="secondary">{formatModelLabel(profile.direction_label)}</Badge>
               ) : null}
             </div>
             <div
               className={`rounded-xl border px-4 py-3 text-sm ${
-                profile.low_confidence ? "opacity-75 text-muted-foreground" : "text-muted-foreground"
+                profile.low_confidence
+                  ? "opacity-75 text-muted-foreground"
+                  : "text-muted-foreground"
               }`}
             >
               <span className="terminal-label">Exploitability</span>{" "}
@@ -94,11 +87,7 @@ function ManagerDossierPlaceholderPage() {
             >
               Back to Managers
             </Link>
-            <Link
-              to="/trades"
-              search={{ leagueId }}
-              className={buttonClasses({})}
-            >
+            <Link to="/trades" search={{ leagueId }} className={buttonClasses({})}>
               Evaluate Trade
             </Link>
           </div>
@@ -109,7 +98,8 @@ function ManagerDossierPlaceholderPage() {
         <div className="rounded-xl border border-destructive/25 bg-destructive/10 p-4 text-destructive">
           <p className="terminal-label">Low confidence</p>
           <p className="mt-2 text-sm">
-            Based on {profile.evidence_count} trades (minimum 10 for reliable profiling). Treat all conclusions with skepticism.
+            Based on {profile.evidence_count} trades (minimum 10 for reliable profiling). Treat all
+            conclusions with skepticism.
           </p>
         </div>
       ) : null}
@@ -134,12 +124,8 @@ function ManagerDossierPlaceholderPage() {
 
       {tab === "overview" ? <DossierOverviewTab profile={profile} /> : null}
       {tab === "profile" ? <DossierProfileTab profile={profile} /> : null}
-      {tab === "trade-history" ? (
-        <DossierTradeHistoryTab trades={profile.trade_history} />
-      ) : null}
-      {tab === "pitch-angles" ? (
-        <DossierPitchAnglesTab pitchAngles={profile.pitch_angles} />
-      ) : null}
+      {tab === "trade-history" ? <DossierTradeHistoryTab trades={profile.trade_history} /> : null}
+      {tab === "pitch-angles" ? <DossierPitchAnglesTab pitchAngles={profile.pitch_angles} /> : null}
       {tab === "draft-picks" ? (
         <DossierDraftPicksTab
           pickPremiumScore={profile.pick_premium_score ?? null}

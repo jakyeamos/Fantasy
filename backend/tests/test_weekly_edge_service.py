@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 
+from fantasy.context.context_repo import ContextRepo
+from fantasy.context.freshness_service import FreshnessService
 from fantasy.weekly.public_context import (
     WeeklyPublicContextService,
     ensure_weekly_context_schema,
@@ -302,7 +304,17 @@ def test_weekly_context_refresh_marks_public_domains(db, monkeypatch):
     result = service.refresh("weekly_refresh", 2026)
 
     assert result.schedule_rows == 1
-    assert set(result.refreshed_domains) == {"schedule", "injuries", "stats", "usage"}
+    assert set(result.refreshed_domains) == {"schedule", "stats"}
+    tags = {
+        tag.domain: tag
+        for tag in FreshnessService(ContextRepo(db)).get_tags(
+            "weekly_refresh", ["schedule", "stats", "injuries", "usage"]
+        )
+    }
+    assert tags["schedule"].is_stale is False
+    assert tags["stats"].is_stale is False
+    assert tags["injuries"].is_stale is True
+    assert tags["usage"].is_stale is True
     row = db.execute(
         "SELECT opponent FROM team_schedule_weekly WHERE team = 'BUF'"
     ).fetchone()

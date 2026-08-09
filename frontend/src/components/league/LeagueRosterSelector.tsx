@@ -1,8 +1,7 @@
 import type { LeagueRosterOption } from "@/api/types"
 
 function optionLabel(option: LeagueRosterOption) {
-  const managerLabel =
-    option.owner_display_name ?? option.owner_id ?? `Roster ${option.roster_id}`
+  const managerLabel = option.owner_display_name ?? option.owner_id ?? `Roster ${option.roster_id}`
   const record =
     option.ties > 0
       ? `${option.wins}-${option.losses}-${option.ties}`

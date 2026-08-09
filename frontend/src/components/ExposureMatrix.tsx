@@ -13,24 +13,12 @@ interface LeagueColumn {
 
 function ConcentrationBadge({ count }: { count: number }) {
   if (count >= 3) {
-    return (
-      <Badge className={badgeToneClasses.destructive}>
-        {count} leagues
-      </Badge>
-    )
+    return <Badge className={badgeToneClasses.destructive}>{count} leagues</Badge>
   }
   if (count === 2) {
-    return (
-      <Badge className={badgeToneClasses.warning}>
-        2 leagues
-      </Badge>
-    )
+    return <Badge className={badgeToneClasses.warning}>2 leagues</Badge>
   }
-  return (
-    <Badge className="bg-muted text-muted-foreground">
-      1 league
-    </Badge>
-  )
+  return <Badge className="bg-muted text-muted-foreground">1 league</Badge>
 }
 
 function sortExposureRows(rows: ExposureRow[]) {
@@ -103,9 +91,7 @@ export function ExposureMatrix({
                 className="px-3 py-3 text-center text-xs font-normal text-muted-foreground"
                 title={column.leagueName}
               >
-                <span className="block max-w-[8rem] truncate">
-                  {column.leagueName}
-                </span>
+                <span className="block max-w-[8rem] truncate">{column.leagueName}</span>
               </th>
             ))}
             <th className="px-3 py-3 text-left text-xs font-normal text-muted-foreground">
@@ -141,18 +127,22 @@ export function ExposureMatrix({
               <td className="px-3 py-3 align-top">
                 <div className="space-y-1">
                   <ConcentrationBadge count={row.league_count} />
-                  <Badge variant={row.urgency === "sell" ? "default" : row.urgency === "hedge" ? "secondary" : "outline"}>
+                  <Badge
+                    variant={
+                      row.urgency === "sell"
+                        ? "default"
+                        : row.urgency === "hedge"
+                          ? "secondary"
+                          : "outline"
+                    }
+                  >
                     {row.urgency}
                   </Badge>
                   {row.hedge_rec ? (
-                    <p className="text-xs italic text-muted-foreground">
-                      {row.hedge_rec}
-                    </p>
+                    <p className="text-xs italic text-muted-foreground">{row.hedge_rec}</p>
                   ) : null}
                   {row.urgency_reason ? (
-                    <p className="text-xs text-muted-foreground">
-                      {row.urgency_reason}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{row.urgency_reason}</p>
                   ) : null}
                 </div>
               </td>

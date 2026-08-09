@@ -47,11 +47,7 @@ function formatFreshnessLabel(tag: FreshnessTag): string {
   return tag.domain.replaceAll("_", " ")
 }
 
-function CommandSummary({
-  dataHealth,
-}: {
-  dataHealth: FreshnessTag[]
-}) {
+function CommandSummary({ dataHealth }: { dataHealth: FreshnessTag[] }) {
   const staleDomains = dataHealth.filter((tag) => tag.is_stale)
 
   if (!staleDomains.length) return null
@@ -60,7 +56,8 @@ function CommandSummary({
     <div className="flex flex-wrap items-center gap-2 rounded border border-border/45 bg-card/35 px-3 py-2 text-xs">
       <div className="flex items-center gap-2 pr-2 font-semibold text-foreground">
         <AlertTriangle className={`size-4 ${textToneClasses.attention}`} />
-        {staleDomains.length} stale data lane{staleDomains.length === 1 ? "" : "s"}
+        {staleDomains.length} stale data lane
+        {staleDomains.length === 1 ? "" : "s"}
       </div>
       {staleDomains.slice(0, 3).map((tag) => (
         <Badge key={tag.domain} variant="outline">
@@ -98,8 +95,7 @@ function RefreshAllButton({
           setError(null)
           const run = hasRefreshActions
             ? actions.reduce(
-                (chain, action) =>
-                  chain.then(() => postJson<unknown>(action.endpoint, {})),
+                (chain, action) => chain.then(() => postJson<unknown>(action.endpoint, {})),
                 Promise.resolve<unknown>(undefined),
               )
             : recomputeActions()
@@ -110,16 +106,10 @@ function RefreshAllButton({
         }}
       >
         <RefreshCcw className={`size-3.5 ${isRunning ? "animate-spin" : ""}`} />
-        {isRunning
-          ? "Refreshing..."
-          : hasRefreshActions
-            ? "Refresh stale data"
-            : "Recompute moves"}
+        {isRunning ? "Refreshing..." : hasRefreshActions ? "Refresh stale data" : "Recompute moves"}
       </button>
       {hasRefreshActions ? (
-        <span className="text-xs text-muted-foreground">
-          {actions.length} queued refreshes
-        </span>
+        <span className="text-xs text-muted-foreground">{actions.length} queued refreshes</span>
       ) : null}
       {error ? <span className="text-xs text-destructive">{error}</span> : null}
     </div>
@@ -168,12 +158,10 @@ function CommandCard({ action }: { action: CommandAction }) {
                 {action.acceptable_price}
               </p>
               <p>
-                <span className="font-semibold text-foreground">Timing:</span>{" "}
-                {action.timing}
+                <span className="font-semibold text-foreground">Timing:</span> {action.timing}
               </p>
               <p>
-                <span className="font-semibold text-foreground">Why now:</span>{" "}
-                {action.why_now}
+                <span className="font-semibold text-foreground">Why now:</span> {action.why_now}
               </p>
               <p>
                 <span className="font-semibold text-foreground">Wrong if:</span>{" "}
@@ -190,7 +178,9 @@ function CommandCard({ action }: { action: CommandAction }) {
               </div>
             ) : null}
             {action.stale_domains.length ? (
-              <div className={`flex items-center gap-2 rounded border px-3 py-2 text-xs ${surfaceToneClasses.attention} ${textToneClasses.attention}`}>
+              <div
+                className={`flex items-center gap-2 rounded border px-3 py-2 text-xs ${surfaceToneClasses.attention} ${textToneClasses.attention}`}
+              >
                 <AlertTriangle className="size-3.5 shrink-0" />
                 {staleSimilarEvidenceDomains.length
                   ? `Refresh similar-player evidence (${staleSimilarEvidenceDomains.join(", ")}) before locking this in.`
@@ -287,9 +277,7 @@ export function CommandCenter() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-3xl space-y-2">
           <p className="terminal-label text-primary/85">Command Center</p>
-          <h2 className="font-headline text-3xl font-extrabold tracking-tight">
-            Top moves today
-          </h2>
+          <h2 className="font-headline text-3xl font-extrabold tracking-tight">Top moves today</h2>
           <p className="text-sm leading-6 text-muted-foreground">
             The highest-priority action queue for {selectedLeague?.league_name ?? "this league"}.
           </p>
@@ -318,10 +306,7 @@ export function CommandCenter() {
               ))}
             </select>
           </label>
-          <RefreshAllButton
-            actions={refreshActions}
-            onComplete={() => query.refetch()}
-          />
+          <RefreshAllButton actions={refreshActions} onComplete={() => query.refetch()} />
         </div>
       </div>
       <CommandSummary dataHealth={dataHealth} />
@@ -333,8 +318,8 @@ export function CommandCenter() {
               Command Center Unavailable
             </p>
             <p className="text-sm text-muted-foreground">
-              The backend could not rank actions. Use league pages while checking
-              the local server logs.
+              The backend could not rank actions. Use league pages while checking the local server
+              logs.
             </p>
           </CardContent>
         </Card>
@@ -351,8 +336,8 @@ export function CommandCenter() {
               No Ranked Moves for {selectedLeague?.league_name ?? "This League"}
             </p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Run recompute after a fresh ingest, or include start/sit if you want
-              lineup-only actions in this view.
+              Run recompute after a fresh ingest, or include start/sit if you want lineup-only
+              actions in this view.
             </p>
           </CardContent>
         </Card>

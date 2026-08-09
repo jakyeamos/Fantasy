@@ -1,12 +1,7 @@
 import { useEffect, useState } from "react"
 
 import { useQuery } from "@tanstack/react-query"
-import {
-  Link,
-  Outlet,
-  createFileRoute,
-  useLocation,
-} from "@tanstack/react-router"
+import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router"
 
 import {
   calendarContextOptions,
@@ -17,11 +12,7 @@ import {
 import { LeagueOverviewPanels } from "@/components/league/LeagueOverviewPanels"
 import { LeagueRosterSelector } from "@/components/league/LeagueRosterSelector"
 import { CalendarStateBadge } from "@/components/context/CalendarStateBadge"
-import {
-  DirectionReadPopover,
-  HoverTrigger,
-  Popout,
-} from "@/components/DirectionReadPopover"
+import { DirectionReadPopover, HoverTrigger, Popout } from "@/components/DirectionReadPopover"
 import { LineupStrengthCard } from "@/components/lineup/LineupStrengthCard"
 import { WeeklyEdgePanel } from "@/components/weekly/WeeklyEdgePanel"
 import { SnapshotStatus } from "@/components/SnapshotStatus"
@@ -30,6 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button, buttonClasses } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { LeagueBriefingNarrative } from "@/v2/components/LeagueBriefingNarrative"
 import {
   LeagueRosterSelectionProvider,
   persistStoredLeagueRosterId,
@@ -45,18 +37,14 @@ export const Route = createFileRoute("/league/$leagueId")({
           ? Number(search.rosterId) || undefined
           : undefined,
     focus: search.focus === "weekly" ? "weekly" : undefined,
-    startPlayerId:
-      typeof search.startPlayerId === "string" ? search.startPlayerId : undefined,
-    sitPlayerId:
-      typeof search.sitPlayerId === "string" ? search.sitPlayerId : undefined,
+    startPlayerId: typeof search.startPlayerId === "string" ? search.startPlayerId : undefined,
+    sitPlayerId: typeof search.sitPlayerId === "string" ? search.sitPlayerId : undefined,
     position: typeof search.position === "string" ? search.position : undefined,
   }),
   component: LeagueDetailPage,
 })
 
-function titleWindowLabelContext(
-  label: "Peak Window" | "Fading Window" | "Outside Window",
-) {
+function titleWindowLabelContext(label: "Peak Window" | "Fading Window" | "Outside Window") {
   switch (label) {
     case "Peak Window":
       return "This roster has enough ceiling, stability, and depth to push for a title without needing perfect weekly luck."
@@ -87,9 +75,7 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
   const query = useQuery(leagueDetailOptions(leagueId, requestedRosterId))
   const rosterOptionsQuery = useQuery(leagueRosterOptions(leagueId))
   const calendarQuery = useQuery(calendarContextOptions(leagueId))
-  const lineupQuery = useQuery(
-    lineupScoreOptions(leagueId, query.data?.user_roster_id ?? 0),
-  )
+  const lineupQuery = useQuery(lineupScoreOptions(leagueId, query.data?.user_roster_id ?? 0))
   const [comparisonOpen, setComparisonOpen] = useState(false)
 
   useEffect(() => {
@@ -113,17 +99,11 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
     if (!rosterOptionsQuery.data || requestedRosterId === null) {
       return
     }
-    if (
-      rosterOptionsQuery.data.some(
-        (option) => option.roster_id === requestedRosterId,
-      )
-    ) {
+    if (rosterOptionsQuery.data.some((option) => option.roster_id === requestedRosterId)) {
       return
     }
     setRequestedRosterId(
-      query.data?.user_roster_id ??
-        rosterOptionsQuery.data[0]?.roster_id ??
-        null,
+      query.data?.user_roster_id ?? rosterOptionsQuery.data[0]?.roster_id ?? null,
     )
   }, [query.data?.user_roster_id, requestedRosterId, rosterOptionsQuery.data])
 
@@ -160,14 +140,12 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
   const isTradeHistoryRoute = location.pathname === `${leaguePath}/trade-history`
   const isDraftGradesRoute = location.pathname === `${leaguePath}/draft-grades`
   const isLeagueOpsRoute = location.pathname === `${leaguePath}/league-ops`
-  const isPlayerRankingsRoute =
-    location.pathname === `${leaguePath}/player-rankings`
+  const isPlayerRankingsRoute = location.pathname === `${leaguePath}/player-rankings`
   const isRookieBoardRoute = location.pathname === `${leaguePath}/rookie-board`
   const isRosterMovesRoute = location.pathname === `${leaguePath}/roster-moves`
   const isWaiversRoute = location.pathname === `${leaguePath}/waivers`
   const isStartupRoute = location.pathname === `${leaguePath}/startup`
-  const isOrphanIntakeRoute =
-    location.pathname === `${leaguePath}/orphan-intake`
+  const isOrphanIntakeRoute = location.pathname === `${leaguePath}/orphan-intake`
   const titleWindowData = lineupQuery.data ?? null
   const titleWindowBadgeClass =
     titleWindowData?.title_window_label === "Peak Window"
@@ -197,14 +175,8 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
             <div className={isOverviewRoute ? "space-y-3" : "space-y-3"}>
               <div className="flex flex-wrap items-center gap-3">
                 <div>
-                  <p className="terminal-label text-muted-foreground">
-                    League Briefing
-                  </p>
-                  <CardTitle
-                    className={
-                      isOverviewRoute ? "mt-2 text-3xl" : "mt-1 text-xl"
-                    }
-                  >
+                  <p className="terminal-label text-muted-foreground">League Briefing</p>
+                  <CardTitle className={isOverviewRoute ? "mt-2 text-3xl" : "mt-1 text-xl"}>
                     {league.league_name}
                   </CardTitle>
                   {league.user_roster_name ? (
@@ -221,32 +193,22 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
                     className="inline-flex"
                     popout={
                       <Popout title={titleWindowData.title_window_label}>
-                        <p>
-                          {titleWindowLabelContext(
-                            titleWindowData.title_window_label,
-                          )}
-                        </p>
+                        <p>{titleWindowLabelContext(titleWindowData.title_window_label)}</p>
                         <p>
                           Composite title score:{" "}
                           <span className="text-foreground">
                             {titleWindowData.title_window_composite.toFixed(2)}
                           </span>
-                          . Ceiling reads{" "}
-                          {titleWindowScoreWord(titleWindowData.ceiling_score)},
-                          stability reads{" "}
-                          {titleWindowScoreWord(
-                            titleWindowData.stability_score,
-                          )}
-                          , and depth reads{" "}
-                          {titleWindowScoreWord(titleWindowData.depth_score)}.
+                          . Ceiling reads {titleWindowScoreWord(titleWindowData.ceiling_score)},
+                          stability reads {titleWindowScoreWord(titleWindowData.stability_score)},
+                          and depth reads {titleWindowScoreWord(titleWindowData.depth_score)}.
                         </p>
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline">
                             Ceiling {titleWindowData.ceiling_score.toFixed(2)}
                           </Badge>
                           <Badge variant="outline">
-                            Stability{" "}
-                            {titleWindowData.stability_score.toFixed(2)}
+                            Stability {titleWindowData.stability_score.toFixed(2)}
                           </Badge>
                           <Badge variant="outline">
                             Depth {titleWindowData.depth_score.toFixed(2)}
@@ -465,10 +427,7 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
               isOverviewRoute ? "pt-5" : "p-4 lg:p-5"
             }`}
           >
-            <SnapshotStatus
-              leagueId={leagueId}
-              lastSnapshotAt={league.last_snapshot_at}
-            />
+            <SnapshotStatus leagueId={leagueId} lastSnapshotAt={league.last_snapshot_at} />
             {league.user_roster_id ? (
               <Button
                 type="button"
@@ -483,9 +442,15 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
         </Card>
 
         {isOverviewRoute && selectedRosterId ? (
-          <LineupStrengthCard
+          <LineupStrengthCard leagueId={leagueId} rosterId={selectedRosterId} />
+        ) : null}
+
+        {isOverviewRoute ? (
+          <LeagueBriefingNarrative
+            league={league}
             leagueId={leagueId}
             rosterId={selectedRosterId}
+            lineup={lineupQuery.data ?? null}
           />
         ) : null}
 

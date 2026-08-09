@@ -66,9 +66,7 @@ export function OpportunityCardList({
   const degradedBanner = isDegraded ? (
     <Card>
       <CardContent className="space-y-2 p-5">
-        <p className="font-headline text-xl font-bold tracking-tight">
-          Opportunity Feed Degraded
-        </p>
+        <p className="font-headline text-xl font-bold tracking-tight">Opportunity Feed Degraded</p>
         <p className="text-sm text-muted-foreground">
           {degradedReason ?? "Partial opportunity data is available."}
         </p>
@@ -86,8 +84,8 @@ export function OpportunityCardList({
               No Opportunities Available
             </p>
             <p className="text-sm text-muted-foreground">
-              Ingest fresh roster and valuation data to surface buy, sell, and
-              hold signals across your leagues.
+              Ingest fresh roster and valuation data to surface buy, sell, and hold signals across
+              your leagues.
             </p>
           </CardContent>
         </Card>

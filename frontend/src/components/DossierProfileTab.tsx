@@ -28,11 +28,7 @@ const behavioralVectors = [
   },
 ] as const
 
-export function DossierProfileTab({
-  profile,
-}: {
-  profile: ManagerProfile
-}) {
+export function DossierProfileTab({ profile }: { profile: ManagerProfile }) {
   const positionalNeeds = profile.roster_summary?.positional_needs ?? []
   const exploitationEvidence = Object.values(profile.exploitation_evidence)
 
@@ -49,9 +45,7 @@ export function DossierProfileTab({
           <div className="flex flex-wrap items-center gap-2">
             <Badge>{label(profile.exploitation_primary)}</Badge>
             {profile.exploitation_secondary ? (
-              <Badge variant="secondary">
-                {label(profile.exploitation_secondary)}
-              </Badge>
+              <Badge variant="secondary">{label(profile.exploitation_secondary)}</Badge>
             ) : null}
           </div>
           {exploitationEvidence.length > 0 ? (
@@ -93,9 +87,7 @@ export function DossierProfileTab({
                     key={vectorLabel}
                     className="rounded-lg border border-border/35 bg-card/45 p-3"
                   >
-                    <p className="text-lg font-semibold">
-                      {(value * 100).toFixed(0)}
-                    </p>
+                    <p className="text-lg font-semibold">{(value * 100).toFixed(0)}</p>
                     <p className="text-xs text-muted-foreground">{vectorLabel}</p>
                   </div>
                 )
@@ -137,9 +129,7 @@ export function DossierProfileTab({
           <Separator />
           <div className="grid gap-4 md:grid-cols-3">
             <div className="rounded-lg border border-border/35 bg-card/45 p-4">
-              <p className="text-xl font-semibold">
-                {profile.aggregate_trade_stats.total_trades}
-              </p>
+              <p className="text-xl font-semibold">{profile.aggregate_trade_stats.total_trades}</p>
               <p className="text-xs text-muted-foreground">Total Trades</p>
             </div>
             <div className="rounded-lg border border-border/35 bg-card/45 p-4">

@@ -30,7 +30,8 @@ export function AnchorSelector({
   if (!query.data?.length) {
     return (
       <p className="text-xs text-muted-foreground">
-        No snapshot anchors available. Snapshots are labeled automatically on trades and large roster changes.
+        No snapshot anchors available. Snapshots are labeled automatically on trades and large
+        roster changes.
       </p>
     )
   }
@@ -42,9 +43,7 @@ export function AnchorSelector({
         value={selectedAnchorId?.toString() ?? ""}
         onChange={(event) => {
           const value = event.target.value
-          const anchor = query.data.find(
-            (candidate) => candidate.snapshot_id === Number(value),
-          )
+          const anchor = query.data.find((candidate) => candidate.snapshot_id === Number(value))
           onSelect(anchor ?? null)
         }}
         className="h-11 min-w-56 rounded-lg border border-border bg-card px-3 text-sm"

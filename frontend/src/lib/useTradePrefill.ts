@@ -37,12 +37,7 @@ export function useTradePrefill({
     [search.targetPlayerId, search.targetPlayerName, search.targetPlayerPosition],
   )
   const prefilledSendAsset = useMemo(
-    () =>
-      searchPlayerAsset(
-        search.sendPlayerId,
-        search.sendPlayerName,
-        search.sendPlayerPosition,
-      ),
+    () => searchPlayerAsset(search.sendPlayerId, search.sendPlayerName, search.sendPlayerPosition),
     [search.sendPlayerId, search.sendPlayerName, search.sendPlayerPosition],
   )
   const prefilledReceiveAsset = useMemo(
@@ -54,18 +49,14 @@ export function useTradePrefill({
       ),
     [search.receivePlayerId, search.receivePlayerName, search.receivePlayerPosition],
   )
-  const prefillTargetRosterId =
-    search.targetPlayerRosterId ?? search.counterpartyRosterId ?? 0
+  const prefillTargetRosterId = search.targetPlayerRosterId ?? search.counterpartyRosterId ?? 0
 
   useEffect(() => {
     if (search.leagueId && search.leagueId !== leagueId) {
       setLeagueId(search.leagueId)
       prefillKeyRef.current = null
     }
-    if (
-      search.counterpartyRosterId &&
-      search.counterpartyRosterId !== counterpartyRosterId
-    ) {
+    if (search.counterpartyRosterId && search.counterpartyRosterId !== counterpartyRosterId) {
       setCounterpartyRosterId(search.counterpartyRosterId)
     }
   }, [

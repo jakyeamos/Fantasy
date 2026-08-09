@@ -33,7 +33,10 @@ export function ConcentrationAlertBanner({
     const playerIds = new Set(userRosterPlayerIds)
     return (query.data?.exposure ?? [])
       .filter((row) => playerIds.has(row.player_id))
-      .filter((row) => row.owned_in_leagues.filter((ownedLeagueId) => ownedLeagueId !== leagueId).length > 0)
+      .filter(
+        (row) =>
+          row.owned_in_leagues.filter((ownedLeagueId) => ownedLeagueId !== leagueId).length > 0,
+      )
       .sort((a, b) => b.league_count - a.league_count || a.full_name.localeCompare(b.full_name))
   }, [leagueId, query.data?.exposure, userRosterPlayerIds])
 
@@ -51,7 +54,8 @@ export function ConcentrationAlertBanner({
           <div className="space-y-1">
             <p className="terminal-label text-primary/85">Cross-league exposure</p>
             <p className="text-sm text-muted-foreground">
-              {rows.length} player{rows.length === 1 ? "" : "s"} on this roster are owned in other leagues.
+              {rows.length} player{rows.length === 1 ? "" : "s"} on this roster are owned in other
+              leagues.
             </p>
           </div>
           <div className="space-y-2">
@@ -73,10 +77,7 @@ export function ConcentrationAlertBanner({
               </div>
             ))}
           </div>
-          <Link
-            to="/portfolio"
-            className={buttonClasses({ variant: "outline", size: "sm" })}
-          >
+          <Link to="/portfolio" className={buttonClasses({ variant: "outline", size: "sm" })}>
             View Full Exposure
           </Link>
         </div>

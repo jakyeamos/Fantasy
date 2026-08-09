@@ -33,8 +33,12 @@ function ManagersPlaceholderPage() {
       return response.json()
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["profiling", "managers", leagueId] })
-      await queryClient.invalidateQueries({ queryKey: ["profiling", "manager", leagueId] })
+      await queryClient.invalidateQueries({
+        queryKey: ["profiling", "managers", leagueId],
+      })
+      await queryClient.invalidateQueries({
+        queryKey: ["profiling", "manager", leagueId],
+      })
     },
   })
 
@@ -97,11 +101,7 @@ function ManagersPlaceholderPage() {
 
       <div className="space-y-3">
         {summariesQuery.data.map((summary) => (
-          <ManagerListRow
-            key={summary.roster_id}
-            leagueId={leagueId}
-            summary={summary}
-          />
+          <ManagerListRow key={summary.roster_id} leagueId={leagueId} summary={summary} />
         ))}
       </div>
 

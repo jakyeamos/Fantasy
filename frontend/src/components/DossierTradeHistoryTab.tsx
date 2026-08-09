@@ -10,11 +10,7 @@ function formatDate(value: string | null) {
   })
 }
 
-export function DossierTradeHistoryTab({
-  trades,
-}: {
-  trades: TradeHistoryEntry[]
-}) {
+export function DossierTradeHistoryTab({ trades }: { trades: TradeHistoryEntry[] }) {
   return (
     <Card>
       <CardHeader>
@@ -25,9 +21,7 @@ export function DossierTradeHistoryTab({
       </CardHeader>
       <CardContent>
         {trades.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No trade history found for this manager.
-          </p>
+          <p className="text-sm text-muted-foreground">No trade history found for this manager.</p>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-border/40">
             <table className="min-w-full text-left text-sm">
@@ -45,12 +39,8 @@ export function DossierTradeHistoryTab({
                     <td className="px-4 py-4 text-xs text-muted-foreground">
                       {formatDate(trade.date)}
                     </td>
-                    <td className="px-4 py-4 text-sm">
-                      {trade.sent_assets.join(", ")}
-                    </td>
-                    <td className="px-4 py-4 text-sm">
-                      {trade.received_assets.join(", ")}
-                    </td>
+                    <td className="px-4 py-4 text-sm">{trade.sent_assets.join(", ")}</td>
+                    <td className="px-4 py-4 text-sm">{trade.received_assets.join(", ")}</td>
                     <td
                       className={`px-4 py-4 text-right font-mono text-xs ${
                         trade.value_delta >= 0

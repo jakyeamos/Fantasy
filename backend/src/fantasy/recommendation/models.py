@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Literal
+from datetime import datetime
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -82,6 +83,9 @@ class RecommendationCard(BaseModel):
     trend_result: TrendResult | None = None
     cta_label: str
     cta_destination: str
+    trigger_event_ids: list[str] = []
+    changed_since: datetime | None = None
+    impact_summary: dict[str, Any] | None = None
 
 
 __all__ = [

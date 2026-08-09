@@ -18,9 +18,7 @@ export function LeagueOverviewPanels({
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <p className="terminal-label text-muted-foreground">
-              Exploit windows
-            </p>
+            <p className="terminal-label text-muted-foreground">Exploit windows</p>
           </CardHeader>
           <CardContent>
             <p className="font-headline text-3xl font-extrabold tracking-tight">
@@ -34,9 +32,7 @@ export function LeagueOverviewPanels({
 
         <Card>
           <CardHeader className="pb-2">
-            <p className="terminal-label text-muted-foreground">
-              Market movement
-            </p>
+            <p className="terminal-label text-muted-foreground">Market movement</p>
           </CardHeader>
           <CardContent>
             <p className="font-headline text-3xl font-extrabold tracking-tight">
@@ -50,17 +46,14 @@ export function LeagueOverviewPanels({
 
         <Card>
           <CardHeader className="pb-2">
-            <p className="terminal-label text-muted-foreground">
-              Active Roster
-            </p>
+            <p className="terminal-label text-muted-foreground">Active Roster</p>
           </CardHeader>
           <CardContent>
             <p className="font-headline text-3xl font-extrabold tracking-tight">
               {league.user_roster_name ?? "No roster selected"}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Switching the selector updates every league tab from this team&apos;s
-              perspective.
+              Switching the selector updates every league tab from this team&apos;s perspective.
             </p>
           </CardContent>
         </Card>
@@ -71,8 +64,8 @@ export function LeagueOverviewPanels({
           <div>
             <CardTitle>Section Guide</CardTitle>
             <p className="mt-2 text-sm text-muted-foreground">
-              Keep overview high-level, then use the dedicated tabs for league
-              comparison, roster actions, and league operations.
+              Keep overview high-level, then use the dedicated tabs for league comparison, roster
+              actions, and league operations.
             </p>
           </div>
         </CardHeader>

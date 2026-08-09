@@ -5,7 +5,7 @@ from __future__ import annotations
 from alembic import op
 
 revision = "026_decision_lifecycle"
-down_revision = "025_agent_decision_feedback"
+down_revision = "025_fresh_intelligence"
 branch_labels = None
 depends_on = None
 

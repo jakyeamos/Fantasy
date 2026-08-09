@@ -20,9 +20,9 @@ function OpportunityFeedPage() {
   const [scopeFilter, setScopeFilter] = useState<
     "all" | "my_roster" | "available" | "opponent_roster"
   >("all")
-  const [actionFilter, setActionFilter] = useState<
-    "all" | OpportunityFeedItem["suggested_action"]
-  >("all")
+  const [actionFilter, setActionFilter] = useState<"all" | OpportunityFeedItem["suggested_action"]>(
+    "all",
+  )
   const [highConfidenceOnly, setHighConfidenceOnly] = useState(false)
   const [leagueFilter, setLeagueFilter] = useState("all")
   const [includeSpeculative, setIncludeSpeculative] = useState(false)
@@ -30,12 +30,7 @@ function OpportunityFeedPage() {
   const leagueOptions = useMemo(
     () =>
       Array.from(
-        new Set(
-          items.flatMap((item) => [
-            ...item.owned_in_leagues,
-            item.cta?.league_id ?? "",
-          ]),
-        ),
+        new Set(items.flatMap((item) => [...item.owned_in_leagues, item.cta?.league_id ?? ""])),
       )
         .filter(Boolean)
         .sort(),
@@ -77,13 +72,11 @@ function OpportunityFeedPage() {
           <p className="terminal-label text-primary/85">
             Ranked by impact - gap magnitude x projection confidence
           </p>
-          <h2 className="font-headline text-4xl font-extrabold">
-            Opportunity Feed
-          </h2>
+          <h2 className="font-headline text-4xl font-extrabold">Opportunity Feed</h2>
           <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-            Scan one ordered list of dynasty buy, sell, and hold signals across
-            every league you track, with trend confidence, market gaps, and
-            similar-player context attached to each call.
+            Scan one ordered list of dynasty buy, sell, and hold signals across every league you
+            track, with trend confidence, market gaps, and similar-player context attached to each
+            call.
           </p>
         </div>
 

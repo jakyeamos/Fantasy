@@ -42,16 +42,12 @@ export function CorrelatedRiskSection({
               className={`flex items-start gap-2 rounded-md px-3 py-2 ${surfaceToneClasses.warning}`}
             >
               <AlertTriangle className={`mt-0.5 size-4 ${textToneClasses.warning}`} />
-              <p className={`text-sm ${textToneClasses.warning}`}>
-                {row.risk_string}
-              </p>
+              <p className={`text-sm ${textToneClasses.warning}`}>{row.risk_string}</p>
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground">
-          No correlated NFL team clusters detected.
-        </p>
+        <p className="text-xs text-muted-foreground">No correlated NFL team clusters detected.</p>
       )}
     </div>
   )

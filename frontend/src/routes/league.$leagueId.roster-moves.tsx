@@ -31,7 +31,8 @@ function LeagueRosterMovesPage() {
         <CardHeader>
           <CardTitle>Roster Moves</CardTitle>
           <p className="mt-2 text-sm text-muted-foreground">
-            Consolidation ideas, bench triage, stash decisions, and taxi actions for your active roster.
+            Consolidation ideas, bench triage, stash decisions, and taxi actions for your active
+            roster.
           </p>
         </CardHeader>
       </Card>

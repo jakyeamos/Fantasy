@@ -4,11 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { formatModelLabel } from "@/lib/utils"
 
-export function DossierOverviewTab({
-  profile,
-}: {
-  profile: ManagerProfile
-}) {
+export function DossierOverviewTab({ profile }: { profile: ManagerProfile }) {
   return (
     <div className="space-y-4">
       <Card>
@@ -59,9 +55,7 @@ export function DossierOverviewTab({
             <div>
               <p className="terminal-label mb-2">Best Asset to Send</p>
               {profile.best_asset_to_send ? (
-                <p className="text-sm text-muted-foreground">
-                  {profile.best_asset_to_send}
-                </p>
+                <p className="text-sm text-muted-foreground">{profile.best_asset_to_send}</p>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   {profile.low_confidence
@@ -73,9 +67,7 @@ export function DossierOverviewTab({
             <div>
               <p className="terminal-label mb-2">Best Asset to Target</p>
               {profile.best_asset_to_target ? (
-                <p className="text-sm text-muted-foreground">
-                  {profile.best_asset_to_target}
-                </p>
+                <p className="text-sm text-muted-foreground">{profile.best_asset_to_target}</p>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   {profile.low_confidence
@@ -85,7 +77,6 @@ export function DossierOverviewTab({
               )}
             </div>
           </div>
-
         </CardContent>
       </Card>
     </div>

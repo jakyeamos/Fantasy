@@ -1,4 +1,5 @@
 from test_support.schema_sql_core import CORE_SCHEMA_SQL
+from test_support.schema_sql_intelligence import FRESH_INTELLIGENCE_SCHEMA_SQL
 from test_support.schema_sql_weekly import WEEKLY_SCHEMA_SQL
 
-SCHEMA_SQL = CORE_SCHEMA_SQL + WEEKLY_SCHEMA_SQL
+SCHEMA_SQL = CORE_SCHEMA_SQL + WEEKLY_SCHEMA_SQL + FRESH_INTELLIGENCE_SCHEMA_SQL

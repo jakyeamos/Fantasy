@@ -62,9 +62,7 @@ export function SnapshotDiffView({
 
   return (
     <div className="mt-4 space-y-4">
-      <p className="text-sm text-muted-foreground">
-        What changed since {anchorLabel}
-      </p>
+      <p className="text-sm text-muted-foreground">What changed since {anchorLabel}</p>
       {rows.length ? (
         <div className="flex flex-col gap-2">
           {rows.map((row) => (

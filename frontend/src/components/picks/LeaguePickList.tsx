@@ -87,7 +87,9 @@ export function LeaguePickList({
   const inventoryQuery = useQuery(pickInventoryOptions(leagueId, rosterId))
   const recomputeMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/picks/${leagueId}/recompute`, { method: "POST" })
+      const response = await fetch(`/api/picks/${leagueId}/recompute`, {
+        method: "POST",
+      })
       if (!response.ok) {
         throw new Error("Failed to recompute picks")
       }
@@ -95,7 +97,9 @@ export function LeaguePickList({
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["picks", leagueId] })
-      await queryClient.invalidateQueries({ queryKey: ["picks", "list", leagueId] })
+      await queryClient.invalidateQueries({
+        queryKey: ["picks", "list", leagueId],
+      })
     },
   })
 
@@ -180,17 +184,13 @@ export function LeaguePickList({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <CalendarStateBadge
-            state={pickListQuery.data.recommendation_context.calendar_state}
-          />
+          <CalendarStateBadge state={pickListQuery.data.recommendation_context.calendar_state} />
           {pickListQuery.data.recommendation_context.calendar_note ? (
             <p className="text-xs text-muted-foreground">
               {pickListQuery.data.recommendation_context.calendar_note}
             </p>
           ) : null}
-          <FreshnessWarningBar
-            tags={pickListQuery.data.recommendation_context.freshness_tags}
-          />
+          <FreshnessWarningBar tags={pickListQuery.data.recommendation_context.freshness_tags} />
         </div>
         {pickListQuery.data.picks.map((pickValue) => {
           const key = pickKey({
@@ -205,10 +205,10 @@ export function LeaguePickList({
             <div key={key} className="rounded-xl border border-border/45 bg-card/45 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-semibold">
-                    {formatPickLabel(pickValue)}
-                  </p>
-                  {ownerText ? <span className="text-xs text-muted-foreground">{ownerText}</span> : null}
+                  <p className="text-sm font-semibold">{formatPickLabel(pickValue)}</p>
+                  {ownerText ? (
+                    <span className="text-xs text-muted-foreground">{ownerText}</span>
+                  ) : null}
                   {!isBlocked ? (
                     <span className="text-xs text-muted-foreground">
                       {formatProjectedRange(pickValue)}

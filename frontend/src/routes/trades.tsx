@@ -56,9 +56,7 @@ export const Route = createFileRoute("/trades")({
 function TradeEvaluatorPage() {
   const search = Route.useSearch()
   const [leagueId, setLeagueId] = useState(search.leagueId ?? "")
-  const [counterpartyRosterId, setCounterpartyRosterId] = useState(
-    search.counterpartyRosterId ?? 0,
-  )
+  const [counterpartyRosterId, setCounterpartyRosterId] = useState(search.counterpartyRosterId ?? 0)
   const [thirdPartyTrades, setThirdPartyTrades] = useState<ThirdPartyTradeDraft[]>([])
   const [queryText, setQueryText] = useState("")
   const [queryTarget, setQueryTarget] = useState<QueryTarget>({
@@ -73,8 +71,7 @@ function TradeEvaluatorPage() {
   const leagueOptions = leaguesQuery.data ?? []
   const inferredLeagueId =
     search.leagueId ??
-    leagueOptions.find((option) => option.user_roster_id === search.userRosterId)
-      ?.league_id ??
+    leagueOptions.find((option) => option.user_roster_id === search.userRosterId)?.league_id ??
     ""
   const selectedLeague = useMemo(
     () => leagueOptions.find((option) => option.league_id === leagueId) ?? null,
@@ -98,8 +95,7 @@ function TradeEvaluatorPage() {
     () => rosterOptions.filter((option) => option.roster_id !== userRosterId),
     [rosterOptions, userRosterId],
   )
-  const { prefilledPlayerAsset, prefilledSendAsset, prefilledReceiveAsset } =
-    useTradePrefill({
+  const { prefilledPlayerAsset, prefilledSendAsset, prefilledReceiveAsset } = useTradePrefill({
     search,
     leagueId,
     counterpartyRosterId,
@@ -194,7 +190,7 @@ function TradeEvaluatorPage() {
 
   const activeThirdParty =
     queryTarget.kind === "third-party"
-      ? thirdPartyTrades.find((trade) => trade.clientId === queryTarget.tradeId) ?? null
+      ? (thirdPartyTrades.find((trade) => trade.clientId === queryTarget.tradeId) ?? null)
       : null
 
   const activeThirdPartyIndex =
@@ -215,10 +211,10 @@ function TradeEvaluatorPage() {
   const activeRosterName =
     activeRosterId && activeRosterId > 0 ? rosterNameById.get(activeRosterId) : undefined
   const userRosterName =
-    userRosterId > 0 ? rosterNameById.get(userRosterId) ?? `Roster ${userRosterId}` : null
+    userRosterId > 0 ? (rosterNameById.get(userRosterId) ?? `Roster ${userRosterId}`) : null
   const counterpartyRosterName =
     counterpartyRosterId > 0
-      ? rosterNameById.get(counterpartyRosterId) ?? `Roster ${counterpartyRosterId}`
+      ? (rosterNameById.get(counterpartyRosterId) ?? `Roster ${counterpartyRosterId}`)
       : null
 
   const searchTitle =
@@ -230,16 +226,15 @@ function TradeEvaluatorPage() {
         ? `Add to Third Team ${activeThirdPartyIndex + 1} Send Side`
         : `Add to Third Team ${activeThirdPartyIndex + 1} Receive Side`
 
-  const searchDescription =
-    !hasScopedRoster
-      ? leagueId.trim().length === 0
-        ? "Select a league to start building the trade."
-        : queryTarget.kind === "user"
-          ? "Your team could not be identified for this league."
-          : "Select a roster for this extra team before searching its outgoing assets."
-      : activeRosterId
-        ? `Showing ${activeRosterName ?? `roster ${activeRosterId}`} assets. Leave the search blank to browse the full roster.`
-        : "Search runs league-wide so you can model incoming legs from any team."
+  const searchDescription = !hasScopedRoster
+    ? leagueId.trim().length === 0
+      ? "Select a league to start building the trade."
+      : queryTarget.kind === "user"
+        ? "Your team could not be identified for this league."
+        : "Select a roster for this extra team before searching its outgoing assets."
+    : activeRosterId
+      ? `Showing ${activeRosterName ?? `roster ${activeRosterId}`} assets. Leave the search blank to browse the full roster.`
+      : "Search runs league-wide so you can model incoming legs from any team."
 
   const playerSearchQuery = useQuery({
     queryKey: [
@@ -309,22 +304,13 @@ function TradeEvaluatorPage() {
       user_receives: userReceives.map(toRequestAsset),
       third_party_trades: thirdPartyTrades
         .filter(
-          (trade) =>
-            trade.rosterId > 0 &&
-            (trade.sends.length > 0 || trade.receives.length > 0),
+          (trade) => trade.rosterId > 0 && (trade.sends.length > 0 || trade.receives.length > 0),
         )
         .map(toThirdPartyTrade),
       include_reroutes: true,
       include_package: true,
     }),
-    [
-      counterpartyRosterId,
-      leagueId,
-      thirdPartyTrades,
-      userReceives,
-      userRosterId,
-      userSends,
-    ],
+    [counterpartyRosterId, leagueId, thirdPartyTrades, userReceives, userRosterId, userSends],
   )
 
   const evaluationMutation = useMutation({
@@ -355,9 +341,7 @@ function TradeEvaluatorPage() {
   const evaluation = evaluationMutation.data
   const pickOptions = useMemo(
     () =>
-      activeRosterId
-        ? pickSearchQuery.data ?? []
-        : pickSearchQuery.data?.slice(0, 24) ?? [],
+      activeRosterId ? (pickSearchQuery.data ?? []) : (pickSearchQuery.data?.slice(0, 24) ?? []),
     [activeRosterId, pickSearchQuery.data],
   )
 
@@ -369,7 +353,11 @@ function TradeEvaluatorPage() {
   const addThirdPartyTrade = () => {
     const nextTrade = createThirdPartyTradeDraft()
     setThirdPartyTrades((current) => [...current, nextTrade])
-    setActiveTarget({ kind: "third-party", tradeId: nextTrade.clientId, bucket: "send" })
+    setActiveTarget({
+      kind: "third-party",
+      tradeId: nextTrade.clientId,
+      bucket: "send",
+    })
   }
 
   const updateThirdPartyTrade = (
@@ -400,10 +388,7 @@ function TradeEvaluatorPage() {
 
     updateThirdPartyTrade(queryTarget.tradeId, (trade) => ({
       ...trade,
-      sends:
-        queryTarget.bucket === "send"
-          ? appendUniqueAsset(trade.sends, asset)
-          : trade.sends,
+      sends: queryTarget.bucket === "send" ? appendUniqueAsset(trade.sends, asset) : trade.sends,
       receives:
         queryTarget.bucket === "receive"
           ? appendUniqueAsset(trade.receives, asset)
@@ -419,11 +404,7 @@ function TradeEvaluatorPage() {
     setUserReceives((current) => current.filter((_, assetIndex) => assetIndex !== index))
   }
 
-  const removeThirdPartyAsset = (
-    tradeId: string,
-    bucket: AssetBucket,
-    index: number,
-  ) => {
+  const removeThirdPartyAsset = (tradeId: string, bucket: AssetBucket, index: number) => {
     updateThirdPartyTrade(tradeId, (trade) => ({
       ...trade,
       sends:
@@ -444,9 +425,7 @@ function TradeEvaluatorPage() {
     userSends.length > 0 &&
     userReceives.length > 0 &&
     thirdPartyTrades.every(
-      (trade) =>
-        trade.rosterId > 0 ||
-        (trade.sends.length === 0 && trade.receives.length === 0),
+      (trade) => trade.rosterId > 0 || (trade.sends.length === 0 && trade.receives.length === 0),
     )
   const showSuggestedStart =
     leagueId.trim().length > 0 && userSends.length === 0 && userReceives.length === 0
@@ -455,12 +434,14 @@ function TradeEvaluatorPage() {
     <div className="space-y-8">
       <Card>
         <CardHeader className="space-y-2">
-          <p className="terminal-label text-primary/85">Deal intelligence</p>
-          <CardTitle className="text-3xl">Evaluate Trade</CardTitle>
+          <p className="terminal-label text-primary/85">
+            Prepared action · manual execution boundary
+          </p>
+          <CardTitle className="text-3xl">Trade Preparation</CardTitle>
           <p className="max-w-3xl text-sm text-muted-foreground">
-            Build your outgoing and incoming package first, then layer in extra teams for
-            multi-team trades. The seven dimensions stay anchored to your net swap, while
-            reroutes and package framing can explain each participant's path through the deal.
+            Build the outgoing and incoming package, attach the manager pitch, and inspect the
+            evidence before deciding whether to send. This surface prepares a trade; it never
+            submits one.
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -552,8 +533,8 @@ function TradeEvaluatorPage() {
             </Button>
             {thirdPartyTrades.length ? (
               <p className="max-w-2xl text-xs text-muted-foreground">
-                Multi-team legs return sidecar scores that feed participant-specific reroutes
-                and package explanations.
+                Multi-team legs return sidecar scores that feed participant-specific reroutes and
+                package explanations.
               </p>
             ) : null}
           </div>

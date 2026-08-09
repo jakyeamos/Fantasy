@@ -80,8 +80,7 @@ function selectedParticipant(
 ): HistoricalTradeParticipant | null {
   if (selectedRosterId === null) return null
   return (
-    trade.participants.find((participant) => participant.roster_id === selectedRosterId) ??
-    null
+    trade.participants.find((participant) => participant.roster_id === selectedRosterId) ?? null
   )
 }
 
@@ -98,9 +97,7 @@ function EvaluationDetails({ evaluation }: { evaluation: TradeEvaluation }) {
                 {dimension.score.toFixed(0)}
               </span>
             </div>
-            <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-              {dimension.reasoning}
-            </p>
+            <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{dimension.reasoning}</p>
           </div>
         )
       })}
@@ -230,8 +227,8 @@ function LeagueTradeHistoryPage() {
             <p className="terminal-label text-primary/85">League Trade Audit</p>
             <CardTitle className="mt-2 text-3xl">Past Trade Evaluations</CardTitle>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              Completed Sleeper trades replayed through the current app model. Selecting a
-              manager frames every delta from that roster's perspective.
+              Completed Sleeper trades replayed through the current app model. Selecting a manager
+              frames every delta from that roster's perspective.
             </p>
           </div>
           <label className="space-y-2">
@@ -277,9 +274,7 @@ function LeagueTradeHistoryPage() {
               expanded={expandedId === trade.transaction_id}
               selectedRosterId={selectedRosterId}
               onToggle={() =>
-                setExpandedId(
-                  expandedId === trade.transaction_id ? null : trade.transaction_id,
-                )
+                setExpandedId(expandedId === trade.transaction_id ? null : trade.transaction_id)
               }
             />
           ))}
@@ -287,15 +282,9 @@ function LeagueTradeHistoryPage() {
       ) : (
         <Card>
           <CardContent className="py-10">
-            <p className="text-sm text-muted-foreground">
-              No completed trades match this filter.
-            </p>
+            <p className="text-sm text-muted-foreground">No completed trades match this filter.</p>
             {managerFilter !== "all" ? (
-              <Button
-                className="mt-4"
-                variant="outline"
-                onClick={() => setManagerFilter("all")}
-              >
+              <Button className="mt-4" variant="outline" onClick={() => setManagerFilter("all")}>
                 Clear filter
               </Button>
             ) : null}

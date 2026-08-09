@@ -18,9 +18,9 @@ export function filterOpportunityItems(
 ): OpportunityFeedItem[] {
   return items.filter((item) => {
     if (
-      !filters.includeSpeculative
-      && item.trend_confidence === "LOW"
-      && item.availability === "available"
+      !filters.includeSpeculative &&
+      item.trend_confidence === "LOW" &&
+      item.availability === "available"
     ) {
       return false
     }

@@ -12,9 +12,7 @@ export function MarketGapPanel({ gap }: { gap: ModelVsMarketGap }) {
     <div className="rounded-lg border border-border/40 bg-card/45 p-3">
       <div className="flex flex-wrap items-center gap-2">
         <p className="terminal-label text-muted-foreground">Market Gap</p>
-        {gap.gap_classification ? (
-          <MarketGapBadge classification={gap.gap_classification} />
-        ) : null}
+        {gap.gap_classification ? <MarketGapBadge classification={gap.gap_classification} /> : null}
       </div>
       <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
         <div>

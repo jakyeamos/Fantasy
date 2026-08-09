@@ -6,6 +6,13 @@ WEEKLY_SCHEMA_SQL = [
         domain VARCHAR NOT NULL,
         last_updated TIMESTAMP,
         notes VARCHAR,
+        fetched_at TIMESTAMP,
+        observed_at TIMESTAMP,
+        effective_at TIMESTAMP,
+        coverage_through TIMESTAMP,
+        status VARCHAR NOT NULL DEFAULT 'fresh',
+        source_id VARCHAR,
+        record_count INTEGER,
         UNIQUE (league_id, domain)
     )
     """,

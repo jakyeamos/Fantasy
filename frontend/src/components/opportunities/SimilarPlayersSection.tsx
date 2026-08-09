@@ -4,11 +4,7 @@ import { ChevronDown, ChevronUp } from "lucide-react"
 
 import type { SimilarPlayer } from "@/api/types"
 
-export function SimilarPlayersSection({
-  players,
-}: {
-  players: SimilarPlayer[]
-}) {
+export function SimilarPlayersSection({ players }: { players: SimilarPlayer[] }) {
   const [open, setOpen] = useState(false)
 
   if (players.length === 0) {
@@ -36,14 +32,9 @@ export function SimilarPlayersSection({
       {open ? (
         <div className="mt-2 space-y-2 transition-all duration-150 ease-out">
           {players.map((player) => (
-            <div
-              key={player.player_id}
-              className="flex items-start justify-between gap-3"
-            >
+            <div key={player.player_id} className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-bold text-foreground">
-                  {player.player_name}
-                </p>
+                <p className="text-sm font-bold text-foreground">{player.player_name}</p>
                 <p className="text-xs text-muted-foreground">{player.context}</p>
               </div>
               <span className="font-mono text-xs text-muted-foreground">

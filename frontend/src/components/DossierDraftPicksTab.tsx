@@ -106,9 +106,7 @@ export function DossierDraftPicksTab({
           <div className="space-y-2">
             <p className="terminal-label">Archetype Patterns</p>
             {Object.keys(archetypePattern).length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No archetype pattern established yet.
-              </p>
+              <p className="text-sm text-muted-foreground">No archetype pattern established yet.</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {Object.entries(archetypePattern).map(([label, count]) => (

@@ -25,13 +25,7 @@ function availabilityLabel(availability: OpportunityFeedItem["availability"]) {
   return "Available"
 }
 
-export function OpportunityCard({
-  item,
-  rank,
-}: {
-  item: OpportunityFeedItem
-  rank: number
-}) {
+export function OpportunityCard({ item, rank }: { item: OpportunityFeedItem; rank: number }) {
   const ctaTarget = buildOpportunityCtaTarget(item)
   const similarPlayerEvidenceIsStale =
     item.similar_players.length > 0 && item.evidence_freshness.is_stale
@@ -52,9 +46,7 @@ export function OpportunityCard({
               <CalendarEscalationLabel label={item.calendar_escalation_label} />
 
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-base font-bold text-foreground">
-                  {item.player_name}
-                </p>
+                <p className="text-base font-bold text-foreground">{item.player_name}</p>
                 <Badge variant="outline">{item.position}</Badge>
                 <Badge variant={item.availability === "available" ? "secondary" : "outline"}>
                   {availabilityLabel(item.availability)}
@@ -123,9 +115,7 @@ export function OpportunityCard({
             </div>
           ) : null}
 
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            {item.why_summary}
-          </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">{item.why_summary}</p>
 
           {item.trend_confidence === "LOW" ? (
             <p className="text-xs italic text-muted-foreground">
@@ -137,8 +127,8 @@ export function OpportunityCard({
           {similarPlayerEvidenceIsStale ? (
             <div className="flex items-center gap-2 rounded-lg border border-warning/25 bg-warning-surface px-3 py-2 text-xs leading-5 text-warning">
               <AlertTriangle className="size-3.5 shrink-0" />
-              Refresh {item.evidence_freshness.stale_domains.join(", ")} before
-              relying on similar-player comps.
+              Refresh {item.evidence_freshness.stale_domains.join(", ")} before relying on
+              similar-player comps.
             </div>
           ) : null}
           <SimilarPlayersSection players={item.similar_players} />

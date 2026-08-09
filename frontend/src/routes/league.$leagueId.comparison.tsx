@@ -34,8 +34,8 @@ function LeagueComparisonPage() {
         <CardHeader>
           <CardTitle>League Comparison</CardTitle>
           <p className="mt-2 text-sm text-muted-foreground">
-            Win-now, future-value, and title-window comparisons against the rest of the league,
-            with matchup outlook shown only during in-season windows.
+            Win-now, future-value, and title-window comparisons against the rest of the league, with
+            matchup outlook shown only during in-season windows.
           </p>
         </CardHeader>
       </Card>

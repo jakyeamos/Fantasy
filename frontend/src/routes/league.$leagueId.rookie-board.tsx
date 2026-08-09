@@ -124,17 +124,13 @@ function RookieBoardPage() {
           </label>
         </CardHeader>
         <CardContent className="space-y-2 pt-0">
-          <CalendarStateBadge
-            state={query.data.recommendation_context.calendar_state}
-          />
+          <CalendarStateBadge state={query.data.recommendation_context.calendar_state} />
           {query.data.recommendation_context.calendar_note ? (
             <p className="text-xs text-muted-foreground">
               {query.data.recommendation_context.calendar_note}
             </p>
           ) : null}
-          <FreshnessWarningBar
-            tags={query.data.recommendation_context.freshness_tags}
-          />
+          <FreshnessWarningBar tags={query.data.recommendation_context.freshness_tags} />
         </CardContent>
       </Card>
 

@@ -53,19 +53,31 @@ class WeeklyPublicContextService:
         refreshed_domains: list[str] = []
         notes = f"weekly public context refresh for {active_season}"
         if schedule_rows:
-            self._freshness.mark_refreshed(
-                league_id,
-                "schedule",
-                f"{notes}; {len(schedule_rows)} team schedule rows",
+            self._freshness.mark_source_result(
+                league_id=league_id,
+                domain="schedule",
+                source_id="nflreadpy:schedules",
+                parsed_successfully=True,
+                record_count=len(schedule_rows),
+                notes=f"{notes}; {len(schedule_rows)} team schedule rows",
             )
             refreshed_domains.append("schedule")
-        if self._has_player_metadata():
-            self._freshness.mark_refreshed(league_id, "injuries", f"{notes}; Sleeper player metadata")
-            refreshed_domains.append("injuries")
         if self._has_weekly_stats(active_season):
-            self._freshness.mark_refreshed(league_id, "stats", f"{notes}; weekly stats present")
-            self._freshness.mark_refreshed(league_id, "usage", f"{notes}; targets/carries proxy present")
-            refreshed_domains.extend(["stats", "usage"])
+            stats_count = int(
+                self._conn.execute(
+                    "SELECT COUNT(*) FROM player_stats_weekly WHERE season = ?",
+                    [active_season],
+                ).fetchone()[0]
+            )
+            self._freshness.mark_source_result(
+                league_id=league_id,
+                domain="stats",
+                source_id="nflreadpy:weekly_stats",
+                parsed_successfully=True,
+                record_count=stats_count,
+                notes=f"{notes}; {stats_count} weekly stat rows present",
+            )
+            refreshed_domains.append("stats")
 
         tags = self._freshness.get_tags(
             league_id,

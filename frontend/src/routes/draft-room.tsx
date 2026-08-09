@@ -43,15 +43,13 @@ function DraftRoomPage() {
           <p className="terminal-label text-primary/85">Live pick guidance</p>
           <CardTitle className="mt-2 text-3xl">Draft Room</CardTitle>
           <p className="mt-2 text-sm text-muted-foreground">
-            Load a league and pick slot to get a use-versus-trade verdict plus the
-            best player available in abstract.
+            Load a league and pick slot to get a use-versus-trade verdict plus the best player
+            available in abstract.
           </p>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
           <label className="space-y-2">
-            <span className="terminal-label text-muted-foreground">
-              League ID
-            </span>
+            <span className="terminal-label text-muted-foreground">League ID</span>
             <input
               value={leagueId}
               onChange={(event) => setLeagueId(event.target.value)}
@@ -59,9 +57,7 @@ function DraftRoomPage() {
             />
           </label>
           <label className="space-y-2">
-            <span className="terminal-label text-muted-foreground">
-              Pick Slot
-            </span>
+            <span className="terminal-label text-muted-foreground">Pick Slot</span>
             <input
               type="number"
               min={1}

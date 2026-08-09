@@ -204,10 +204,13 @@ def refresh_player_metadata(
     conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
 ) -> PlayerMetadataRefreshResponse:
     summary = PlayerMetadataRefreshService(conn).refresh(season)
-    FreshnessService(ContextRepo(conn)).mark_refreshed(
-        GLOBAL_FRESHNESS_LEAGUE_ID,
-        "player_metadata",
-        f"Dense player metadata refreshed for {season}.",
+    FreshnessService(ContextRepo(conn)).mark_source_result(
+        league_id=GLOBAL_FRESHNESS_LEAGUE_ID,
+        domain="player_metadata",
+        source_id="nflreadpy:weekly_rosters",
+        parsed_successfully=summary.source_rows > 0,
+        record_count=summary.updated_rows,
+        notes=f"Dense player metadata refreshed for {season}.",
     )
     return PlayerMetadataRefreshResponse(
         season=summary.season,
@@ -229,10 +232,13 @@ def import_player_metadata(
         if csv_path is None
         else import_player_metadata_csv(conn, csv_path)
     )
-    FreshnessService(ContextRepo(conn)).mark_refreshed(
-        GLOBAL_FRESHNESS_LEAGUE_ID,
-        "player_metadata",
-        "Dense player metadata imported from CSV.",
+    FreshnessService(ContextRepo(conn)).mark_source_result(
+        league_id=GLOBAL_FRESHNESS_LEAGUE_ID,
+        domain="player_metadata",
+        source_id="manual:player_metadata_csv",
+        parsed_successfully=summary.source_rows > 0,
+        record_count=summary.updated_rows,
+        notes="Dense player metadata imported from CSV.",
     )
     return PlayerMetadataImportResponse(
         source_rows=summary.source_rows,
@@ -311,13 +317,24 @@ async def refresh_league_pipeline(
             ppr=resolved_ppr,
         )
     except FantasyCalcUnavailableError as exc:
+        FreshnessService(ContextRepo(conn)).mark_source_result(
+            league_id=league_id, domain="market", source_id="fantasycalc:adp",
+            parsed_successfully=False, record_count=0, notes=str(exc),
+        )
         raise HTTPException(status_code=503, detail="FantasyCalc ADP API unavailable.") from exc
     except ValueError as exc:
+        FreshnessService(ContextRepo(conn)).mark_source_result(
+            league_id=league_id, domain="market", source_id="fantasycalc:adp",
+            parsed_successfully=False, record_count=0, notes=f"Schema or value error: {exc}",
+        )
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    FreshnessService(ContextRepo(conn)).mark_refreshed(
-        league_id,
-        "market",
-            "FantasyCalc market values and ADP baseline refreshed by league refresh pipeline.",
+    FreshnessService(ContextRepo(conn)).mark_source_result(
+        league_id=league_id,
+        domain="market",
+        source_id="fantasycalc:adp",
+        parsed_successfully=adp_summary["matched_unique_rows"] > 0,
+        record_count=adp_summary["matched_unique_rows"],
+        notes="FantasyCalc market values and ADP baseline refreshed by league refresh pipeline.",
     )
 
     draft_capital_summary = refresh_actual_draft_capital(conn, draft_year=draft_year)
@@ -329,10 +346,13 @@ async def refresh_league_pipeline(
         "team_context",
         f"Team context refreshed for {draft_year} by league refresh pipeline.",
     )
-    freshness.mark_refreshed(
-        GLOBAL_FRESHNESS_LEAGUE_ID,
-        "player_metadata",
-        f"Dense player metadata refreshed for {draft_year} by league refresh pipeline.",
+    freshness.mark_source_result(
+        league_id=GLOBAL_FRESHNESS_LEAGUE_ID,
+        domain="player_metadata",
+        source_id="nflreadpy:weekly_rosters",
+        parsed_successfully=player_metadata_summary.source_rows > 0,
+        record_count=player_metadata_summary.updated_rows,
+        notes=f"Dense player metadata refreshed for {draft_year} by league refresh pipeline.",
     )
     artifact_summary = refresh_league_artifacts(conn, league_id)
 
@@ -394,15 +414,23 @@ async def refresh_adp_baseline(
             ppr=resolved_ppr,
         )
     except FantasyCalcUnavailableError as exc:
+        if league_id is not None:
+            FreshnessService(ContextRepo(conn)).mark_source_result(
+                league_id=league_id, domain="market", source_id="fantasycalc:adp",
+                parsed_successfully=False, record_count=0, notes=str(exc),
+            )
         raise HTTPException(status_code=503, detail="FantasyCalc ADP API unavailable.") from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     if league_id is not None:
-        FreshnessService(ContextRepo(conn)).mark_refreshed(
-            league_id,
-            "market",
-            "FantasyCalc market values and ADP baseline refreshed.",
+        FreshnessService(ContextRepo(conn)).mark_source_result(
+            league_id=league_id,
+            domain="market",
+            source_id="fantasycalc:adp",
+            parsed_successfully=refresh_summary["matched_unique_rows"] > 0,
+            record_count=refresh_summary["matched_unique_rows"],
+            notes="FantasyCalc market values and ADP baseline refreshed.",
         )
 
     return AdpBaselineRefreshResponse(

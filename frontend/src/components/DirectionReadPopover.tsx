@@ -17,20 +17,17 @@ const directionLabelContext: Record<string, string> = {
     "Competitive enough to matter now, but not strong enough to justify a blind all-in push.",
   transition_contender:
     "A roster with enough weekly strength to compete, but one that still needs to preserve flexibility instead of shoving fully in.",
-  productive_struggle:
-    "A roster that can still score while redirecting value toward the future.",
+  productive_struggle: "A roster that can still score while redirecting value toward the future.",
   one_year_punt:
     "A short-term step back built to bank future leverage instead of this season's points.",
-  retool:
-    "A workable core that stays active while stripping out age risk and fragile value.",
+  retool: "A workable core that stays active while stripping out age risk and fragile value.",
   value_retool:
     "A retool that leans even harder into liquidity, optionality, and patient value collection without fully bottoming out.",
   elite_value_accumulation:
     "A value-first build focused on optionality, liquidity, and long-term leverage.",
   soft_rebuild:
     "A future-first build that still holds enough usable production that a full tear-down would be too aggressive.",
-  hard_rebuild:
-    "A full reset that sacrifices current points to maximize youth and pick capital.",
+  hard_rebuild: "A full reset that sacrifices current points to maximize youth and pick capital.",
 }
 
 function formatDirectionName(value: string) {
@@ -75,20 +72,12 @@ function formatDirectionReasoning({
   )
 }
 
-export function Popout({
-  title,
-  children,
-}: {
-  title: string
-  children: React.ReactNode
-}) {
+export function Popout({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="pointer-events-none absolute left-0 top-full z-30 hidden w-[min(24rem,calc(100vw-2rem))] pt-3 opacity-0 transition duration-150 group-hover:block group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:block group-focus-within:pointer-events-auto group-focus-within:opacity-100">
       <div className="translate-y-2 rounded-2xl border border-border/70 bg-background/95 p-4 backdrop-blur transition duration-150 group-hover:translate-y-0 group-focus-within:translate-y-0">
         <p className="terminal-label text-muted-foreground">{title}</p>
-        <div className="mt-3 space-y-3 text-sm leading-6 text-muted-foreground">
-          {children}
-        </div>
+        <div className="mt-3 space-y-3 text-sm leading-6 text-muted-foreground">{children}</div>
       </div>
     </div>
   )
@@ -105,10 +94,7 @@ export function HoverTrigger({
 }) {
   return (
     <div className="group relative">
-      <button
-        type="button"
-        className={cn("cursor-help text-left", className)}
-      >
+      <button type="button" className={cn("cursor-help text-left", className)}>
         {children}
       </button>
       {popout}
@@ -150,9 +136,7 @@ export function DirectionReadPopover({
           <HoverTrigger
             popout={
               <Popout title="Read Breakdown">
-                {directionNote ? (
-                  <p className="text-foreground">{directionNote}</p>
-                ) : null}
+                {directionNote ? <p className="text-foreground">{directionNote}</p> : null}
                 {readReasoning ? <p>{readReasoning}</p> : null}
               </Popout>
             }
@@ -179,9 +163,7 @@ export function DirectionReadPopover({
           popout={
             <Popout title={formatDirectionName(directionLabel)}>
               <p>{directionContext(directionLabel)}</p>
-              {directionNote ? (
-                <p className="text-foreground">{directionNote}</p>
-              ) : null}
+              {directionNote ? <p className="text-foreground">{directionNote}</p> : null}
               {readReasoning ? <p>{readReasoning}</p> : null}
             </Popout>
           }
@@ -202,8 +184,8 @@ export function DirectionReadPopover({
                     <Popout title={formatDirectionName(alternate)}>
                       <p>{directionContext(alternate)}</p>
                       <p>
-                        This roster is close enough to this path that a modest shift
-                        in the scorecard could move the read here.
+                        This roster is close enough to this path that a modest shift in the
+                        scorecard could move the read here.
                       </p>
                     </Popout>
                   }
@@ -237,9 +219,7 @@ export function DirectionReadPopover({
                 popout={
                   <Popout title={flag.label}>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant={strengthVariant(flag.strength)}>
-                        {flag.strength}
-                      </Badge>
+                      <Badge variant={strengthVariant(flag.strength)}>{flag.strength}</Badge>
                     </div>
                     <p>{flag.detail}</p>
                   </Popout>
@@ -248,12 +228,8 @@ export function DirectionReadPopover({
               >
                 <div className="shrink-0 rounded-xl border border-border/55 bg-card/70 px-3 py-2 transition-colors hover:border-primary/35 hover:bg-card">
                   <div className="flex items-center gap-2 whitespace-nowrap">
-                    <span className="text-sm font-semibold text-foreground">
-                      {flag.label}
-                    </span>
-                    <Badge variant={strengthVariant(flag.strength)}>
-                      {flag.strength}
-                    </Badge>
+                    <span className="text-sm font-semibold text-foreground">{flag.label}</span>
+                    <Badge variant={strengthVariant(flag.strength)}>{flag.strength}</Badge>
                   </div>
                 </div>
               </HoverTrigger>

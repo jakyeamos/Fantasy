@@ -9,7 +9,8 @@ const summaryByLabel: Record<OrphanIntake["composite_label"], string> = {
   Distressed: "Immediate churn and liquidation should come before any long-view patience.",
   Rebuilder: "This roster has enough bones to keep, but it needs insulation and cleaner timelines.",
   Balanced: "The team is salvageable without a teardown, but every move should stay value-aware.",
-  "Ready to Compete": "This orphan can push sooner than expected if you avoid unnecessary reshaping.",
+  "Ready to Compete":
+    "This orphan can push sooner than expected if you avoid unnecessary reshaping.",
 }
 
 export function OrphanIntakeStatusCard({ intake }: OrphanIntakeStatusCardProps) {

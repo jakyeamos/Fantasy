@@ -14,9 +14,7 @@ function topTendency(positionalTendency: Record<string, number>) {
   if (!entries.length) {
     return null
   }
-  return entries.reduce((best, current) =>
-    current[1] > best[1] ? current : best,
-  )
+  return entries.reduce((best, current) => (current[1] > best[1] ? current : best))
 }
 
 export function RookiePickMarketCard({
@@ -26,10 +24,7 @@ export function RookiePickMarketCard({
   isLoading = false,
 }: RookiePickMarketCardProps) {
   const tendency = topTendency(positionalTendency)
-  const tendencyLabel =
-    tendency && tendency[1] > 0.05
-      ? `${tendency[0]}-heavy`
-      : "Balanced"
+  const tendencyLabel = tendency && tendency[1] > 0.05 ? `${tendency[0]}-heavy` : "Balanced"
 
   return (
     <Card>
@@ -51,9 +46,7 @@ export function RookiePickMarketCard({
             </div>
             <div className="rounded-lg border border-border/35 bg-card/45 px-3 py-2">
               <p className="terminal-label mb-1">Dominant Archetype</p>
-              <span className="text-sm">
-                {dominantArchetype ?? "No pattern established"}
-              </span>
+              <span className="text-sm">{dominantArchetype ?? "No pattern established"}</span>
             </div>
             {pickPremiumScore !== null && pickPremiumScore >= 0.1 ? (
               <div className="rounded-lg border border-border/35 bg-card/45 px-3 py-2">

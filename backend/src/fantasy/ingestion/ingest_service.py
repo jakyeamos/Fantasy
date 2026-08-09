@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import duckdb
@@ -117,16 +118,53 @@ class IngestService:
 
         player_catalog: dict[str, dict[str, Any]] = {}
         fetch_players = getattr(self.client, "fetch_players", None)
-        if callable(fetch_players):
+        global_freshness = ContextRepo(self.conn).get_freshness_rows(
+            "__global__", ["player_metadata"]
+        ).get("player_metadata")
+        catalog_fetch_due = (
+            global_freshness is None
+            or global_freshness.fetched_at is None
+            or datetime.now(timezone.utc)
+            - global_freshness.fetched_at.replace(tzinfo=timezone.utc)
+            >= timedelta(hours=24)
+        )
+        if callable(fetch_players) and catalog_fetch_due:
             try:
                 player_catalog = dict(await fetch_players())
+                for catalog_player_id, raw_player in player_catalog.items():
+                    self.repo.upsert_player(
+                        self._normalize_player_record(
+                            str(catalog_player_id), raw_player
+                        )
+                    )
+                FreshnessService(ContextRepo(self.conn)).mark_source_result(
+                    league_id="__global__",
+                    domain="player_metadata",
+                    source_id="sleeper:players_nfl",
+                    parsed_successfully=bool(player_catalog),
+                    record_count=len(player_catalog),
+                    notes="Sleeper player catalog fetch (limited to once daily).",
+                )
             except Exception as exc:
                 player_catalog = {}
+                FreshnessService(ContextRepo(self.conn)).mark_source_result(
+                    league_id="__global__",
+                    domain="player_metadata",
+                    source_id="sleeper:players_nfl",
+                    parsed_successfully=False,
+                    record_count=0,
+                    notes=str(exc),
+                )
                 self._record_degradation(
                     "player_backfill_catalog_unavailable: "
                     f"{len(missing_player_ids)} roster player(s) missing from local players table; "
                     f"using ID-only placeholders because Sleeper player catalog fetch failed: {exc}"
                 )
+        elif not catalog_fetch_due:
+            self._record_degradation(
+                "player_backfill_catalog_daily_limit: Sleeper player metadata was already fetched "
+                "within 24 hours; unresolved players use local placeholders until the next window."
+            )
 
         placeholder_player_ids = [
             player_id for player_id in missing_player_ids if player_id not in player_catalog

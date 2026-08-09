@@ -29,10 +29,7 @@ export function assetKey(asset: TradeAsset): string {
   return `pick:${asset.pick_owner_roster_id ?? "unknown"}:${asset.pick_year ?? "unknown"}:${asset.pick_round ?? "unknown"}`
 }
 
-export function appendUniqueAsset(
-  assets: TradeAsset[],
-  asset: TradeAsset,
-): TradeAsset[] {
+export function appendUniqueAsset(assets: TradeAsset[], asset: TradeAsset): TradeAsset[] {
   if (assets.some((current) => assetKey(current) === assetKey(asset))) {
     return assets
   }
