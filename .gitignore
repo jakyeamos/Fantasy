@@ -22,3 +22,5 @@ data/*.duckdb
 .firecrawl/
 .pytest_cache/
 .agents/
+# Ephemeral public-page bodies for Fresh Intelligence (7-day local cache)
+data/cache/intelligence/
