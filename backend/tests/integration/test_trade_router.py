@@ -32,7 +32,10 @@ def test_evaluate_endpoint(trade_seed_data):
 
     response = client.post("/trade/evaluate", json=_request())
     assert response.status_code == 200
-    assert "market_fairness" in response.json()
+    payload = response.json()
+    assert "market_fairness" in payload
+    assert payload["trade_analysis"]["schema_version"] == "trade-analysis/1.0"
+    assert payload["trade_analysis"]["quality"]["gates"]
 
 
 def test_evaluate_with_reroutes_and_package(trade_seed_data):
@@ -187,6 +190,35 @@ def test_pick_search_endpoint_returns_full_scoped_pick_inventory(trade_seed_data
         and item["pick_year"] == 2027
         and item["round"] == 3
         for item in payload
+    )
+
+
+def test_pick_search_includes_owned_picks_beyond_default_three_year_window(trade_seed_data):
+    trade_seed_data.execute(
+        """
+        INSERT INTO traded_picks (
+            id, league_id, season, round, roster_id, owner_id, previous_owner_id
+        )
+        VALUES (999, 'league_x', '2029', 1, 2, '1', '2')
+        """
+    )
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(trade_seed_data)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(trade_seed_data)
+    client = TestClient(app)
+
+    response = client.get(
+        "/trade/picks/search",
+        params={"league_id": "league_x", "roster_id": 1},
+    )
+
+    assert response.status_code == 200
+    assert any(
+        item["current_owner_id"] == 1
+        and item["original_owner_id"] == 2
+        and item["pick_year"] == 2029
+        and item["round"] == 1
+        for item in response.json()
     )
 
 

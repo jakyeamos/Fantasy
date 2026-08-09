@@ -28,10 +28,13 @@ export interface SnapshotTriggerResponse {
 
 export interface AdpBaselineRefreshResponse {
   source: "fantasycalc_api"
+  refresh_run_id: number
   source_rows: number
   matched_rows: number
   matched_unique_rows: number
   unmatched_rows: number
+  market_value_rows: number
+  coverage_ratio: number
   num_qbs: number
   num_teams: number
   ppr: number
@@ -300,6 +303,7 @@ export interface TradeAsset {
   pick_year?: number | null
   pick_round?: number | null
   projected_slot?: string | null
+  label?: string | null
 }
 
 export interface ThirdPartyTrade {
@@ -367,7 +371,106 @@ export interface ParticipantPackageOffer {
 export interface PackageBuilderResult {
   aggressive_open: PackageOffer
   fair_close: PackageOffer
+  roster_fit_counter?: PackageOffer | null
   participant_offers?: ParticipantPackageOffer[] | null
+}
+
+export interface TradeAnalysisAsset {
+  side:
+    | "user_send"
+    | "user_receive"
+    | "counterparty_send"
+    | "counterparty_receive"
+  asset: TradeAsset
+  label: string
+  position: string | null
+  age: number | null
+  current_owner_roster_id: number | null
+  current_owner_name: string | null
+  original_owner_name: string | null
+  market_value: number | null
+  context_value: number | null
+  valuation_source: string
+  evidence_status: "available" | "degraded" | "unavailable"
+  evidence_notes: string[]
+}
+
+export interface TradeLineupImpact {
+  roster_id: number
+  roster_name: string
+  status: "available" | "degraded" | "unavailable"
+  before_title_window: string | null
+  after_title_window: string | null
+  before_score: number | null
+  after_score: number | null
+  score_delta: number | null
+  starter_changes: string[]
+  notes: string[]
+}
+
+export interface TradeAnalysisOffer {
+  label: string
+  send_assets: TradeAsset[]
+  receive_assets: TradeAsset[]
+  purpose:
+    | "current"
+    | "aggressive_open"
+    | "preferred_close"
+    | "fallback"
+    | "walk_away"
+  rationale: string
+}
+
+export interface TradeAnalysisScenario {
+  label: string
+  scenario_type:
+    | "current_offer"
+    | "aggressive_open"
+    | "preferred_close"
+    | "fallback"
+    | "walk_away"
+  score_low: number | null
+  score_high: number | null
+  score_point: number | null
+  verdict: "accept" | "counter" | "hold" | "walk_away"
+  rationale: string
+  assumptions: string[]
+}
+
+export interface TradeNegotiationLadder {
+  aggressive_open: TradeAnalysisOffer
+  preferred_close: TradeAnalysisOffer
+  fallback: TradeAnalysisOffer
+  walk_away: TradeAnalysisOffer
+  walk_away_rule: string
+}
+
+export interface TradeAnalysisQuality {
+  completeness_score: number
+  evidence_reliability_score: number
+  status: "complete" | "complete_with_degraded_evidence" | "blocked"
+  gates: Record<string, boolean>
+  limitations: string[]
+  freshness: Record<string, unknown>
+  calibration: Record<string, unknown>
+}
+
+export interface TradeAnalysis {
+  schema_version: "trade-analysis/1.0"
+  headline: string
+  verdict: "accept" | "counter" | "hold" | "walk_away"
+  model_score_low: number
+  model_score_high: number
+  model_score_point: number
+  score_interpretation: string
+  assets: TradeAnalysisAsset[]
+  lineup_impacts: TradeLineupImpact[]
+  scenarios: TradeAnalysisScenario[]
+  negotiation: TradeNegotiationLadder
+  quality: TradeAnalysisQuality
+  key_reasons: string[]
+  contrary_case: string
+  what_changes_the_answer: string[]
 }
 
 export type RecommendationTypeLabel =
@@ -506,6 +609,7 @@ export interface TradeEvaluation {
   third_party_evaluations?: ThirdPartyTradeEvaluation[] | null
   recommendation_context?: RecommendationContext | null
   recommendation_cards?: RecommendationCard[] | null
+  trade_analysis?: TradeAnalysis | null
   degradation_reasons: string[]
 }
 

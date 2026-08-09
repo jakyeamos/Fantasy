@@ -17,6 +17,7 @@ class TradeAsset(BaseModel):
     pick_year: int | None = None
     pick_round: int | None = None
     projected_slot: str | None = None
+    label: str | None = None
 
 
 class ThirdPartyTrade(BaseModel):
@@ -97,11 +98,121 @@ class ParticipantPackageOffer(BaseModel):
     market_fairness: DimensionScore | None = None
 
 
+class TradeAnalysisAsset(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    side: Literal[
+        "user_send",
+        "user_receive",
+        "counterparty_send",
+        "counterparty_receive",
+    ]
+    asset: TradeAsset
+    label: str
+    position: str | None = None
+    age: int | None = None
+    current_owner_roster_id: int | None = None
+    current_owner_name: str | None = None
+    original_owner_name: str | None = None
+    market_value: float | None = None
+    context_value: float | None = None
+    valuation_source: str
+    evidence_status: Literal["available", "degraded", "unavailable"]
+    evidence_notes: list[str] = Field(default_factory=list)
+
+
+class TradeLineupImpact(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    roster_id: int
+    roster_name: str
+    status: Literal["available", "degraded", "unavailable"]
+    before_title_window: str | None = None
+    after_title_window: str | None = None
+    before_score: float | None = None
+    after_score: float | None = None
+    score_delta: float | None = None
+    starter_changes: list[str] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
+class TradeAnalysisOffer(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    label: str
+    send_assets: list[TradeAsset]
+    receive_assets: list[TradeAsset]
+    purpose: Literal["current", "aggressive_open", "preferred_close", "fallback", "walk_away"]
+    rationale: str
+
+
+class TradeAnalysisScenario(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    label: str
+    scenario_type: Literal[
+        "current_offer",
+        "aggressive_open",
+        "preferred_close",
+        "fallback",
+        "walk_away",
+    ]
+    score_low: float | None = None
+    score_high: float | None = None
+    score_point: float | None = None
+    verdict: Literal["accept", "counter", "hold", "walk_away"]
+    rationale: str
+    assumptions: list[str] = Field(default_factory=list)
+
+
+class TradeNegotiationLadder(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    aggressive_open: TradeAnalysisOffer
+    preferred_close: TradeAnalysisOffer
+    fallback: TradeAnalysisOffer
+    walk_away: TradeAnalysisOffer
+    walk_away_rule: str
+
+
+class TradeAnalysisQuality(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    completeness_score: float
+    evidence_reliability_score: float
+    status: Literal["complete", "complete_with_degraded_evidence", "blocked"]
+    gates: dict[str, bool]
+    limitations: list[str] = Field(default_factory=list)
+    freshness: dict[str, object] = Field(default_factory=dict)
+    calibration: dict[str, object] = Field(default_factory=dict)
+
+
+class TradeAnalysis(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    schema_version: str = "trade-analysis/1.0"
+    headline: str
+    verdict: Literal["accept", "counter", "hold", "walk_away"]
+    model_score_low: float
+    model_score_high: float
+    model_score_point: float
+    score_interpretation: str
+    assets: list[TradeAnalysisAsset]
+    lineup_impacts: list[TradeLineupImpact]
+    scenarios: list[TradeAnalysisScenario]
+    negotiation: TradeNegotiationLadder
+    quality: TradeAnalysisQuality
+    key_reasons: list[str] = Field(default_factory=list)
+    contrary_case: str
+    what_changes_the_answer: list[str] = Field(default_factory=list)
+
+
 class PackageBuilderResult(BaseModel):
     model_config = ConfigDict(frozen=False)
 
     aggressive_open: PackageOffer
     fair_close: PackageOffer
+    roster_fit_counter: PackageOffer | None = None
     participant_offers: list[ParticipantPackageOffer] | None = None
 
 
@@ -122,6 +233,7 @@ class TradeEvaluation(BaseModel):
     third_party_evaluations: list[ThirdPartyTradeEvaluation] | None = None
     recommendation_context: RecommendationContext | None = None
     recommendation_cards: list[RecommendationCard] | None = None
+    trade_analysis: TradeAnalysis | None = None
     degradation_reasons: list[str] = Field(default_factory=list)
 
 

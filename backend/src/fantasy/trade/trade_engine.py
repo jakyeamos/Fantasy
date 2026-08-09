@@ -20,6 +20,7 @@ from fantasy.trade.models import (
     ThirdPartyTradeEvaluation,
     TradeBalance,
     TradeAsset,
+    TradeAnalysis,
     TradeEvaluation,
     TradeRequest,
 )
@@ -331,6 +332,30 @@ class TradeEngine:
             notes.append(
                 "App context differs from consensus after team fit, direction, insulation, production, scarcity, and liquidity lenses."
             )
+        if (
+            len(sending_values) == 1
+            and len(receiving_values) == 1
+            and sending_values[0].get("position") != "PICK"
+            and receiving_values[0].get("position") != "PICK"
+        ):
+            sent_asset = sending_values[0]
+            received_asset = receiving_values[0]
+            market_gap = abs(
+                _asset_market_value(sent_asset) - _asset_market_value(received_asset)
+            )
+            production_gap = abs(
+                float(sent_asset.get("lens_production") or 0.0)
+                - float(received_asset.get("lens_production") or 0.0)
+            )
+            liquidity_gap = abs(
+                float(sent_asset.get("comp_market_liquidity") or 0.0)
+                - float(received_asset.get("comp_market_liquidity") or 0.0)
+            )
+            if market_gap <= 0.08 and max(production_gap, liquidity_gap) >= 0.15:
+                notes.append(
+                    "Similar app market prices do not make these players equivalent; "
+                    "production and liquidity differences must remain explicit in the verdict."
+                )
         if any(
             value.get("valuation_source") == "static_pick_fallback"
             for value in sending_values + receiving_values
@@ -400,12 +425,30 @@ class TradeEngine:
         sending_values: list[dict[str, Any]],
         receiving_values: list[dict[str, Any]],
         direction: dict[str, Any] | None,
+        scorecard_context: dict[str, Any] | None = None,
     ) -> DimensionScore:
         if direction is None:
             return DimensionScore(
                 score=50.0,
                 confidence="LOW",
                 reasoning="No direction label available for this roster.",
+            )
+        direction_confidence = float(direction.get("confidence", 0.0))
+        if (
+            direction_confidence < 0.4
+            and scorecard_context is not None
+            and scorecard_context.get("posture") == "dominant_value_forward"
+        ):
+            label = str(direction["primary_label"]).replace("_", " ")
+            return DimensionScore(
+                score=50.0,
+                confidence="LOW",
+                reasoning=(
+                    f"The {label} label is only {direction_confidence:.1%} confident and is not "
+                    "authoritative here. The scorecard ranks this roster first in both win-now "
+                    "and future value, so judge the deal as consolidation for a dominant "
+                    "value-forward team."
+                ),
             )
         sent = sum(float(value.get("lens_direction") or 0.0) for value in sending_values)
         received = sum(float(value.get("lens_direction") or 0.0) for value in receiving_values)
@@ -419,8 +462,8 @@ class TradeEngine:
         else:
             reasoning = f"This trade has limited directional impact on your {label} plan."
         confidence = (
-            "HIGH" if float(direction.get("confidence", 0.0)) >= 0.7 else "MEDIUM"
-            if float(direction.get("confidence", 0.0)) >= 0.4
+            "HIGH" if direction_confidence >= 0.7 else "MEDIUM"
+            if direction_confidence >= 0.4
             else "LOW"
         )
         return DimensionScore(score=score, confidence=confidence, reasoning=reasoning)
@@ -522,8 +565,23 @@ class TradeEngine:
         market_fairness: DimensionScore,
         direction_fit: DimensionScore,
         direction_label: str,
+        scorecard_context: dict[str, Any] | None = None,
     ) -> StrategicDistinction:
         label = direction_label.replace("_", " ")
+        if (
+            direction_fit.confidence == "LOW"
+            and scorecard_context is not None
+            and scorecard_context.get("posture") == "dominant_value_forward"
+        ):
+            return StrategicDistinction(
+                verdict="neutral",
+                headline="Price and lineup fit must be separated for this roster",
+                explanation=(
+                    "This roster ranks first in both win-now and future value. Treat favorable "
+                    "market value as leverage, but require the return to preserve elite lineup "
+                    "quality or create a concrete second move."
+                ),
+            )
         if market_fairness.score >= MARKET_FAIR_THRESHOLD and direction_fit.score > DIRECTION_ADVANCING_THRESHOLD:
             return StrategicDistinction(
                 verdict="advancing",
@@ -547,10 +605,21 @@ class TradeEngine:
         request: TradeRequest,
         *,
         include_recommendation_cards: bool = True,
+        include_analysis: bool = False,
     ) -> TradeEvaluation:
         self._degradation_reasons = []
         direction = self._repo.get_team_direction(request.league_id, request.user_roster_id)
+        scorecard_context = self._repo.get_team_scorecard_context(
+            request.league_id, request.user_roster_id
+        )
         direction_label = direction["primary_label"] if direction is not None else "roster plan"
+        if (
+            direction is not None
+            and float(direction.get("confidence", 0.0)) < 0.4
+            and scorecard_context is not None
+            and scorecard_context.get("posture") == "dominant_value_forward"
+        ):
+            direction_label = "dominant value-forward roster"
         sending_values = self._resolve_assets(
             request.user_sends,
             request.league_id,
@@ -568,7 +637,12 @@ class TradeEngine:
         trade_balance = self._trade_balance(sending_values, receiving_values)
         market_fairness = self._score_market_fairness(trade_balance)
         roster_fit = self._score_roster_fit(sending_values, receiving_values, request)
-        direction_fit = self._score_direction_fit(sending_values, receiving_values, direction)
+        direction_fit = self._score_direction_fit(
+            sending_values,
+            receiving_values,
+            direction,
+            scorecard_context,
+        )
         timing_quality = self._score_timing_quality(sending_values, receiving_values)
         insulation_delta = self._score_insulation_delta(sending_values, receiving_values)
         liquidity_delta = self._score_liquidity_delta(sending_values, receiving_values)
@@ -600,6 +674,7 @@ class TradeEngine:
             market_fairness,
             direction_fit,
             direction_label,
+            scorecard_context,
         )
         if third_party_evaluations:
             strategic_distinction.explanation += (
@@ -628,4 +703,17 @@ class TradeEngine:
                 receiving_values=receiving_values,
                 direction_label=direction_label,
             )
+        if include_analysis:
+            evaluation.trade_analysis = self.build_analysis(request, evaluation)
         return evaluation
+
+    def build_analysis(
+        self,
+        request: TradeRequest,
+        evaluation: TradeEvaluation,
+    ) -> TradeAnalysis:
+        """Build the complete Trade Lab packet after optional package enrichment."""
+
+        from fantasy.trade.trade_analysis import TradeAnalysisBuilder
+
+        return TradeAnalysisBuilder(self._conn).build(request, evaluation)

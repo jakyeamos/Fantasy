@@ -110,6 +110,64 @@ class TradeRepo:
             "discouraged_moves": _loads(row[3], []),
         }
 
+    def get_team_scorecard_context(
+        self, league_id: str, roster_id: int
+    ) -> dict[str, Any] | None:
+        row = self._conn.execute(
+            """
+            WITH latest AS (
+                SELECT roster_id, win_now, future_value, depth, pick_capital,
+                       flexibility, composite,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY roster_id ORDER BY computed_at DESC NULLS LAST, id DESC
+                       ) AS recency_rank
+                FROM team_scorecards
+                WHERE league_id = ?
+            ), ranked AS (
+                SELECT roster_id, win_now, future_value, depth, pick_capital,
+                       flexibility, composite,
+                       RANK() OVER (ORDER BY win_now DESC) AS win_now_rank,
+                       RANK() OVER (ORDER BY future_value DESC) AS future_value_rank,
+                       COUNT(*) OVER () AS roster_count
+                FROM latest
+                WHERE recency_rank = 1
+            )
+            SELECT win_now, future_value, depth, pick_capital, flexibility,
+                   composite, win_now_rank, future_value_rank, roster_count
+            FROM ranked
+            WHERE roster_id = ?
+            """,
+            [league_id, roster_id],
+        ).fetchone()
+        if row is None:
+            return None
+        dominant_value_forward = (
+            int(row[6]) == 1
+            and int(row[7]) == 1
+            and float(row[0]) >= 0.75
+            and float(row[1]) >= 0.75
+        )
+        return {
+            "win_now": float(row[0]),
+            "future_value": float(row[1]),
+            "depth": float(row[2]),
+            "pick_capital": float(row[3]),
+            "flexibility": float(row[4]),
+            "composite": float(row[5]),
+            "win_now_rank": int(row[6]),
+            "future_value_rank": int(row[7]),
+            "roster_count": int(row[8]),
+            "posture": (
+                "dominant_value_forward"
+                if dominant_value_forward
+                else "contender"
+                if float(row[0]) >= 0.7
+                else "future_focused"
+                if float(row[1]) >= 0.7
+                else "balanced"
+            ),
+        }
+
     def get_manager_profile(self, league_id: str, roster_id: int) -> dict[str, Any] | None:
         row = self._conn.execute(
             """
@@ -255,7 +313,21 @@ class TradeRepo:
         current_season = int(league_row[0])
         league_settings = _loads(league_row[1], {})
         draft_rounds = max(int(league_settings.get("draft_rounds", 3) or 3), 1)
-        future_seasons = [current_season + offset for offset in range(3)]
+        latest_traded_season_row = self._conn.execute(
+            """
+            SELECT MAX(CAST(season AS INTEGER))
+            FROM traded_picks
+            WHERE league_id = ? AND CAST(season AS INTEGER) >= ?
+            """,
+            [league_id, current_season],
+        ).fetchone()
+        latest_traded_season = (
+            int(latest_traded_season_row[0])
+            if latest_traded_season_row and latest_traded_season_row[0] is not None
+            else current_season + 2
+        )
+        final_season = max(current_season + 2, latest_traded_season)
+        future_seasons = list(range(current_season, final_season + 1))
 
         traded_rows = [
             (int(row[0]), int(row[1]), int(row[2]), int(row[3]))

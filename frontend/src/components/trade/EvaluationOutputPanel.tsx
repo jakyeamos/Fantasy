@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { DimensionScoreRow } from "@/components/trade/DimensionScoreRow"
+import { TradeAnalysisPanel } from "@/components/trade/TradeAnalysisPanel"
 import { StrategicDistinctionBanner } from "@/components/trade/StrategicDistinctionBanner"
 
 const DIMENSIONS: Array<[keyof TradeEvaluation, string]> = [
@@ -150,6 +151,7 @@ export function EvaluationOutputPanel({
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
+        <TradeAnalysisPanel analysis={evaluation.trade_analysis} />
         <StrategicDistinctionBanner distinction={evaluation.strategic_distinction} />
         <TradeBalanceSeesaw evaluation={evaluation} />
         <div className="rounded-xl border border-border/40 bg-card/45 p-4">

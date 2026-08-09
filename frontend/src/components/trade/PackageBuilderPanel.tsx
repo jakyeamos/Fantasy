@@ -1,8 +1,9 @@
-import type { PackageBuilderResult, TradeAsset } from "@/api/types"
+import type { PackageBuilderResult, PackageOffer, TradeAsset } from "@/api/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 function renderAssets(assets: TradeAsset[]) {
   return assets.map((asset, index) => {
+    if (asset.label) return asset.label
     if (asset.asset_type === "player") return asset.player_id ?? `Player ${index + 1}`
     return `${asset.pick_year} Round ${asset.pick_round}`
   }).join(", ")
@@ -27,8 +28,9 @@ export function PackageBuilderPanel({
 
   const offers = [
     packageBuilder.aggressive_open,
+    packageBuilder.roster_fit_counter,
     packageBuilder.fair_close,
-  ]
+  ].filter((offer): offer is PackageOffer => Boolean(offer))
 
   return (
     <div className="space-y-4">
@@ -36,7 +38,7 @@ export function PackageBuilderPanel({
         <p className="terminal-label text-primary/80">Suggested framing</p>
         <h3 className="font-headline text-2xl font-bold">Package Builder</h3>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {offers.map((offer) => (
           <Card key={offer.label}>
             <CardHeader>

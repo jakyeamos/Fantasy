@@ -50,7 +50,7 @@ def evaluate_trade(
     conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
 ) -> TradeEvaluation:
     engine = TradeEngine(conn)
-    evaluation = engine.evaluate(request)
+    evaluation = engine.evaluate(request, include_analysis=False)
     if request.include_reroutes:
         evaluation.reroutes = RerouteEngine(conn).generate(request, evaluation)
     if request.include_package:
@@ -59,6 +59,7 @@ def evaluate_trade(
         conn,
         request.league_id,
     )
+    evaluation.trade_analysis = engine.build_analysis(request, evaluation)
     return evaluation
 
 

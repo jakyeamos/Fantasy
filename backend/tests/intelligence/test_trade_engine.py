@@ -223,6 +223,59 @@ def test_trade_balance_can_diverge_from_equal_consensus_values(trade_seed_data):
     assert "App context differs from consensus" in evaluation.market_fairness.reasoning
 
 
+def test_similar_market_prices_do_not_claim_players_are_equivalent(trade_seed_data):
+    trade_seed_data.execute(
+        """
+        UPDATE player_values
+        SET lens_market = CASE player_id WHEN 'wr1' THEN 0.70 ELSE 0.69 END,
+            lens_production = CASE player_id WHEN 'wr1' THEN 0.90 ELSE 0.45 END,
+            comp_market_liquidity = CASE player_id WHEN 'wr1' THEN 0.92 ELSE 0.62 END
+        WHERE league_id = 'league_x' AND player_id IN ('wr1', 'wr2')
+        """
+    )
+
+    evaluation = TradeEngine(trade_seed_data).evaluate(
+        TradeRequest(
+            league_id="league_x",
+            user_roster_id=1,
+            counterparty_roster_id=2,
+            user_sends=[TradeAsset(asset_type="player", player_id="wr1")],
+            user_receives=[TradeAsset(asset_type="player", player_id="wr2")],
+        )
+    )
+
+    assert evaluation.trade_balance is not None
+    assert "do not make these players equivalent" in evaluation.market_fairness.reasoning
+
+
+def test_low_confidence_rebuild_label_yields_to_dominant_scorecard(trade_seed_data):
+    trade_seed_data.execute(
+        """
+        UPDATE team_directions
+        SET primary_label = 'soft_rebuild', confidence = 0.315
+        WHERE league_id = 'league_x' AND roster_id = 1
+        """
+    )
+    trade_seed_data.execute(
+        """
+        UPDATE team_scorecards
+        SET win_now = CASE roster_id WHEN 1 THEN 1.0 ELSE 0.60 END,
+            future_value = CASE roster_id WHEN 1 THEN 1.0 ELSE 0.55 END
+        WHERE league_id = 'league_x'
+        """
+    )
+
+    evaluation = TradeEngine(trade_seed_data).evaluate(_request())
+
+    assert evaluation.direction_fit.confidence == "LOW"
+    assert "not authoritative" in evaluation.direction_fit.reasoning
+    assert "first in both win-now and future value" in evaluation.direction_fit.reasoning
+    assert evaluation.strategic_distinction.verdict == "neutral"
+    assert "soft rebuild" not in evaluation.strategic_distinction.headline.lower()
+    assert evaluation.recommendation_cards is not None
+    assert "lineup" in evaluation.recommendation_cards[0].action
+
+
 def test_dimension_scores(trade_seed_data):
     engine = TradeEngine(trade_seed_data)
     evaluation = engine.evaluate(_request())

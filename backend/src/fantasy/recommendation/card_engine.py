@@ -211,7 +211,16 @@ class RecommendationCardEngine:
         execution = 0.75 if float(evaluation.manager_exploit_quality.score) >= 50 else 0.6
         distinction = evaluation.strategic_distinction
         direction_copy = direction_label.replace("_", " ") if direction_label else "current plan"
-        if float(evaluation.direction_fit.score) >= 55 and float(evaluation.market_fairness.score) >= 50:
+        if (
+            evaluation.direction_fit.confidence == "LOW"
+            and "first in both win-now and future value" in evaluation.direction_fit.reasoning
+        ):
+            action = (
+                "Counter for a lineup-improving asset; keep the favorable value package as the fallback."
+                if float(evaluation.market_fairness.score) >= 55
+                else "Require a clear lineup upgrade before moving an elite cornerstone."
+            )
+        elif float(evaluation.direction_fit.score) >= 55 and float(evaluation.market_fairness.score) >= 50:
             action = "Push this trade forward or counter around the same structure."
         elif float(evaluation.direction_fit.score) <= 45:
             action = "Rework the deal before sending it, or walk away."
