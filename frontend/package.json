@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "format": "prettier --check . --ignore-unknown",
+    "format": "node scripts/formatContract.mjs",
+    "format:baseline": "node scripts/formatContract.mjs --update-baseline",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
@@ -36,6 +37,7 @@
     "@vitejs/plugin-react": "^5.1.0",
     "eslint-plugin-anti-slop": "file:../../eslint-plugin-anti-slop",
     "playwright": "^1.61.1",
+    "prettier": "3.8.1",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
     "vite": "^8.0.1"

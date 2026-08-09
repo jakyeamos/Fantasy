@@ -24,6 +24,8 @@ It is marked private in `package.json` and is intended for workspace use rather 
 - `pnpm dev` - `vite`
 - `pnpm build` - `tsc --noEmit && vite build`
 - `pnpm preview` - `vite preview`
+- `pnpm format` - enforce Prettier on files added or changed after the recorded legacy baseline
+- `pnpm format:baseline` - explicitly refresh reviewed legacy hashes after formatter configuration or intentional normalization changes
 
 ## Development Notes
 
@@ -32,4 +34,7 @@ Use `pnpm` from the containing workspace to install dependencies and run scripts
 
 ## Verification
 
-There is no local verification command documented in this directory yet; use the parent workspace checks when available.
+Run `pnpm typecheck`, `pnpm audit:dead-code`, `pnpm format`, and `pnpm build`.
+The formatting baseline does not declare legacy files formatted; it prevents
+unchanged legacy style from blocking work while requiring every later change
+or new file to satisfy the pinned Prettier contract.

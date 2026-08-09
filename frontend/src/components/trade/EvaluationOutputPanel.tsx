@@ -45,9 +45,7 @@ function TradeBalanceSeesaw({ evaluation }: { evaluation: TradeEvaluation }) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="terminal-label text-muted-foreground">Trade Balance</p>
-          <p className="mt-1 text-lg font-semibold text-foreground">
-            {balanceLabel(score)}
-          </p>
+          <p className="mt-1 text-lg font-semibold text-foreground">{balanceLabel(score)}</p>
         </div>
         <div className="text-right">
           <p className="terminal-label text-muted-foreground">App-Adjusted Fairness</p>
@@ -156,11 +154,7 @@ export function EvaluationOutputPanel({
         <TradeBalanceSeesaw evaluation={evaluation} />
         <div className="rounded-xl border border-border/40 bg-card/45 p-4">
           {DIMENSIONS.map(([key, label]) => (
-            <DimensionScoreRow
-              key={String(key)}
-              label={label}
-              score={evaluation[key] as never}
-            />
+            <DimensionScoreRow key={String(key)} label={label} score={evaluation[key] as never} />
           ))}
         </div>
         {evaluation.third_party_evaluations?.length ? (
@@ -187,9 +181,7 @@ export function EvaluationOutputPanel({
             <p className="terminal-label text-muted-foreground">Pick Context</p>
             {pickSummaryRows.map((row, index) => (
               <div key={`${row.side}-${index}`} className="space-y-2">
-                <p className="terminal-label text-muted-foreground">
-                  {row.side}
-                </p>
+                <p className="terminal-label text-muted-foreground">{row.side}</p>
                 <PickValueSummaryRow
                   pickValue={row.value}
                   leagueId={leagueId}

@@ -278,12 +278,7 @@ export interface ManagerProfile {
     archetype_label: string | null
   }>
   likely_motivations_now?: string | null
-  recent_urgency_state?:
-    | "building_urgency"
-    | "stable"
-    | "declining_window"
-    | "panic_mode"
-    | null
+  recent_urgency_state?: "building_urgency" | "stable" | "declining_window" | "panic_mode" | null
   time_of_calendar_sensitivity?: number
   veteran_appetite?: number
   rookie_fever_index?: number
@@ -376,11 +371,7 @@ export interface PackageBuilderResult {
 }
 
 export interface TradeAnalysisAsset {
-  side:
-    | "user_send"
-    | "user_receive"
-    | "counterparty_send"
-    | "counterparty_receive"
+  side: "user_send" | "user_receive" | "counterparty_send" | "counterparty_receive"
   asset: TradeAsset
   label: string
   position: string | null
@@ -412,23 +403,13 @@ export interface TradeAnalysisOffer {
   label: string
   send_assets: TradeAsset[]
   receive_assets: TradeAsset[]
-  purpose:
-    | "current"
-    | "aggressive_open"
-    | "preferred_close"
-    | "fallback"
-    | "walk_away"
+  purpose: "current" | "aggressive_open" | "preferred_close" | "fallback" | "walk_away"
   rationale: string
 }
 
 export interface TradeAnalysisScenario {
   label: string
-  scenario_type:
-    | "current_offer"
-    | "aggressive_open"
-    | "preferred_close"
-    | "fallback"
-    | "walk_away"
+  scenario_type: "current_offer" | "aggressive_open" | "preferred_close" | "fallback" | "walk_away"
   score_low: number | null
   score_high: number | null
   score_point: number | null
@@ -542,14 +523,7 @@ export interface CommandAction {
   id: string
   league_id: string | null
   roster_id: number | null
-  category:
-    | "waiver"
-    | "lineup"
-    | "trade"
-    | "market"
-    | "rookie_pick"
-    | "portfolio"
-    | "manager"
+  category: "waiver" | "lineup" | "trade" | "market" | "rookie_pick" | "portfolio" | "manager"
   priority_rank: number
   urgency: "today" | "this_week" | "watch" | "low"
   confidence: ConfidenceLabel
@@ -813,10 +787,7 @@ export interface DraftGradesResponse {
   weakest_team?: DraftGradeTeamSummary | null
 }
 
-export type TimingLabel =
-  | "sell_now"
-  | "hold_until_rookie_fever"
-  | "use_on_the_clock"
+export type TimingLabel = "sell_now" | "hold_until_rookie_fever" | "use_on_the_clock"
 
 export interface PickValue {
   pick: {
