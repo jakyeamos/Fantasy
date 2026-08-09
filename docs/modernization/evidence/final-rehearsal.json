@@ -1,0 +1,45 @@
+{
+  "verified_at": "2026-08-02T03:19:16Z",
+  "worktree": "/Users/jakyeamos/projects/Fantasy/.worktrees/gpt56-v2",
+  "branch": "codex/rebuild-gpt56",
+  "milestones": "0-8 implemented",
+  "database": {
+    "primary_path": "/Users/jakyeamos/projects/Fantasy/data/fantasy.duckdb",
+    "primary_sha256": "9e7d2770adcb0af96a63580e2748f1135f6620703421b65d496859b2f0651601",
+    "primary_revision": "024_team_context_by_season",
+    "migrated_copy_path": "/private/tmp/fantasy-gpt56-live.duckdb",
+    "restore_copy_path": "/private/tmp/fantasy-gpt56-final-restore.duckdb",
+    "copy_sha256": "75c63155c7269665359f84bcb3ecd9528dc87f17ec9802e6dcd76e085f4f06b6",
+    "restore_sha256": "75c63155c7269665359f84bcb3ecd9528dc87f17ec9802e6dcd76e085f4f06b6",
+    "restore_hash_match": true,
+    "migrated_revision": "025_fresh_intelligence",
+    "table_count": 53,
+    "league_count": 2,
+    "primary_mutated": false
+  },
+  "validation": {
+    "focused_backend": "44 passed",
+    "full_backend": "584 passed in 88.48s",
+    "frontend": [
+      "format",
+      "lint",
+      "typecheck",
+      "audit:dead-code",
+      "build",
+      "test:render"
+    ],
+    "browser": {
+      "viewports": [375, 768, 1440],
+      "routes_per_viewport": 16,
+      "horizontal_overflow": false,
+      "interaction": "opportunities high-confidence filter"
+    }
+  },
+  "boundary": {
+    "merge": false,
+    "publish": false,
+    "deploy": false,
+    "cutover": false,
+    "external_league_actions": false
+  }
+}

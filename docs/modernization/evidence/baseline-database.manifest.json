@@ -1,0 +1,849 @@
+{
+  "manifest_version": 1,
+  "created_at": "2026-08-01T20:06:10.072998+00:00",
+  "source_path": "/Users/jakyeamos/projects/Fantasy/data/fantasy.duckdb",
+  "database_path": "/private/tmp/fantasy-gpt56-m0.duckdb",
+  "database_sha256": "9e7d2770adcb0af96a63580e2748f1135f6620703421b65d496859b2f0651601",
+  "wal_path": null,
+  "wal_sha256": null,
+  "alembic_version": "024_team_context_by_season",
+  "table_count": 43,
+  "tables": [
+    {
+      "table": "action_plans",
+      "row_count": 2,
+      "columns": [
+        "id",
+        "league_id",
+        "roster_id",
+        "computed_at",
+        "plan_type",
+        "items_json",
+        "summary"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "alembic_version",
+      "row_count": 1,
+      "columns": [
+        "version_num"
+      ],
+      "candidate_key": []
+    },
+    {
+      "table": "calendar_overrides",
+      "row_count": 0,
+      "columns": [
+        "id",
+        "league_id",
+        "state",
+        "set_by",
+        "set_at",
+        "expires_at"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "corrections",
+      "row_count": 0,
+      "columns": [
+        "id",
+        "league_id",
+        "entity_type",
+        "entity_id",
+        "field",
+        "original_value",
+        "corrected_value",
+        "corrected_by",
+        "created_at"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "draft_pick_selections",
+      "row_count": 72,
+      "columns": [
+        "id",
+        "league_id",
+        "draft_id",
+        "roster_id",
+        "player_id",
+        "pick_slot",
+        "round_number",
+        "season",
+        "draft_type",
+        "position",
+        "archetype_label",
+        "ingested_at"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "draft_slots",
+      "row_count": 0,
+      "columns": [
+        "id",
+        "league_id",
+        "draft_id",
+        "season",
+        "roster_id",
+        "confirmed_slot",
+        "status",
+        "ingested_at"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "freshness_domains",
+      "row_count": 20,
+      "columns": [
+        "id",
+        "league_id",
+        "domain",
+        "last_updated",
+        "notes"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "historical_prospect_features",
+      "row_count": 771,
+      "columns": [
+        "player_id",
+        "draft_year",
+        "position",
+        "player_name",
+        "age_at_draft",
+        "draft_ovr",
+        "forty",
+        "weight",
+        "height",
+        "vertical",
+        "bench",
+        "cone",
+        "shuttle",
+        "college_rec_ypg",
+        "college_rush_ypg",
+        "college_mkt_share_proxy",
+        "college_td_rate",
+        "college_completion_pct_proxy",
+        "adp",
+        "archetype_label",
+        "outcome_bucket",
+        "college_games",
+        "college_targets",
+        "college_receptions",
+        "college_receiving_yards",
+        "college_receiving_tds",
+        "college_routes_run",
+        "college_carries",
+        "college_rushing_yards",
+        "college_rushing_tds",
+        "college_pass_attempts",
+        "college_completions",
+        "college_passing_yards",
+        "college_passing_tds",
+        "college_interceptions",
+        "college_yprr",
+        "college_ypt",
+        "college_ypc",
+        "college_ypa",
+        "college_pass_td_rate",
+        "college_qb_rush_yards",
+        "college_qb_rush_tds",
+        "college_qb_rush_ypg",
+        "college_scramble_rate"
+      ],
+      "candidate_key": []
+    },
+    {
+      "table": "hygiene_suggestions",
+      "row_count": 24,
+      "columns": [
+        "id",
+        "league_id",
+        "roster_id",
+        "computed_at",
+        "suggestions_json",
+        "recommendation_cards_json"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "ingest_runs",
+      "row_count": 294,
+      "columns": [
+        "id",
+        "league_id",
+        "run_type",
+        "status",
+        "started_at",
+        "completed_at",
+        "cursor_json",
+        "gaps_json",
+        "error_message"
+      ],
+      "candidate_key": [
+        "league_id"
+      ]
+    },
+    {
+      "table": "league_draft_order_rules",
+      "row_count": 2,
+      "columns": [
+        "id",
+        "league_id",
+        "non_playoff_basis",
+        "playoff_ordering",
+        "tiebreaker",
+        "created_at",
+        "updated_at"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "league_draft_tendencies",
+      "row_count": 50,
+      "columns": [
+        "id",
+        "league_id",
+        "computed_at",
+        "tendency_type",
+        "position",
+        "player_id",
+        "player_name",
+        "early_draft_slots",
+        "adp_delta",
+        "system_value_slot"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "league_format_acknowledgments",
+      "row_count": 2,
+      "columns": [
+        "id",
+        "league_id",
+        "acknowledged_rules",
+        "acknowledged_at",
+        "updated_at"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "league_snapshots",
+      "row_count": 1095,
+      "columns": [
+        "id",
+        "league_id",
+        "snapshot_at",
+        "snapshot_type",
+        "triggered_by",
+        "ingest_run_id",
+        "payload_json",
+        "base_snapshot_id"
+      ],
+      "candidate_key": [
+        "league_id"
+      ]
+    },
+    {
+      "table": "league_taxi_configs",
+      "row_count": 0,
+      "columns": [
+        "id",
+        "league_id",
+        "taxi_slots",
+        "taxi_years_eligible",
+        "years_pro_cutoff",
+        "created_at",
+        "updated_at",
+        "manual_exceptions_json"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "leagues",
+      "row_count": 2,
+      "columns": [
+        "league_id",
+        "name",
+        "season",
+        "scoring_settings",
+        "roster_positions",
+        "settings_blob",
+        "superflex",
+        "tep",
+        "ppr",
+        "ingested_at"
+      ],
+      "candidate_key": [
+        "league_id"
+      ]
+    },
+    {
+      "table": "lineup_scores",
+      "row_count": 24,
+      "columns": [
+        "id",
+        "league_id",
+        "roster_id",
+        "computed_at",
+        "total_lineup_score",
+        "title_window_label",
+        "title_window_composite",
+        "ceiling_score",
+        "stability_score",
+        "depth_score",
+        "slot_scores_json",
+        "recommendation_cards_json",
+        "overall_playoff_target",
+        "overall_title_target",
+        "overall_elite_target",
+        "overall_gap_to_playoff_target",
+        "overall_gap_to_title_target",
+        "overall_gap_to_elite_target",
+        "overall_benchmark_source",
+        "overall_benchmark_sample_size"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "manager_pitch_angles",
+      "row_count": 42,
+      "columns": [
+        "id",
+        "league_id",
+        "roster_id",
+        "rank",
+        "deal_archetype",
+        "send_description",
+        "avoid_description",
+        "reasoning",
+        "computed_at"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "manager_profiles",
+      "row_count": 24,
+      "columns": [
+        "id",
+        "league_id",
+        "roster_id",
+        "computed_at",
+        "evidence_count",
+        "low_confidence",
+        "exploitability_score",
+        "exploitation_primary",
+        "exploitation_secondary",
+        "exploitation_evidence",
+        "roster_summary",
+        "aggregate_trade_stats",
+        "trade_history"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "manager_rookie_pick_profiles",
+      "row_count": 24,
+      "columns": [
+        "id",
+        "league_id",
+        "roster_id",
+        "computed_at",
+        "pick_premium_score",
+        "pick_trade_evidence",
+        "draft_selection_count",
+        "positional_tendency_json",
+        "dominant_archetype",
+        "archetype_pattern_json",
+        "show_draft_picks_tab"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "market_values",
+      "row_count": 0,
+      "columns": [
+        "id",
+        "player_id",
+        "fetched_at",
+        "fantasycalc_value",
+        "fantasycalc_rank",
+        "fantasycalc_trend30",
+        "adp_baseline"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "orphan_intakes",
+      "row_count": 2,
+      "columns": [
+        "id",
+        "league_id",
+        "roster_id",
+        "computed_at",
+        "age_curve_score",
+        "pick_capital_score",
+        "dead_spots_score",
+        "lineup_viability_score",
+        "liquidation_score",
+        "composite_score",
+        "intake_json"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "pick_values",
+      "row_count": 216,
+      "columns": [
+        "id",
+        "league_id",
+        "pick_owner_roster_id",
+        "pick_year",
+        "pick_round",
+        "computed_at",
+        "expected_draft_slot",
+        "base_value",
+        "timed_value",
+        "league_adjusted_value",
+        "demand_adjusted_value",
+        "timing_label",
+        "timing_reasoning",
+        "class_strength_signal",
+        "years_out",
+        "computation_json"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "player_adp_baseline",
+      "row_count": 345,
+      "columns": [
+        "player_id",
+        "player_name",
+        "position",
+        "adp",
+        "adp_source",
+        "loaded_at"
+      ],
+      "candidate_key": []
+    },
+    {
+      "table": "player_context_flags",
+      "row_count": 214,
+      "columns": [
+        "id",
+        "player_id",
+        "flag_type",
+        "created_at",
+        "expires_at",
+        "source",
+        "metadata_json"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "player_stats_weekly",
+      "row_count": 82034,
+      "columns": [
+        "player_id",
+        "player_name",
+        "position",
+        "season",
+        "week",
+        "receptions",
+        "targets",
+        "receiving_yards",
+        "receiving_tds",
+        "rushing_yards",
+        "rushing_tds",
+        "carries",
+        "passing_yards",
+        "passing_tds",
+        "interceptions",
+        "passing_2pt_conversions",
+        "receiving_2pt_conversions",
+        "rushing_2pt_conversions",
+        "fantasy_points"
+      ],
+      "candidate_key": []
+    },
+    {
+      "table": "player_trends",
+      "row_count": 369,
+      "columns": [
+        "id",
+        "player_id",
+        "season",
+        "trend_label",
+        "confidence",
+        "delta_magnitude",
+        "adp_delta",
+        "comp_current_production",
+        "comp_short_term",
+        "comp_role_stability",
+        "comp_age_curve",
+        "comp_insulation",
+        "comp_market_liquidity",
+        "comp_positional_scarcity",
+        "comp_fragility",
+        "comp_ceiling",
+        "comp_floor",
+        "comp_rerollability",
+        "comp_contract",
+        "startup_adp",
+        "backfilled",
+        "computed_at"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "player_values",
+      "row_count": 762,
+      "columns": [
+        "id",
+        "league_id",
+        "roster_id",
+        "player_id",
+        "computed_at",
+        "comp_current_production",
+        "comp_short_term",
+        "comp_role_stability",
+        "comp_age_curve",
+        "comp_insulation",
+        "comp_market_liquidity",
+        "comp_positional_scarcity",
+        "comp_fragility",
+        "comp_ceiling",
+        "comp_floor",
+        "comp_rerollability",
+        "comp_contract",
+        "lens_production",
+        "lens_market",
+        "lens_insulation",
+        "lens_team_fit",
+        "lens_direction",
+        "trend_result_json"
+      ],
+      "candidate_key": [
+        "league_id",
+        "roster_id",
+        "player_id"
+      ]
+    },
+    {
+      "table": "players",
+      "row_count": 369,
+      "columns": [
+        "player_id",
+        "full_name",
+        "position",
+        "team",
+        "age",
+        "metadata_blob",
+        "refreshed_at",
+        "mfl_id"
+      ],
+      "candidate_key": [
+        "player_id"
+      ]
+    },
+    {
+      "table": "prospect_model_outputs",
+      "row_count": 432,
+      "columns": [
+        "league_id",
+        "draft_season",
+        "player_id",
+        "player_name",
+        "position",
+        "archetype_label",
+        "hit_rate_bucket",
+        "tier",
+        "predicted_tier",
+        "predicted_bucket",
+        "risk_band",
+        "overvalue_flag_direction",
+        "overvalue_magnitude",
+        "low_confidence",
+        "comps_json",
+        "computed_at"
+      ],
+      "candidate_key": []
+    },
+    {
+      "table": "prospect_sub_flags",
+      "row_count": 1146,
+      "columns": [
+        "id",
+        "league_id",
+        "player_id",
+        "signal_name",
+        "direction",
+        "magnitude_str"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "retrospective_runs",
+      "row_count": 0,
+      "columns": [
+        "id",
+        "run_at",
+        "run_type",
+        "season",
+        "grades_json",
+        "notes"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "rookie_board_cache",
+      "row_count": 2,
+      "columns": [
+        "id",
+        "league_id",
+        "computed_at",
+        "class_strength_signal",
+        "board_json"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "rosters",
+      "row_count": 24,
+      "columns": [
+        "id",
+        "league_id",
+        "roster_id",
+        "owner_id",
+        "starters",
+        "players",
+        "reserve",
+        "taxi",
+        "ingested_at",
+        "owner_display_name",
+        "waiver_position",
+        "waiver_budget_used"
+      ],
+      "candidate_key": [
+        "league_id",
+        "roster_id"
+      ]
+    },
+    {
+      "table": "standings",
+      "row_count": 24,
+      "columns": [
+        "id",
+        "league_id",
+        "roster_id",
+        "wins",
+        "losses",
+        "ties",
+        "fpts",
+        "fpts_against",
+        "ingested_at"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "startup_contexts",
+      "row_count": 2,
+      "columns": [
+        "id",
+        "league_id",
+        "computed_at",
+        "draft_status",
+        "build_template",
+        "context_json"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "team_context_by_season",
+      "row_count": 0,
+      "columns": [
+        "team",
+        "season",
+        "head_coach",
+        "offensive_coordinator",
+        "play_caller",
+        "offensive_system",
+        "pace_label",
+        "pass_rate_label",
+        "source",
+        "notes",
+        "loaded_at"
+      ],
+      "candidate_key": []
+    },
+    {
+      "table": "team_directions",
+      "row_count": 24,
+      "columns": [
+        "id",
+        "league_id",
+        "roster_id",
+        "computed_at",
+        "primary_label",
+        "confidence",
+        "reasoning",
+        "alternates_json",
+        "delta_json",
+        "approved_moves",
+        "discouraged_moves"
+      ],
+      "candidate_key": [
+        "league_id",
+        "roster_id"
+      ]
+    },
+    {
+      "table": "team_schedule_weekly",
+      "row_count": 544,
+      "columns": [
+        "team",
+        "season",
+        "week",
+        "opponent",
+        "is_home",
+        "game_date",
+        "game_type",
+        "loaded_at"
+      ],
+      "candidate_key": []
+    },
+    {
+      "table": "team_scorecards",
+      "row_count": 24,
+      "columns": [
+        "id",
+        "league_id",
+        "roster_id",
+        "computed_at",
+        "win_now",
+        "future_value",
+        "depth",
+        "pick_capital",
+        "flexibility",
+        "fragility",
+        "age_risk",
+        "liquidity",
+        "positional_insulation",
+        "composite",
+        "computation_json"
+      ],
+      "candidate_key": [
+        "league_id",
+        "roster_id"
+      ]
+    },
+    {
+      "table": "traded_picks",
+      "row_count": 112,
+      "columns": [
+        "id",
+        "league_id",
+        "season",
+        "round",
+        "roster_id",
+        "owner_id",
+        "previous_owner_id",
+        "ingested_at"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    },
+    {
+      "table": "transactions",
+      "row_count": 404,
+      "columns": [
+        "transaction_id",
+        "league_id",
+        "type",
+        "status",
+        "created_at",
+        "roster_ids",
+        "adds",
+        "drops",
+        "draft_picks",
+        "week",
+        "ingested_at",
+        "waiver_bid"
+      ],
+      "candidate_key": [
+        "transaction_id",
+        "league_id"
+      ]
+    },
+    {
+      "table": "waiver_recommendations",
+      "row_count": 24,
+      "columns": [
+        "id",
+        "league_id",
+        "roster_id",
+        "computed_at",
+        "recommendations_json"
+      ],
+      "candidate_key": [
+        "id"
+      ]
+    }
+  ]
+}

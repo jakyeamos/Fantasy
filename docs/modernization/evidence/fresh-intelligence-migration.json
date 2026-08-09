@@ -1,0 +1,52 @@
+{
+  "verified_at": "2026-08-02T01:54:20Z",
+  "revision": "025_fresh_intelligence",
+  "empty_database_upgrade": "passed",
+  "current_copy_upgrade": "passed",
+  "source_database_sha256": "9e7d2770adcb0af96a63580e2748f1135f6620703421b65d496859b2f0651601",
+  "legacy_reconciliation": {
+    "leagues": { "source": 2, "copy": 2 },
+    "rosters": { "source": 24, "copy": 24 },
+    "players": { "source": 369, "copy": 369 },
+    "transactions": { "source": 404, "copy": 404 },
+    "corrections": { "source": 0, "copy": 0 },
+    "league_snapshots": { "source": 1095, "copy": 1095 },
+    "player_values": { "source": 762, "copy": 762 },
+    "pick_values": { "source": 216, "copy": 216 }
+  },
+  "scheduled_smoke": {
+    "sources": ["sleeper:transactions", "fantasycalc:market_values"],
+    "status": "degraded",
+    "reason": "FantasyCalc had zero rows; last confirmed market snapshot was retained and the run did not report green.",
+    "runs": 2,
+    "source_run_rows": 2,
+    "deduplicated_observation_rows": 2,
+    "deduplicated_event_rows": 2,
+    "immutable_brief_revisions": 2,
+    "latest_brief_id": "2442ca54-3446-4b1c-938b-dbe7af739732",
+    "idempotence_note": "The second fetch reused the same durable observations and events. It published a new immutable brief revision because its source-health observation times advanced. Exact-content reruns reuse the existing daily brief, as covered by the focused regression test."
+  },
+  "browser_acceptance": {
+    "viewports": [375, 768, 1440],
+    "horizontal_overflow": false,
+    "verified_surfaces": [
+      "today",
+      "prepared_action",
+      "event_evidence_and_invalidation",
+      "manual_url_form",
+      "watch_lane",
+      "review_confirm_and_reject",
+      "local_feedback",
+      "source_health"
+    ]
+  },
+  "validation": {
+    "focused_backend": "15 passed after immutable brief revision and serialized request DB lifetime changes; 27 passed in the earlier full intelligence slice",
+    "full_backend": "581 passed, 1 pre-existing command-center contract failure, 1 environment warning",
+    "frontend": ["format", "typecheck", "lint", "build"],
+    "generated_contract_check": "passed"
+  },
+  "immutable_daily_brief_constraint": ["brief_date", "content_hash"],
+  "canonical_projection_table_present": true,
+  "primary_database_mutated": false
+}
