@@ -17,6 +17,11 @@ function recordText(record: Record<string, unknown>, key: string): string | null
   return null
 }
 
+function recordNumber(record: Record<string, unknown>, key: string, fallback: number): number {
+  const value = record[key]
+  return typeof value === "number" ? value : fallback
+}
+
 function statusLabel(status: TradeAnalysis["quality"]["status"]): string {
   if (status === "complete_with_degraded_evidence") return "Complete · degraded evidence"
   if (status === "blocked") return "Blocked · details required"
@@ -67,7 +72,18 @@ export function TradeAnalysisPanel({ analysis }: { analysis: TradeAnalysis | nul
       ? recordText(statsHealth as Record<string, unknown>, "status")
       : null
   const calibrationStatus = recordText(analysis.quality.calibration, "status") ?? "unavailable"
-  const calibrationSample = recordText(analysis.quality.calibration, "sample_size")
+  const calibrationSample = recordNumber(analysis.quality.calibration, "sample_size", 0)
+  const calibrationMinimum = recordNumber(analysis.quality.calibration, "minimum_sample_size", 20)
+  const calibrationCaptured = recordNumber(analysis.quality.calibration, "captured_decisions", 0)
+  const calibrationProgress = recordNumber(
+    analysis.quality.calibration,
+    "progress_percent",
+    Math.min(100, (calibrationSample / calibrationMinimum) * 100),
+  )
+  const winProbabilityStatus =
+    recordText(analysis.quality.calibration, "win_probability_status") ?? calibrationStatus
+  const calibrationMessage = recordText(analysis.quality.calibration, "message")
+  const calibrationLeague = recordText(analysis.quality.calibration, "league_name") ?? "this league"
   const scenarioRows = analysis.scenarios.filter(
     (scenario) => scenario.scenario_type !== "walk_away",
   )
@@ -290,8 +306,25 @@ export function TradeAnalysisPanel({ analysis }: { analysis: TradeAnalysis | nul
               : ""}
           </p>
           <p className="mt-1 text-muted-foreground">
-            Stats: {statsStatus ?? "unknown"} · Calibration: {calibrationStatus}
-            {calibrationSample ? ` (${calibrationSample} labeled outcomes)` : ""}
+            Stats: {statsStatus ?? "unknown"} · Calibration: {calibrationStatus} ·{" "}
+            {calibrationSample}/{calibrationMinimum} labeled trade outcomes
+          </p>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className={`h-full rounded-full ${winProbabilityStatus === "available" ? "bg-success" : "bg-warning"}`}
+              style={{ width: `${calibrationProgress}%` }}
+            />
+          </div>
+          <p
+            className={`mt-3 text-sm ${winProbabilityStatus === "available" ? "text-success" : "text-warning"}`}
+          >
+            {winProbabilityStatus === "available"
+              ? "Empirical win-probability claims are available for this league."
+              : `Win probability unavailable until the labeled ${calibrationLeague} trade evidence floor is met.`}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {calibrationCaptured} trade decisions captured
+            {calibrationMessage ? ` · ${calibrationMessage}` : ""}
           </p>
         </div>
         <div className="rounded-lg border border-border/35 bg-background/35 p-4 text-sm">

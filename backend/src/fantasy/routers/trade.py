@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import duckdb
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from fantasy.context.calendar_service import CalendarService
 from fantasy.context.constants import CALENDAR_GUIDANCE
@@ -14,9 +14,13 @@ from fantasy.trade.models import (
     PlayerSearchResult,
     TradeRosterResult,
     TradeEvaluation,
+    TradeFollowUpEventRequest,
+    TradeFollowUpEventResponse,
+    TradeFollowUpsResponse,
     TradeRequest,
     LeagueTradeHistoryResponse,
 )
+from fantasy.trade.feedback import TradeFeedbackService
 from fantasy.trade.package_builder import PackageBuilder
 from fantasy.trade.reroute_engine import RerouteEngine
 from fantasy.trade.history_service import TradeHistoryService
@@ -60,7 +64,37 @@ def evaluate_trade(
         request.league_id,
     )
     evaluation.trade_analysis = engine.build_analysis(request, evaluation)
+    evaluation.feedback = TradeFeedbackService(conn).present(
+        request,
+        evaluation.trade_analysis,
+    )
     return evaluation
+
+
+@router.get("/follow-ups", response_model=TradeFollowUpsResponse)
+def list_trade_follow_ups(
+    league_id: str,
+    conn: duckdb.DuckDBPyConnection = Depends(get_read_db_conn),
+) -> TradeFollowUpsResponse:
+    return TradeFeedbackService(conn).list_follow_ups(league_id)
+
+
+@router.post(
+    "/follow-ups/{decision_id}",
+    response_model=TradeFollowUpEventResponse,
+)
+def record_trade_follow_up(
+    decision_id: str,
+    event: TradeFollowUpEventRequest,
+    league_id: str,
+    conn: duckdb.DuckDBPyConnection = Depends(get_write_db_conn),
+) -> TradeFollowUpEventResponse:
+    try:
+        return TradeFeedbackService(conn).record_event(decision_id, league_id, event)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/players/search", response_model=list[PlayerSearchResult])

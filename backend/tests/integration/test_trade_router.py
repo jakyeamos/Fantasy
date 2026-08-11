@@ -38,6 +38,103 @@ def test_evaluate_endpoint(trade_seed_data):
     assert payload["trade_analysis"]["quality"]["gates"]
 
 
+def test_trade_follow_up_lifecycle_is_scoped_and_append_only(trade_seed_data):
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(trade_seed_data)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(trade_seed_data)
+    client = TestClient(app)
+
+    first = client.post("/trade/evaluate", json=_request()).json()
+    first_decision_id = first["feedback"]["decision_id"]
+    initial = client.get("/trade/follow-ups", params={"league_id": "league_x"})
+
+    assert initial.status_code == 200
+    assert initial.json()["calibration"]["status"] == "unavailable"
+    assert initial.json()["calibration"]["sample_size"] == 0
+    assert initial.json()["calibration"]["captured_decisions"] == 1
+    assert initial.json()["follow_ups"][0]["latest_event"] == "presented"
+
+    accepted = client.post(
+        f"/trade/follow-ups/{first_decision_id}",
+        params={"league_id": "league_x"},
+        json={"event_type": "accepted", "notes": "Sent the offer."},
+    )
+    assert accepted.status_code == 200
+    assert accepted.json()["resolution_state"] == "awaiting_outcome"
+
+    outcome = client.post(
+        f"/trade/follow-ups/{first_decision_id}",
+        params={"league_id": "league_x"},
+        json={
+            "event_type": "outcome",
+            "outcome": "recommendation_correct",
+            "notes": "The manager accepted the same offer.",
+        },
+    )
+    assert outcome.status_code == 200
+    assert outcome.json()["calibration"]["sample_size"] == 1
+    assert outcome.json()["calibration"]["status"] == "unavailable"
+
+    held_request = _request()
+    held_request["user_sends"] = [{"asset_type": "player", "player_id": "rb1"}]
+    held = client.post("/trade/evaluate", json=held_request).json()
+    held_decision_id = held["feedback"]["decision_id"]
+    held_response = client.post(
+        f"/trade/follow-ups/{held_decision_id}",
+        params={"league_id": "league_x"},
+        json={
+            "event_type": "held",
+            "follow_up_at": "2026-09-15T12:00:00Z",
+            "notes": "Revisit after the next matchup.",
+        },
+    )
+    assert held_response.status_code == 200
+    assert held_response.json()["resolution_state"] == "awaiting_action"
+
+    rejected_request = _request()
+    rejected_request["user_sends"] = [{"asset_type": "player", "player_id": "te1"}]
+    rejected = client.post("/trade/evaluate", json=rejected_request).json()
+    rejected_decision_id = rejected["feedback"]["decision_id"]
+    rejected_response = client.post(
+        f"/trade/follow-ups/{rejected_decision_id}",
+        params={"league_id": "league_x"},
+        json={"event_type": "rejected", "notes": "Passed on the price."},
+    )
+    assert rejected_response.status_code == 200
+    assert rejected_response.json()["resolution_state"] == "awaiting_outcome"
+
+    follow_ups = client.get(
+        "/trade/follow-ups", params={"league_id": "league_x"}
+    ).json()["follow_ups"]
+    by_decision = {row["decision_id"]: row for row in follow_ups}
+    assert by_decision[held_decision_id]["latest_event"] == "held"
+    assert by_decision[held_decision_id]["follow_up_at"].startswith(
+        "2026-09-15 12:00:00"
+    )
+    assert by_decision[rejected_decision_id]["latest_event"] == "rejected"
+    assert first_decision_id not in by_decision
+
+    assert trade_seed_data.execute(
+        """
+        SELECT event_type
+        FROM decision_feedback
+        WHERE decision_id = ?
+        ORDER BY id
+        """,
+        [first_decision_id],
+    ).fetchall() == [("presented",), ("accepted",), ("outcome",)]
+    assert trade_seed_data.execute(
+        "SELECT COUNT(*) FROM decision_feedback"
+    ).fetchone()[0] == 7
+
+    wrong_league = client.post(
+        f"/trade/follow-ups/{held_decision_id}",
+        params={"league_id": "other_league"},
+        json={"event_type": "accepted"},
+    )
+    assert wrong_league.status_code == 404
+
+
 def test_evaluate_with_reroutes_and_package(trade_seed_data):
     app = create_app()
     app.dependency_overrides[get_read_db_conn] = _override_conn(trade_seed_data)

@@ -9,7 +9,7 @@ from typing import Any, Literal
 import duckdb
 
 from fantasy.data_health import assess_stats_health
-from fantasy.decision.calibration import calibration_evidence
+from fantasy.decision.calibration import trade_calibration_evidence
 from fantasy.intelligence.models import ScorecardInputs
 from fantasy.intelligence.scorecard_engine import ScorecardEngine
 from fantasy.lineup.lineup_engine import LineupEngine
@@ -151,7 +151,7 @@ class TradeAnalysisBuilder:
     ) -> TradeAnalysis:
         freshness, league_season = self._freshness(request.league_id)
         stats_health = self._stats_health(league_season)
-        calibration = self._calibration()
+        calibration = self._calibration(request.league_id)
         self._load_context(request)
 
         assets = self._build_assets(request)
@@ -233,16 +233,25 @@ class TradeAnalysisBuilder:
         )
         quality.freshness["stats_health"] = stats_health
 
+        if calibration.get("status") == "available":
+            score_interpretation = (
+                "This is a normalized decision score out of 100 with scoped calibration evidence. "
+                f"Empirical win-probability claims are available from {calibration.get('sample_size', 0)} "
+                f"labeled {calibration.get('league_name') or request.league_id} trade outcomes; this is not a guarantee."
+            )
+        else:
+            score_interpretation = (
+                "This is a normalized decision score out of 100, not an empirical win probability. "
+                "A win-rate claim is withheld until labeled trade outcomes meet the calibration evidence floor."
+            )
+
         return TradeAnalysis(
             headline=headline,
             verdict=verdict,
             model_score_low=score_low,
             model_score_high=score_high,
             model_score_point=point,
-            score_interpretation=(
-                "This is a normalized decision score out of 100, not an empirical win probability. "
-                "A win-rate claim is withheld until labeled trade outcomes meet the calibration evidence floor."
-            ),
+            score_interpretation=score_interpretation,
             assets=assets,
             lineup_impacts=lineup_impacts,
             scenarios=scenarios,
@@ -584,12 +593,14 @@ class TradeAnalysisBuilder:
                 "issues": [{"message": f"Stats health check failed: {exc}"}],
             }
 
-    def _calibration(self) -> dict[str, object]:
+    def _calibration(self, league_id: str) -> dict[str, object]:
         try:
-            return calibration_evidence(self._conn)
+            return trade_calibration_evidence(self._conn, league_id=league_id)
         except duckdb.Error as exc:
             return {
                 "status": "unavailable",
+                "win_probability_status": "unavailable",
+                "league_id": league_id,
                 "sample_size": 0,
                 "message": f"Calibration evidence check failed: {exc}",
             }
@@ -803,7 +814,6 @@ class TradeAnalysisBuilder:
         receives: list[str],
     ) -> None:
         send_ids = set(sends)
-        receive_ids = set(receives)
         for field in ("starters", "bench", "ir", "taxi"):
             current = getattr(inputs, field)
             setattr(inputs, field, [player_id for player_id in current if player_id not in send_ids])
@@ -1205,7 +1215,7 @@ class TradeAnalysisBuilder:
             )
         if calibration_status != "available":
             limitations.append(
-                "No calibration run with the required labeled-outcome sample is available; the score is not a win probability."
+                "Win probability is unavailable until the scoped labeled trade-outcome sample reaches its evidence floor; the score is not a win probability."
             )
         if not gates.get("pick_identity", True):
             limitations.append(
@@ -1261,7 +1271,10 @@ class TradeAnalysisBuilder:
         if any(asset.asset.asset_type == "pick" for asset in assets):
             changes.append("A verified pick owner, draft-order rule, and projected range could change the pick premium.")
         if calibration.get("status") != "available":
-            changes.append("At least 20 labeled trade outcomes are required before reporting an empirical win rate.")
+            changes.append(
+                f"At least {calibration.get('minimum_sample_size', 20)} labeled "
+                f"{calibration.get('league_name') or request.league_id} trade outcomes are required before reporting an empirical win rate."
+            )
         if request.third_party_trades:
             changes.append("A verified third-party lineup simulation could change the multi-team recommendation.")
         return list(dict.fromkeys(changes))

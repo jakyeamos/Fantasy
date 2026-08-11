@@ -4,7 +4,11 @@ from types import SimpleNamespace
 import duckdb
 import pytest
 
-from fantasy.decision.calibration import calibration_evidence, run_decision_calibration
+from fantasy.decision.calibration import (
+    calibration_evidence,
+    run_decision_calibration,
+    trade_calibration_evidence,
+)
 from fantasy.decision.feedback_cli import main as feedback_main
 from fantasy.decision.feedback_repo import DecisionFeedbackRepo
 from test_support.schema_sql import SCHEMA_SQL
@@ -17,6 +21,15 @@ def _packet() -> dict:
         "league": {"league_id": "league_x", "roster_id": 1},
         "recommendation": {"action": "request_details", "confidence": 0.6},
     }
+
+
+def _trade_packet(decision_id: str, confidence: float) -> dict:
+    packet = _packet()
+    packet["decision_id"] = decision_id
+    packet["decision_type"] = "trade"
+    packet["league"]["league_id"] = "league_x"
+    packet["recommendation"]["confidence"] = confidence
+    return packet
 
 
 def test_feedback_is_append_only_and_retrievable(db):
@@ -50,6 +63,66 @@ def test_calibration_requires_labeled_sample_and_surfaces_metrics(db):
     assert evidence["status"] == "available"
     assert evidence["sample_size"] == 12
     assert evidence["metrics"]["brier_score"] == 0.18
+
+
+def test_trade_calibration_unlocks_at_scoped_labeled_evidence_floor(db):
+    repo = DecisionFeedbackRepo(db)
+    for decision_id, confidence, outcome_score in [
+        ("trade-1", 0.8, 1.0),
+        ("trade-2", 0.4, 0.0),
+    ]:
+        packet = _trade_packet(decision_id, confidence)
+        repo.record_presentation(packet)
+        repo.record_event(
+            decision_id,
+            event_type="outcome",
+            outcome=(
+                "recommendation_correct"
+                if outcome_score == 1.0
+                else "recommendation_incorrect"
+            ),
+            outcome_score=outcome_score,
+        )
+
+    unrelated = _packet()
+    unrelated["decision_id"] = "roster-1"
+    repo.record_presentation(unrelated)
+    repo.record_event(
+        "roster-1",
+        event_type="outcome",
+        outcome="recommendation_correct",
+        outcome_score=1.0,
+    )
+    repo.record_calibration(
+        model_name="decision",
+        model_version="1",
+        season="2026",
+        sample_size=10,
+        metrics={"brier_score": 0.01},
+    )
+
+    unavailable = trade_calibration_evidence(
+        db, league_id="league_x", minimum_sample_size=3
+    )
+    assert unavailable["status"] == "unavailable"
+    assert unavailable["sample_size"] == 2
+    assert unavailable["captured_decisions"] == 2
+    assert unavailable["progress_percent"] == pytest.approx(66.7)
+    assert unavailable["metrics"] is None
+
+    available = trade_calibration_evidence(
+        db, league_id="league_x", minimum_sample_size=2
+    )
+    assert available["status"] == "available"
+    assert available["win_probability_status"] == "available"
+    assert available["sample_size"] == 2
+    assert available["metrics"]["brier_score"] == pytest.approx(0.1)
+
+    other_league = trade_calibration_evidence(
+        db, league_id="other_league", minimum_sample_size=1
+    )
+    assert other_league["status"] == "unavailable"
+    assert other_league["sample_size"] == 0
 
 
 def test_decision_lifecycle_records_presentation_and_resolves_events_by_id(db):

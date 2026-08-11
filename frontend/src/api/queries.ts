@@ -48,6 +48,7 @@ import type {
   SlotOccupancy,
   StartupContext,
   TaxiConfigResponse,
+  TradeFollowUpsResponse,
   WaiverRecommendationsResponse,
   WeeklyContextRefreshResponse,
   WeeklyEdgeResponse,
@@ -227,6 +228,17 @@ export const leagueTradeHistoryOptions = (leagueId: string) =>
     queryKey: ["trade", "history", leagueId],
     queryFn: () => getJson<LeagueTradeHistoryResponse>(`/trade/history/${leagueId}`),
     staleTime: 60 * 1000,
+    enabled: leagueId.trim().length > 0,
+  })
+
+export const tradeFollowUpsOptions = (leagueId: string) =>
+  queryOptions({
+    queryKey: ["trade", "follow-ups", leagueId],
+    queryFn: () => {
+      const params = new URLSearchParams({ league_id: leagueId })
+      return getJson<TradeFollowUpsResponse>(`/trade/follow-ups?${params.toString()}`)
+    },
+    staleTime: 15 * 1000,
     enabled: leagueId.trim().length > 0,
   })
 

@@ -448,6 +448,84 @@ export interface TradeAnalysisQuality {
   calibration: Record<string, unknown>
 }
 
+export interface TradeCalibrationEvidence {
+  status: "available" | "unavailable"
+  win_probability_status: "available" | "unavailable"
+  league_id: string
+  league_name?: string | null
+  decision_type: "trade"
+  sample_size: number
+  minimum_sample_size: number
+  captured_decisions: number
+  progress_percent: number
+  message: string
+  model_name?: string | null
+  model_version?: string | null
+  metrics?: Record<string, unknown> | null
+}
+
+export interface TradeFollowUpEvent {
+  id: number
+  created_at: string
+  event_type: string
+  action_taken?: string | null
+  outcome?: string | null
+  outcome_score?: number | null
+  follow_up_at?: string | null
+  resolution_state: string
+  notes?: string | null
+  recommendation_action: string
+  confidence: number
+}
+
+export interface TradeFollowUpRow {
+  decision_id: string
+  presentation_id: number
+  league_id: string
+  roster_id: number
+  question?: string | null
+  recommendation_action: string
+  confidence: number
+  latest_event: string
+  resolution_state: string
+  follow_up_at?: string | null
+  is_due: boolean
+  history: TradeFollowUpEvent[]
+}
+
+export interface TradeFollowUpsResponse {
+  schema_version: "trade-followups/1.0"
+  league_id: string
+  league_name?: string | null
+  calibration: TradeCalibrationEvidence
+  follow_ups: TradeFollowUpRow[]
+}
+
+export interface TradeFollowUpEventRequest {
+  event_type: "accepted" | "rejected" | "held" | "outcome"
+  outcome?: "recommendation_correct" | "recommendation_incorrect" | null
+  follow_up_at?: string | null
+  notes?: string | null
+}
+
+export interface TradeFollowUpEventResponse {
+  schema_version: "trade-feedback-event/1.0"
+  decision_id: string
+  event_id: number
+  event_type: string
+  resolution_state: string
+  follow_up_at?: string | null
+  calibration: TradeCalibrationEvidence
+}
+
+export interface TradeFeedbackLink {
+  decision_id: string
+  presentation_id: number
+  latest_event: string
+  resolution_state: string
+  follow_up_at?: string | null
+}
+
 export interface TradeAnalysis {
   schema_version: "trade-analysis/1.0"
   headline: string
@@ -604,6 +682,7 @@ export interface TradeEvaluation {
   recommendation_context?: RecommendationContext | null
   recommendation_cards?: RecommendationCard[] | null
   trade_analysis?: TradeAnalysis | null
+  feedback?: TradeFeedbackLink | null
   degradation_reasons: string[]
 }
 

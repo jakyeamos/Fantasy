@@ -137,6 +137,12 @@ class DecisionFeedbackRepo:
             "resolution_state": str(row[2]),
         }
 
+    def latest_packet(self, decision_id: str) -> dict[str, Any] | None:
+        """Return the latest packet snapshot for a logical decision."""
+
+        latest = self._latest_snapshot(decision_id)
+        return latest["packet"] if latest is not None else None
+
     def record_event(
         self,
         decision_id: str,
@@ -220,12 +226,22 @@ class DecisionFeedbackRepo:
         *,
         as_of: datetime | None = None,
         due_only: bool = False,
+        league_id: str | None = None,
+        decision_type: str | None = None,
     ) -> list[dict[str, Any]]:
         """Return one latest, unresolved follow-up per logical decision."""
 
         current = self._normalize_datetime(as_of or datetime.now(timezone.utc))
+        filters = ["recency_rank = 1", "resolution_state != 'resolved'"]
+        params: list[Any] = []
+        if league_id is not None:
+            filters.append("league_id = ?")
+            params.append(league_id)
+        if decision_type is not None:
+            filters.append("json_extract_string(packet_json, '$.decision_type') = ?")
+            params.append(decision_type)
         rows = self._conn.execute(
-            """
+            f"""
             SELECT decision_id, league_id, roster_id, recommendation_action,
                    confidence, event_type, resolution_state, follow_up_at,
                    packet_json
@@ -236,9 +252,10 @@ class DecisionFeedbackRepo:
                 ) AS recency_rank
                 FROM decision_feedback
             ) latest
-            WHERE recency_rank = 1 AND resolution_state != 'resolved'
+            WHERE {' AND '.join(filters)}
             ORDER BY follow_up_at NULLS LAST, decision_id
-            """
+            """,
+            params,
         ).fetchall()
         decisions: list[dict[str, Any]] = []
         for row in rows:

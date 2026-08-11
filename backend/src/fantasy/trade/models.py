@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -187,6 +188,98 @@ class TradeAnalysisQuality(BaseModel):
     calibration: dict[str, object] = Field(default_factory=dict)
 
 
+class TradeFollowUpEvent(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    id: int
+    created_at: str
+    event_type: str
+    action_taken: str | None = None
+    outcome: str | None = None
+    outcome_score: float | None = None
+    follow_up_at: str | None = None
+    resolution_state: str
+    notes: str | None = None
+    recommendation_action: str
+    confidence: float
+
+
+class TradeCalibrationEvidence(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    status: Literal["available", "unavailable"]
+    win_probability_status: Literal["available", "unavailable"]
+    league_id: str
+    league_name: str | None = None
+    decision_type: Literal["trade"] = "trade"
+    sample_size: int
+    minimum_sample_size: int
+    captured_decisions: int
+    progress_percent: float
+    message: str
+    model_name: str | None = None
+    model_version: str | None = None
+    metrics: dict[str, object] | None = None
+
+
+class TradeFollowUpRow(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    decision_id: str
+    presentation_id: int
+    league_id: str
+    roster_id: int
+    question: str | None = None
+    recommendation_action: str
+    confidence: float
+    latest_event: str
+    resolution_state: str
+    follow_up_at: str | None = None
+    is_due: bool
+    history: list[TradeFollowUpEvent] = Field(default_factory=list)
+
+
+class TradeFollowUpsResponse(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    schema_version: Literal["trade-followups/1.0"] = "trade-followups/1.0"
+    league_id: str
+    league_name: str | None = None
+    calibration: TradeCalibrationEvidence
+    follow_ups: list[TradeFollowUpRow] = Field(default_factory=list)
+
+
+class TradeFollowUpEventRequest(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    event_type: Literal["accepted", "rejected", "held", "outcome"]
+    outcome: Literal["recommendation_correct", "recommendation_incorrect"] | None = None
+    follow_up_at: datetime | None = None
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class TradeFollowUpEventResponse(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    schema_version: Literal["trade-feedback-event/1.0"] = "trade-feedback-event/1.0"
+    decision_id: str
+    event_id: int
+    event_type: str
+    resolution_state: str
+    follow_up_at: str | None = None
+    calibration: TradeCalibrationEvidence
+
+
+class TradeFeedbackLink(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
+    decision_id: str
+    presentation_id: int
+    latest_event: str
+    resolution_state: str
+    follow_up_at: str | None = None
+
+
 class TradeAnalysis(BaseModel):
     model_config = ConfigDict(frozen=False)
 
@@ -234,6 +327,7 @@ class TradeEvaluation(BaseModel):
     recommendation_context: RecommendationContext | None = None
     recommendation_cards: list[RecommendationCard] | None = None
     trade_analysis: TradeAnalysis | None = None
+    feedback: TradeFeedbackLink | None = None
     degradation_reasons: list[str] = Field(default_factory=list)
 
 

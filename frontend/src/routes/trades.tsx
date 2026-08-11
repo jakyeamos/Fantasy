@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
 import type {
@@ -8,13 +8,20 @@ import type {
   PlayerSearchResult,
   TradeAsset,
   TradeEvaluation,
+  TradeFollowUpEventRequest,
   TradeRosterResult,
 } from "@/api/types"
-import { dashboardSummaryOptions, pickValuesOptions } from "@/api/queries"
+import {
+  dashboardSummaryOptions,
+  pickValuesOptions,
+  postJson,
+  tradeFollowUpsOptions,
+} from "@/api/queries"
 import { EvaluationOutputPanel } from "@/components/trade/EvaluationOutputPanel"
 import { PackageBuilderPanel } from "@/components/trade/PackageBuilderPanel"
 import { RerouteSheet } from "@/components/trade/RerouteSheet"
 import { LeagueField, RosterField } from "@/components/trade/TradeBuilderFields"
+import { TradeFollowUpPanel } from "@/components/trade/TradeFollowUpPanel"
 import {
   CoreDealBoard,
   SuggestedOfferStartCard,
@@ -67,6 +74,7 @@ function TradeEvaluatorPage() {
   const [showPackage, setShowPackage] = useState(false)
   const [userSends, setUserSends] = useState<TradeAsset[]>([])
   const [userReceives, setUserReceives] = useState<TradeAsset[]>([])
+  const queryClient = useQueryClient()
   const leaguesQuery = useQuery(dashboardSummaryOptions)
   const leagueOptions = leaguesQuery.data ?? []
   const inferredLeagueId =
@@ -78,6 +86,7 @@ function TradeEvaluatorPage() {
     [leagueId, leagueOptions],
   )
   const userRosterId = search.userRosterId ?? selectedLeague?.user_roster_id ?? 0
+  const tradeFollowUpsQuery = useQuery(tradeFollowUpsOptions(leagueId))
   const rostersQuery = useQuery({
     queryKey: ["trade", "rosters", leagueId],
     queryFn: () => {
@@ -323,6 +332,26 @@ function TradeEvaluatorPage() {
       if (!response.ok) throw new Error("Trade evaluation failed")
       return (await response.json()) as TradeEvaluation
     },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["trade", "follow-ups", leagueId] })
+    },
+  })
+
+  const followUpMutation = useMutation({
+    mutationFn: async ({
+      decisionId,
+      request,
+    }: {
+      decisionId: string
+      request: TradeFollowUpEventRequest
+    }) =>
+      postJson(
+        `/trade/follow-ups/${encodeURIComponent(decisionId)}?league_id=${encodeURIComponent(leagueId)}`,
+        request,
+      ),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["trade", "follow-ups", leagueId] })
+    },
   })
 
   const handleLeagueChange = (nextLeagueId: string) => {
@@ -546,6 +575,26 @@ function TradeEvaluatorPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {leagueId.trim().length > 0 ? (
+        <>
+          <TradeFollowUpPanel
+            data={tradeFollowUpsQuery.data}
+            isLoading={tradeFollowUpsQuery.isLoading}
+            pendingDecisionId={
+              followUpMutation.isPending ? (followUpMutation.variables?.decisionId ?? null) : null
+            }
+            onEvent={async (decisionId, request) => {
+              await followUpMutation.mutateAsync({ decisionId, request })
+            }}
+          />
+          {followUpMutation.isError ? (
+            <p className={`text-sm ${textToneClasses.destructive}`}>
+              Trade Lab check-in failed. The original decision is unchanged; try the event again.
+            </p>
+          ) : null}
+        </>
+      ) : null}
 
       {evaluation ? (
         <>
