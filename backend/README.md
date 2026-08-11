@@ -37,8 +37,15 @@ Behavior:
   to force a specific league on a fresh DB.
 - `FANTASY_DEV_AUTO_REFRESH_INGEST_MODE` accepts `incremental`, `full`, or
   `skip`.
-- After ingest, the backend also recomputes intelligence, manager profiles, and
-  snapshots so the UI is reading rebuilt artifacts instead of stale cached data.
+- After ingest, the backend also recomputes intelligence, waiver boards,
+  manager profiles, and snapshots so the UI is reading rebuilt artifacts
+  instead of stale cached data.
+- Season-global team context and player metadata are rebuilt once per distinct
+  season, even when several leagues share that season. Waiver candidates and
+  roster-anchor context are loaded once per league and reused across rosters.
+- Artifact computation runs in a worker thread. `/healthz` remains a process
+  liveness check during a rebuild; DB-backed `/readyz` may wait for DuckDB's
+  single-writer lock.
 
 ## Personalizing The Dashboard
 

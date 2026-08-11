@@ -48,7 +48,7 @@ const hygieneSuggestion = {
 
 const server = await createServer({
   configFile: new URL("../vite.config.ts", import.meta.url).pathname,
-  server: { hmr: false, middlewareMode: true },
+  server: { hmr: false, middlewareMode: true, ws: false },
   appType: "custom",
 })
 

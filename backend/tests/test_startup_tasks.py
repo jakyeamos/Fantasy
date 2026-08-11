@@ -1,5 +1,8 @@
+from types import SimpleNamespace
+
 from fantasy.startup_tasks import (
     ensure_runtime_schema,
+    maybe_run_dev_refresh,
     parse_dev_refresh_leagues,
     refresh_league_artifacts,
     resolve_dev_refresh_league_ids,
@@ -21,6 +24,121 @@ def test_resolve_dev_refresh_league_ids_uses_configured_values_first(phase2_seed
         "league_a",
     ]
     assert resolve_dev_refresh_league_ids(phase2_seed_data, []) == ["league_x"]
+
+
+async def test_dev_refresh_rebuilds_season_global_sources_once(
+    phase2_seed_data,
+    monkeypatch,
+):
+    phase2_seed_data.execute(
+        """
+        INSERT INTO leagues (
+            league_id, name, season, scoring_settings, roster_positions,
+            settings_blob, superflex, tep, ppr
+        )
+        VALUES (
+            'league_y', 'League Y', '2025', '{}', '["QB","RB","WR","TE"]',
+            '{"num_teams":2}', FALSE, FALSE, 1.0
+        )
+        """
+    )
+    source_calls: list[int] = []
+    artifact_calls: list[str] = []
+
+    def fake_source_refresh(_conn, season: int):
+        source_calls.append(season)
+        return {
+            "team_context": SimpleNamespace(upserted_rows=4),
+            "player_metadata": SimpleNamespace(updated_rows=10),
+        }
+
+    def fake_artifact_refresh(_conn, league_id: str, *, include_snapshot: bool):
+        artifact_calls.append(league_id)
+        return {
+            "league_id": league_id,
+            "roster_count": 0,
+            "player_value_count": 0,
+            "manager_profile_count": 0,
+            "waiver_recommendation_count": 0,
+            "snapshot_count": int(include_snapshot),
+        }
+
+    monkeypatch.setattr(
+        "fantasy.startup_tasks.refresh_edge_radar_sources",
+        fake_source_refresh,
+    )
+    monkeypatch.setattr(
+        "fantasy.startup_tasks.refresh_league_artifacts",
+        fake_artifact_refresh,
+    )
+    settings = SimpleNamespace(
+        DEV_AUTO_REFRESH=True,
+        DEV_AUTO_REFRESH_LEAGUES="league_x,league_y",
+        DEV_AUTO_REFRESH_INGEST_MODE="skip",
+        DEV_AUTO_REFRESH_SNAPSHOTS=False,
+    )
+
+    await maybe_run_dev_refresh(phase2_seed_data, settings)
+
+    assert source_calls == [2025]
+    assert artifact_calls == ["league_x", "league_y"]
+
+
+async def test_dev_refresh_isolates_failed_season_sources(
+    phase2_seed_data,
+    monkeypatch,
+):
+    phase2_seed_data.execute(
+        """
+        INSERT INTO leagues (
+            league_id, name, season, scoring_settings, roster_positions,
+            settings_blob, superflex, tep, ppr
+        )
+        VALUES (
+            'league_y', 'League Y', '2026', '{}', '["QB","RB","WR","TE"]',
+            '{"num_teams":2}', FALSE, FALSE, 1.0
+        )
+        """
+    )
+    artifact_calls: list[str] = []
+
+    def fake_source_refresh(_conn, season: int):
+        if season == 2025:
+            raise RuntimeError("source unavailable")
+        return {
+            "team_context": SimpleNamespace(upserted_rows=4),
+            "player_metadata": SimpleNamespace(updated_rows=10),
+        }
+
+    def fake_artifact_refresh(_conn, league_id: str, *, include_snapshot: bool):
+        artifact_calls.append(league_id)
+        return {
+            "league_id": league_id,
+            "roster_count": 0,
+            "player_value_count": 0,
+            "manager_profile_count": 0,
+            "waiver_recommendation_count": 0,
+            "snapshot_count": int(include_snapshot),
+        }
+
+    monkeypatch.setattr(
+        "fantasy.startup_tasks.refresh_edge_radar_sources",
+        fake_source_refresh,
+    )
+    monkeypatch.setattr(
+        "fantasy.startup_tasks.refresh_league_artifacts",
+        fake_artifact_refresh,
+    )
+    settings = SimpleNamespace(
+        DEV_AUTO_REFRESH=True,
+        DEV_AUTO_REFRESH_LEAGUES="league_x,league_y",
+        DEV_AUTO_REFRESH_INGEST_MODE="skip",
+        DEV_AUTO_REFRESH_SNAPSHOTS=False,
+    )
+
+    await maybe_run_dev_refresh(phase2_seed_data, settings)
+
+    assert artifact_calls == ["league_y"]
 
 
 def test_ensure_runtime_schema_adds_missing_columns(db):

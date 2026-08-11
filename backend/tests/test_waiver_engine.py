@@ -11,6 +11,19 @@ from fantasy.waiver.waiver_engine import (
 )
 
 
+class _CountingConnection:
+    def __init__(self, conn) -> None:
+        self._conn = conn
+        self.execute_count = 0
+
+    def execute(self, *args, **kwargs):
+        self.execute_count += 1
+        return self._conn.execute(*args, **kwargs)
+
+    def __getattr__(self, name: str):
+        return getattr(self._conn, name)
+
+
 def _seed_waiver_context(db, *, waiver_type: int = 2, stale_hours: int = 1, direction: str = "true_contender") -> None:
     ingested_at = datetime.now(timezone.utc) - timedelta(hours=stale_hours)
     db.execute(
@@ -143,6 +156,72 @@ def test_stale_data_warning(db):
     result = WaiverEngine(db).compute_recommendations("waiver_x", 1)
     assert result.data_freshness_warning is True
     assert all(item.data_freshness_warning for item in result.recommendations)
+
+
+def test_compute_all_recommendations_builds_shared_context_once(db, monkeypatch):
+    _seed_waiver_context(db)
+
+    def stable_payload(result):
+        payload = result.model_dump(exclude={"computed_at"})
+        for recommendation in payload["recommendations"]:
+            recommendation.pop("hours_since_ingest", None)
+        return payload
+
+    expected = {
+        roster_id: stable_payload(
+            WaiverEngine(db).compute_recommendations("waiver_x", roster_id)
+        )
+        for roster_id in (1, 2)
+    }
+    engine = WaiverEngine(db)
+    original_build = engine.build_league_context
+    build_calls: list[str] = []
+
+    def tracked_build(league_id: str):
+        build_calls.append(league_id)
+        return original_build(league_id)
+
+    monkeypatch.setattr(engine, "build_league_context", tracked_build)
+
+    results = engine.compute_all_recommendations("waiver_x", [1, 2])
+
+    assert set(results) == {1, 2}
+    assert build_calls == ["waiver_x"]
+    assert all(result.recommendations for result in results.values())
+    assert {
+        roster_id: stable_payload(result)
+        for roster_id, result in results.items()
+    } == expected
+
+
+def test_shared_waiver_context_reduces_database_queries(db):
+    _seed_waiver_context(db)
+    counting = _CountingConnection(db)
+
+    individual_engine = WaiverEngine(counting)
+    for roster_id in (1, 2):
+        individual_engine.compute_recommendations("waiver_x", roster_id)
+    individual_queries = counting.execute_count
+
+    counting.execute_count = 0
+    WaiverEngine(counting).compute_all_recommendations("waiver_x", [1, 2])
+    batched_queries = counting.execute_count
+
+    assert batched_queries < individual_queries
+
+
+def test_compute_all_recommendations_skips_context_for_empty_roster_set(
+    db,
+    monkeypatch,
+):
+    engine = WaiverEngine(db)
+
+    def unexpected_build(_league_id: str):
+        raise AssertionError("empty leagues must not build waiver context")
+
+    monkeypatch.setattr(engine, "build_league_context", unexpected_build)
+
+    assert engine.compute_all_recommendations("waiver_x", []) == {}
 
 
 def test_position_limit_skips_capped_position_adds(db):

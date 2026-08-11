@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from time import perf_counter
 from typing import Any
 
 import duckdb
@@ -552,11 +553,12 @@ def _refresh_waiver_recommendations(
     ).fetchall()
     waiver_engine = WaiverEngine(conn)
     waiver_repo = WaiverRepo(conn)
-    refreshed = 0
-    for (roster_id,) in rows:
-        result = waiver_engine.compute_recommendations(league_id, int(roster_id))
+    roster_ids = [int(roster_id) for (roster_id,) in rows]
+    results = waiver_engine.compute_all_recommendations(league_id, roster_ids)
+    for roster_id in roster_ids:
+        result = results[roster_id]
         waiver_repo.upsert_waiver_recommendations(result)
-        refreshed += 1
+    refreshed = len(results)
     if refreshed > 0:
         FreshnessService(ContextRepo(conn)).mark_refreshed(
             league_id,
@@ -631,27 +633,61 @@ async def maybe_run_dev_refresh(
                         "Dev auto-refresh ingest failed for %s.", league_id
                     )
 
+    seasons_by_league: dict[str, int] = {}
+    for league_id in league_ids:
+        season_row = conn.execute(
+            """
+            SELECT TRY_CAST(season AS INTEGER)
+            FROM leagues
+            WHERE league_id = ?
+            LIMIT 1
+            """,
+            [league_id],
+        ).fetchone()
+        seasons_by_league[league_id] = (
+            int(season_row[0])
+            if season_row and season_row[0] is not None
+            else 2026
+        )
+
+    edge_sources_by_season: dict[int, dict[str, Any] | None] = {}
+    for season in sorted(set(seasons_by_league.values())):
+        phase_started = perf_counter()
+        try:
+            edge_sources_by_season[season] = refresh_edge_radar_sources(conn, season)
+            logger.info(
+                "Dev auto-refresh rebuilt season-global sources for %s in %.2fs.",
+                season,
+                perf_counter() - phase_started,
+            )
+        except Exception:
+            edge_sources_by_season[season] = None
+            logger.exception(
+                "Dev auto-refresh season-global source phase failed for %s.",
+                season,
+            )
+
     for league_id in league_ids:
         try:
-            season_row = conn.execute(
-                """
-                SELECT TRY_CAST(season AS INTEGER)
-                FROM leagues
-                WHERE league_id = ?
-                LIMIT 1
-                """,
-                [league_id],
-            ).fetchone()
-            season = int(season_row[0]) if season_row and season_row[0] is not None else 2026
-            edge_sources = refresh_edge_radar_sources(conn, season)
+            phase_started = perf_counter()
+            season = seasons_by_league[league_id]
+            edge_sources = edge_sources_by_season[season]
+            if edge_sources is None:
+                logger.warning(
+                    "Dev auto-refresh skipped %s because season-global sources failed for %s.",
+                    league_id,
+                    season,
+                )
+                continue
             summary = refresh_league_artifacts(
                 conn,
                 league_id,
                 include_snapshot=settings.DEV_AUTO_REFRESH_SNAPSHOTS,
             )
             logger.info(
-                "Dev auto-refresh rebuilt %s: %s team-context rows, %s player metadata rows, %s rosters, %s player values, %s waiver boards, %s profiles, %s snapshots.",
+                "Dev auto-refresh rebuilt %s in %.2fs: %s team-context rows, %s player metadata rows, %s rosters, %s player values, %s waiver boards, %s profiles, %s snapshots.",
                 league_id,
+                perf_counter() - phase_started,
                 edge_sources["team_context"].upserted_rows,
                 edge_sources["player_metadata"].updated_rows,
                 summary["roster_count"],

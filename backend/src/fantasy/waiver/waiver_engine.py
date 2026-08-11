@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections import Counter
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from statistics import median
 from typing import Any, Literal
@@ -25,12 +26,24 @@ from fantasy.waiver.constants import (
     WAIVER_TYPE_LABELS,
 )
 from fantasy.waiver.context import (
+    WaiverContextIndex,
+    build_waiver_context_index,
     clamp,
     contextual_stash_bid_cap_pct,
     format_direction,
     parse_timestamp,
 )
 from fantasy.waiver.models import WaiverRecommendation, WaiverRecommendationsResponse
+
+
+@dataclass(frozen=True)
+class WaiverLeagueContext:
+    player_rows: tuple[dict[str, Any], ...]
+    stats_map: dict[str, float]
+    adp_map: dict[str, float]
+    position_limits: dict[str, int]
+    league_median_remaining: int
+    context_index: WaiverContextIndex
 
 
 def _loads(raw: str | None, fallback: Any) -> Any:
@@ -173,6 +186,42 @@ class WaiverEngine:
         self._conn = conn
         self._card_engine = RecommendationCardEngine(conn)
         self._stats_seasons: dict[str, int | None] = {}
+
+    def build_league_context(self, league_id: str) -> WaiverLeagueContext:
+        available_ids = get_available_players(self._conn, league_id)
+        league_row = self._conn.execute(
+            "SELECT settings_blob FROM leagues WHERE league_id = ? LIMIT 1",
+            [league_id],
+        ).fetchone()
+        settings = _loads(league_row[0], {}) if league_row else {}
+        total_budget = int(settings.get("waiver_budget") or 100)
+        return WaiverLeagueContext(
+            player_rows=tuple(self._player_rows(available_ids)),
+            stats_map=self._stats_map(available_ids, league_id),
+            adp_map=self._adp_map(available_ids),
+            position_limits=self._position_limits(league_id),
+            league_median_remaining=self._league_median_remaining(
+                league_id, total_budget
+            ),
+            context_index=build_waiver_context_index(self._conn, league_id),
+        )
+
+    def compute_all_recommendations(
+        self,
+        league_id: str,
+        roster_ids: list[int],
+    ) -> dict[int, WaiverRecommendationsResponse]:
+        if not roster_ids:
+            return {}
+        league_context = self.build_league_context(league_id)
+        return {
+            roster_id: self.compute_recommendations(
+                league_id,
+                roster_id,
+                league_context=league_context,
+            )
+            for roster_id in roster_ids
+        }
 
     def _league_median_remaining(self, league_id: str, total_budget: int) -> int:
         rows = self._conn.execute(
@@ -496,7 +545,10 @@ class WaiverEngine:
         self,
         league_id: str,
         roster_id: int,
+        *,
+        league_context: WaiverLeagueContext | None = None,
     ) -> WaiverRecommendationsResponse:
+        context = league_context or self.build_league_context(league_id)
         state = get_faab_state(self._conn, league_id, roster_id)
         direction_label = self._direction_label(league_id, roster_id)
         direction_urgency = DIRECTION_URGENCY.get(direction_label, 0.55)
@@ -504,22 +556,13 @@ class WaiverEngine:
             league_id,
             roster_id,
         )
-        position_limits = self._position_limits(league_id)
-        available_ids = get_available_players(self._conn, league_id)
-        player_rows = self._player_rows(available_ids)
-        stats_map = self._stats_map(available_ids, league_id)
-        adp_map = self._adp_map(available_ids)
         drop_candidates = self._drop_candidates(league_id, roster_id)
-        league_median_remaining = self._league_median_remaining(
-            league_id,
-            int(state["total_budget"] or 100),
-        )
 
         recommendations: list[tuple[float, WaiverRecommendation]] = []
-        for player in player_rows:
+        for player in context.player_rows:
             player_id = str(player["player_id"])
             position = str(player["position"])
-            position_limit = position_limits.get(position)
+            position_limit = context.position_limits.get(position)
             if position_limit is not None and roster_counts.get(position, 0) >= position_limit:
                 continue
             player_score, positional_scarcity, is_immediate_start = self._score_available_player(
@@ -527,8 +570,8 @@ class WaiverEngine:
                 weak_positions=weak_positions,
                 starter_requirements=starter_requirements,
                 direction_label=direction_label,
-                avg_points=stats_map.get(player_id),
-                adp=adp_map.get(player_id),
+                avg_points=context.stats_map.get(player_id),
+                adp=context.adp_map.get(player_id),
             )
 
             waiver_type_label = str(state["waiver_type_label"])
@@ -539,7 +582,7 @@ class WaiverEngine:
                 bid_low, bid_mid, bid_high = compute_bid_range(
                     player_score,
                     int(state["remaining_faab"] or 0),
-                    league_median_remaining,
+                    context.league_median_remaining,
                     direction_urgency,
                     positional_scarcity,
                     is_immediate_start,
@@ -551,7 +594,8 @@ class WaiverEngine:
                     player=player,
                     weak_positions=weak_positions,
                     is_immediate_start=is_immediate_start,
-                    adp=adp_map.get(player_id),
+                    adp=context.adp_map.get(player_id),
+                    context_index=context.context_index,
                 )
                 if cap_pct is not None and bid_high > 0:
                     cap_high = max(1, int(int(state["remaining_faab"] or 0) * cap_pct))
@@ -638,9 +682,10 @@ class WaiverEngine:
             league_id,
         )
         return result
- 
+
 __all__ = [
     "WaiverEngine",
+    "WaiverLeagueContext",
     "compute_bid_range",
     "get_available_players",
     "get_faab_state",

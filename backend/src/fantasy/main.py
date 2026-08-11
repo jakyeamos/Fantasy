@@ -43,14 +43,18 @@ from fantasy.startup_tasks import ensure_runtime_schema, maybe_run_dev_refresh
 logger = logging.getLogger(__name__)
 
 
-async def _background_dev_refresh(settings: object) -> None:
+def _run_dev_refresh_in_worker(settings: object) -> None:
     conn = get_write_connection()
     try:
-        await maybe_run_dev_refresh(conn, settings)
+        asyncio.run(maybe_run_dev_refresh(conn, settings))
     except Exception:
         logger.exception("Background dev auto-refresh failed.")
     finally:
         close_connection(conn)
+
+
+async def _background_dev_refresh(settings: object) -> None:
+    await asyncio.to_thread(_run_dev_refresh_in_worker, settings)
 
 
 @asynccontextmanager
