@@ -222,6 +222,41 @@ def test_pick_search_includes_owned_picks_beyond_default_three_year_window(trade
     )
 
 
+def test_pick_search_excludes_completed_rookie_draft_season(trade_seed_data):
+    trade_seed_data.executemany(
+        """
+        INSERT INTO draft_pick_selections (
+            id, league_id, draft_id, roster_id, player_id, pick_slot,
+            round_number, season, draft_type, position, archetype_label, ingested_at
+        )
+        VALUES (?, 'league_x', 'draft_2025', ?, ?, ?, ?, 2025, 'rookie', 'RB', 'rookie', CURRENT_TIMESTAMP)
+        """,
+        [
+            (
+                1000 + pick_slot,
+                ((pick_slot - 1) % 2) + 1,
+                f"drafted_{pick_slot}",
+                pick_slot,
+                ((pick_slot - 1) // 2) + 1,
+            )
+            for pick_slot in range(1, 7)
+        ],
+    )
+    app = create_app()
+    app.dependency_overrides[get_read_db_conn] = _override_conn(trade_seed_data)
+    app.dependency_overrides[get_write_db_conn] = _override_conn(trade_seed_data)
+    client = TestClient(app)
+
+    response = client.get(
+        "/trade/picks/search",
+        params={"league_id": "league_x", "roster_id": 1},
+    )
+
+    assert response.status_code == 200
+    assert all(item["pick_year"] != 2025 for item in response.json())
+    assert any(item["pick_year"] == 2028 for item in response.json())
+
+
 def test_roster_list_endpoint(trade_seed_data):
     app = create_app()
     app.dependency_overrides[get_read_db_conn] = _override_conn(trade_seed_data)

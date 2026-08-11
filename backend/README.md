@@ -1,5 +1,20 @@
 # Fantasy backend
 
+## Future Pick Inventory
+
+The pick API and agent context expose a rolling three-draft inventory. Once the
+current season's rookie draft has been completely ingested, that completed year
+is excluded and the next draft year enters the window. Residual historical rows
+from Sleeper's traded-picks feed do not make completed picks tradable again.
+
+Future picks are valued from the original owner's current `team_scorecards.win_now`
+rank when every league roster has a scorecard. The projection regresses toward
+the league midpoint for more distant years and applies the configured annual
+future-value discount. If complete scorecard evidence is unavailable, the engine
+falls back to the league's configured standings or max-points-for draft-order
+rule. API and agent-context values include `projection_source` and
+`original_owner_strength_slot` so the basis is machine-readable.
+
 ## Dev Auto-Refresh
 
 When you are iterating on backend logic and want the local league data rebuilt on

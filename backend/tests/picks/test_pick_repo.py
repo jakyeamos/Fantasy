@@ -41,6 +41,28 @@ def _seed_league(conn) -> None:
     )
 
 
+def _seed_rookie_draft_selections(conn, *, pick_count: int) -> None:
+    conn.executemany(
+        """
+        INSERT INTO draft_pick_selections (
+            id, league_id, draft_id, roster_id, player_id, pick_slot,
+            round_number, season, draft_type, position, archetype_label, ingested_at
+        )
+        VALUES (?, 'league_x', 'draft_2026', ?, ?, ?, ?, 2026, 'rookie', 'RB', 'rookie', CURRENT_TIMESTAMP)
+        """,
+        [
+            (
+                pick_slot,
+                ((pick_slot - 1) % 3) + 1,
+                f"rookie_{pick_slot}",
+                pick_slot,
+                ((pick_slot - 1) // 3) + 1,
+            )
+            for pick_slot in range(1, pick_count + 1)
+        ],
+    )
+
+
 def test_get_standings_returns_neutral_fallback_when_missing(db):
     _seed_league(db)
     repo = PickRepo(db)
@@ -123,6 +145,37 @@ def test_get_all_picks_can_filter_by_current_owner(db):
     )
 
 
+def test_get_all_picks_rolls_window_after_completed_rookie_draft(db):
+    _seed_league(db)
+    db.execute(
+        """
+        INSERT INTO traded_picks (id, league_id, season, round, roster_id, owner_id, previous_owner_id)
+        VALUES
+            (1, 'league_x', '2026', 1, 2, '1', '2'),
+            (2, 'league_x', '2029', 1, 3, '1', '3')
+        """
+    )
+    _seed_rookie_draft_selections(db, pick_count=9)
+
+    picks = PickRepo(db).get_all_picks("league_x", current_owner_roster_id=1)
+
+    assert {pick.pick_year for pick in picks} == {2027, 2028, 2029}
+    assert len(picks) == 10
+    assert any(
+        pick.pick_owner_roster_id == 3 and pick.pick_year == 2029 and pick.pick_round == 1
+        for pick in picks
+    )
+
+
+def test_get_all_picks_keeps_current_year_during_partial_rookie_draft(db):
+    _seed_league(db)
+    _seed_rookie_draft_selections(db, pick_count=1)
+
+    picks = PickRepo(db).get_all_picks("league_x")
+
+    assert {pick.pick_year for pick in picks} == {2026, 2027, 2028}
+
+
 def test_get_class_strength_signal_reads_latest_cache(db):
     _seed_league(db)
     db.execute(
@@ -135,6 +188,29 @@ def test_get_class_strength_signal_reads_latest_cache(db):
     )
     repo = PickRepo(db)
     assert repo.get_class_strength_signal("league_x") == 0.35
+
+
+def test_get_current_strength_slots_ranks_complete_scorecards(db):
+    _seed_league(db)
+    db.execute(
+        """
+        INSERT INTO team_scorecards (
+            id, league_id, roster_id, win_now, future_value, depth,
+            pick_capital, flexibility, fragility, age_risk, liquidity,
+            positional_insulation, composite, computation_json
+        )
+        VALUES
+            (1, 'league_x', 1, 0.1, 0, 0, 0, 0, 0, 0, 0, 0, 0, '{}'),
+            (2, 'league_x', 2, 0.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, '{}'),
+            (3, 'league_x', 3, 0.9, 0, 0, 0, 0, 0, 0, 0, 0, 0, '{}')
+        """
+    )
+
+    assert PickRepo(db).get_current_strength_slots("league_x") == {
+        1: 1.0,
+        2: 2.0,
+        3: 3.0,
+    }
 
 
 def test_get_draft_order_rule_returns_none_when_unconfigured(db):

@@ -57,6 +57,14 @@ function formatProjectedRange(pickValue: PickValue) {
   return `~${slotLabel(pickValue.pick.pick_round, start)}-${String(end).padStart(2, "0")}`
 }
 
+function projectionSourceLabel(source: PickValue["projection_source"]) {
+  if (source === "team_strength") return "current original-owner strength"
+  if (source === "confirmed_slot") return "confirmed draft slot"
+  if (source === "max_pf") return "max points for"
+  if (source === "standings") return "current standings"
+  return "unavailable"
+}
+
 function ownerSummary(inventory: PickSearchResult | undefined) {
   if (!inventory) return null
   if (inventory.current_owner_name === inventory.original_owner_name) {
@@ -232,6 +240,9 @@ export function LeaguePickList({
                 <>
                   <p className="mt-2 text-xs text-muted-foreground">
                     Projected position: {formatProjectedSlot(pickValue)}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Projection basis: {projectionSourceLabel(pickValue.projection_source)}
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">{pickValue.timing_reasoning}</p>
                 </>

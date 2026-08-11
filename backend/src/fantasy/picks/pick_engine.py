@@ -94,15 +94,18 @@ def project_future_draft_slot(
     *,
     max_pf_slots: dict[int, int] | None = None,
     roster_id: int = 0,
+    current_strength_slot: float | None = None,
 ) -> float | None:
-    current_slot = expected_draft_slot(
-        rule=rule,
-        win_pct=standings.win_pct,
-        remaining_games=standings.remaining_games,
-        league_size=league_size,
-        max_pf_slots=max_pf_slots,
-        roster_id=roster_id or standings.roster_id,
-    )
+    current_slot = current_strength_slot
+    if current_slot is None:
+        current_slot = expected_draft_slot(
+            rule=rule,
+            win_pct=standings.win_pct,
+            remaining_games=standings.remaining_games,
+            league_size=league_size,
+            max_pf_slots=max_pf_slots,
+            roster_id=roster_id or standings.roster_id,
+        )
     if current_slot is None:
         return None
 
@@ -297,6 +300,7 @@ class PickEngine:
             league_adjusted_value=0.0,
             demand_adjusted_value=0.0,
             expected_draft_slot=1.0,
+            projection_source="blocked",
             timing_label=TimingLabel.HOLD_UNTIL_ROOKIE_FEVER,
             timing_reasoning="Pick projections require a configured draft order rule.",
             class_strength_signal=0.0,
@@ -316,6 +320,7 @@ class PickEngine:
         current_month: int,
         confirmed_slot: int | None = None,
         max_pf_slots: dict[int, int] | None = None,
+        owner_strength_slot: float | None = None,
     ) -> PickValue:
         pick_year = int(pick.pick_year or current_season)
         years_out = max(0, pick_year - current_season)
@@ -325,6 +330,16 @@ class PickEngine:
             return self._blocked_pick_value(pick, years_out)
 
         if years_out > 0:
+            projection_source = (
+                "team_strength"
+                if owner_strength_slot is not None
+                else (
+                    "max_pf"
+                    if context.draft_order_rule.non_playoff_basis
+                    == NonPlayoffOrderBasis.MAX_POINTS_FOR
+                    else "standings"
+                )
+            )
             slot = project_future_draft_slot(
                 context.draft_order_rule,
                 standings,
@@ -332,12 +347,20 @@ class PickEngine:
                 years_out,
                 max_pf_slots=max_pf_slots,
                 roster_id=int(pick.pick_owner_roster_id or standings.roster_id),
+                current_strength_slot=owner_strength_slot,
             )
             if slot is None:
                 return self._blocked_pick_value(pick, years_out)
         elif confirmed_slot is not None:
             slot = float(confirmed_slot)
+            projection_source = "confirmed_slot"
         else:
+            projection_source = (
+                "max_pf"
+                if context.draft_order_rule.non_playoff_basis
+                == NonPlayoffOrderBasis.MAX_POINTS_FOR
+                else "standings"
+            )
             slot = expected_draft_slot(
                 rule=context.draft_order_rule,
                 win_pct=standings.win_pct,
@@ -390,6 +413,8 @@ class PickEngine:
             league_adjusted_value=round(league_adjusted_value, 2),
             demand_adjusted_value=round(demand_adjusted_value, 2),
             expected_draft_slot=round(slot, 2),
+            projection_source=projection_source,
+            original_owner_strength_slot=owner_strength_slot,
             timing_label=timing_label,
             timing_reasoning=timing_reasoning,
             class_strength_signal=round(context.class_strength_signal, 4),
@@ -426,6 +451,7 @@ class PickEngine:
         confirmed_slot = self._repo.get_confirmed_slot(
             league_id, owner_roster_id, int(pick.pick_year or current_season)
         )
+        strength_slots = self._repo.get_current_strength_slots(league_id)
         return self._compute_with_context(
             pick=pick,
             league_id=league_id,
@@ -436,6 +462,7 @@ class PickEngine:
             current_month=current_time.month,
             confirmed_slot=confirmed_slot,
             max_pf_slots=max_pf_slots,
+            owner_strength_slot=strength_slots.get(owner_roster_id),
         )
 
     def compute_batch(
@@ -470,12 +497,12 @@ class PickEngine:
             )
             for pick in picks
         }
+        strength_slots = self._repo.get_current_strength_slots(league_id)
         standings_by_owner = {
             int(pick.pick_owner_roster_id or 0): self._repo.get_standings(
                 int(pick.pick_owner_roster_id or 0), league_id
             )
             for pick in picks
-            if int(pick.pick_year or current_season) <= current_season
         }
 
         results: list[PickValue] = []
@@ -513,6 +540,7 @@ class PickEngine:
                     current_month=current_time.month,
                     confirmed_slot=confirmed_slot,
                     max_pf_slots=max_pf_slots,
+                    owner_strength_slot=strength_slots.get(owner_roster_id),
                 )
             )
         return results

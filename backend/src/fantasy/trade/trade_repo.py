@@ -287,142 +287,16 @@ class TradeRepo:
     def get_picks_for_league(
         self, league_id: str, roster_id: int | None = None
     ) -> list[dict[str, Any]]:
-        owner_map = {
-            int(row[0]): str(row[2] or row[1] or f"Roster {int(row[0])}")
-            for row in self._conn.execute(
-                """
-                SELECT roster_id, owner_id, owner_display_name
-                FROM rosters
-                WHERE league_id = ?
-                """,
-                [league_id],
-            ).fetchall()
-        }
-        league_row = self._conn.execute(
-            """
-            SELECT season, settings_blob
-            FROM leagues
-            WHERE league_id = ?
-            LIMIT 1
-            """,
-            [league_id],
-        ).fetchone()
-        if league_row is None:
-            return []
+        from fantasy.picks.pick_repo import PickRepo
 
-        current_season = int(league_row[0])
-        league_settings = _loads(league_row[1], {})
-        draft_rounds = max(int(league_settings.get("draft_rounds", 3) or 3), 1)
-        latest_traded_season_row = self._conn.execute(
-            """
-            SELECT MAX(CAST(season AS INTEGER))
-            FROM traded_picks
-            WHERE league_id = ? AND CAST(season AS INTEGER) >= ?
-            """,
-            [league_id, current_season],
-        ).fetchone()
-        latest_traded_season = (
-            int(latest_traded_season_row[0])
-            if latest_traded_season_row and latest_traded_season_row[0] is not None
-            else current_season + 2
-        )
-        final_season = max(current_season + 2, latest_traded_season)
-        future_seasons = list(range(current_season, final_season + 1))
-
-        traded_rows = [
-            (int(row[0]), int(row[1]), int(row[2]), int(row[3]))
-            for row in self._conn.execute(
-                """
-                SELECT roster_id, owner_id, season, round
-                FROM traded_picks
-                WHERE league_id = ?
-                  AND CAST(season AS INTEGER) >= ?
-                """,
-                [league_id, current_season],
-            ).fetchall()
-        ]
-        traded_by_original = {
-            (pick_year, round_no, original_owner_id): current_owner_id
-            for original_owner_id, current_owner_id, pick_year, round_no in traded_rows
-        }
-
-        slot_by_pick = {
-            (int(row[0]), int(row[1]), int(row[2])): float(row[3])
-            for row in self._conn.execute(
-                """
-                SELECT pick_owner_roster_id, pick_year, pick_round, expected_draft_slot
-                FROM pick_values
-                WHERE league_id = ?
-                """,
-                [league_id],
-            ).fetchall()
-        }
-
-        confirmed_by_roster_season: dict[tuple[int, int], int] = {}
-        for row in self._conn.execute(
-            """
-            SELECT roster_id, season, confirmed_slot
-            FROM draft_slots
-            WHERE league_id = ?
-            ORDER BY
-                CASE status
-                    WHEN 'complete'  THEN 0
-                    WHEN 'drafting'  THEN 1
-                    WHEN 'paused'    THEN 2
-                    ELSE 3
-                END,
-                roster_id
-            """,
-            [league_id],
-        ).fetchall():
-            key = (int(row[0]), int(row[1]))
-            if key not in confirmed_by_roster_season:
-                confirmed_by_roster_season[key] = int(row[2])
-
-        inventory: list[dict[str, Any]] = []
-        for original_owner_id in sorted(owner_map):
-            for pick_year in future_seasons:
-                for round_no in range(1, draft_rounds + 1):
-                    current_owner_id = traded_by_original.get(
-                        (pick_year, round_no, original_owner_id), original_owner_id
-                    )
-                    if roster_id is not None and current_owner_id != roster_id:
-                        continue
-                    confirmed = confirmed_by_roster_season.get((original_owner_id, pick_year))
-                    if confirmed is not None:
-                        projected_slot = f"{round_no}.{confirmed:02d}"
-                    else:
-                        raw_slot = slot_by_pick.get((original_owner_id, pick_year, round_no))
-                        projected_slot = (
-                            f"~{round_no}.{int(round(raw_slot)):02d}"
-                            if raw_slot is not None
-                            else f"{round_no}.mid"
-                        )
-                    inventory.append(
-                        {
-                            "original_owner_id": original_owner_id,
-                            "current_owner_id": current_owner_id,
-                            "original_owner_name": owner_map.get(
-                                original_owner_id, f"Roster {original_owner_id}"
-                            ),
-                            "pick_year": pick_year,
-                            "round": round_no,
-                            "projected_slot": projected_slot,
-                            "current_owner_name": owner_map.get(
-                                current_owner_id, f"Roster {current_owner_id}"
-                            ),
-                        }
-                    )
-
-        inventory.sort(
-            key=lambda item: (
-                item["pick_year"],
-                item["round"],
-                item["current_owner_id"],
-                item["original_owner_id"],
+        return [
+            row
+            for row in PickRepo(self._conn).get_pick_inventory_rows(
+                league_id,
+                extend_to_traded_horizon=True,
             )
-        )
-        return inventory
+            if roster_id is None or int(row["current_owner_id"]) == roster_id
+        ]
 
     def get_pick_value(
         self,

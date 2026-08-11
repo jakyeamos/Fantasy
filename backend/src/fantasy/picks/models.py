@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -89,6 +90,14 @@ class PickValue(BaseModel):
     league_adjusted_value: float = Field(ge=0.0)
     demand_adjusted_value: float = Field(ge=0.0)
     expected_draft_slot: float = Field(ge=1.0)
+    projection_source: Literal[
+        "blocked",
+        "confirmed_slot",
+        "team_strength",
+        "standings",
+        "max_pf",
+    ] = "standings"
+    original_owner_strength_slot: float | None = Field(default=None, ge=1.0)
     timing_label: TimingLabel
     timing_reasoning: str
     class_strength_signal: float = Field(ge=-1.0, le=1.0)

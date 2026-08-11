@@ -162,10 +162,20 @@ context unless the user connects them to a roster decision.
 - The context command opens `data/fantasy.duckdb` read-only and never mutates
   data. The advice command builds through that read-only boundary and then uses
   a separate append-only feedback connection for presentation evidence.
+- Pick inventory is a rolling three-draft window. A season leaves that window
+  only when a fully ingested rookie draft proves it complete; residual
+  `traded_picks` rows must not resurrect already-used picks.
+- Read each owned pick's live `valuation` from agent context. Future projections
+  use the original owner's current win-now strength when complete league-wide
+  scorecards are available, regress toward the midpoint by distance, and expose
+  `projection_source`; do not substitute a manually estimated table.
 - Its default freshness threshold is 72 hours; override with
   `--stale-after-hours` when the decision requires a tighter window.
 - If the relevant league is stale, identify the exact league and request or run
   the documented ingest only when the user has authorized live refresh work.
+- During a dev auto-refresh, use `/healthz` for process liveness and `/readyz`
+  for DB readiness. A busy writer can delay readiness without making the API
+  event loop unresponsive; season-global sources are rebuilt once per season.
 - Do not expose unrelated managers or leagues when a player query already
   resolves to the user's matching roster.
 - `data_health.integrity_status: blocked_by_integrity_failure` excludes the

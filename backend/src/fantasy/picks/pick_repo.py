@@ -196,6 +196,44 @@ class PickRepo:
             draft_in_progress=False,
         )
 
+    def get_current_strength_slots(self, league_id: str) -> dict[int, float]:
+        """Rank original owners by current win-now strength.
+
+        A complete scorecard set is required so missing teams cannot be mistaken
+        for weak teams. Equal scores share the average of their occupied slots.
+        """
+
+        roster_count_row = self._conn.execute(
+            "SELECT COUNT(*) FROM rosters WHERE league_id = ?",
+            [league_id],
+        ).fetchone()
+        roster_count = int(roster_count_row[0] or 0) if roster_count_row else 0
+        rows = self._conn.execute(
+            """
+            SELECT roster_id, win_now
+            FROM team_scorecards
+            WHERE league_id = ?
+              AND win_now IS NOT NULL
+            ORDER BY win_now ASC, roster_id ASC
+            """,
+            [league_id],
+        ).fetchall()
+        if roster_count < 2 or len(rows) != roster_count:
+            return {}
+
+        strength_slots: dict[int, float] = {}
+        index = 0
+        while index < len(rows):
+            score = float(rows[index][1])
+            end = index + 1
+            while end < len(rows) and float(rows[end][1]) == score:
+                end += 1
+            average_rank = ((index + 1) + end) / 2.0
+            for roster_id, _win_now in rows[index:end]:
+                strength_slots[int(roster_id)] = average_rank
+            index = end
+        return strength_slots
+
     def get_league_pick_context(self, league_id: str) -> LeaguePickContext:
         """Return league-level pick context with rebuilder count."""
 
@@ -308,7 +346,12 @@ class PickRepo:
         ).fetchall()
         return {int(row[0]): rank for rank, row in enumerate(rows, start=1)}
 
-    def _get_pick_inventory_rows(self, league_id: str) -> list[dict[str, Any]]:
+    def get_pick_inventory_rows(
+        self,
+        league_id: str,
+        *,
+        extend_to_traded_horizon: bool = False,
+    ) -> list[dict[str, Any]]:
         owner_rows = self._conn.execute(
             """
             SELECT roster_id, owner_id, owner_display_name
@@ -341,7 +384,38 @@ class PickRepo:
         current_season = int(league_row[0] or 2026)
         league_settings = _loads(league_row[1], {})
         draft_rounds = max(int(league_settings.get("draft_rounds", 3) or 3), 1)
-        future_seasons = [current_season + offset for offset in range(3)]
+        expected_pick_count = len(original_owner_ids) * draft_rounds
+        completed_draft = self._conn.execute(
+            """
+            SELECT draft_id
+            FROM draft_pick_selections
+            WHERE league_id = ?
+              AND season = ?
+              AND draft_type = 'rookie'
+            GROUP BY draft_id
+            HAVING COUNT(DISTINCT pick_slot) >= ?
+            LIMIT 1
+            """,
+            [league_id, current_season, expected_pick_count],
+        ).fetchone()
+        first_pick_season = current_season + (1 if completed_draft is not None else 0)
+        final_pick_season = first_pick_season + 2
+        if extend_to_traded_horizon:
+            latest_traded_season = self._conn.execute(
+                """
+                SELECT MAX(CAST(season AS INTEGER))
+                FROM traded_picks
+                WHERE league_id = ?
+                  AND CAST(season AS INTEGER) >= ?
+                """,
+                [league_id, first_pick_season],
+            ).fetchone()
+            if latest_traded_season and latest_traded_season[0] is not None:
+                final_pick_season = max(
+                    final_pick_season,
+                    int(latest_traded_season[0]),
+                )
+        future_seasons = list(range(first_pick_season, final_pick_season + 1))
 
         traded_rows = self._conn.execute(
             """
@@ -453,7 +527,7 @@ class PickRepo:
                 pick_round=int(row["round"]),
                 projected_slot=str(row["projected_slot"]),
             )
-            for row in self._get_pick_inventory_rows(league_id)
+            for row in self.get_pick_inventory_rows(league_id)
             if current_owner_roster_id is None
             or int(row["current_owner_id"]) == current_owner_roster_id
         ]
@@ -469,7 +543,7 @@ class PickRepo:
             row["original_owner_id"] == owner_roster_id
             and row["pick_year"] == pick_year
             and row["round"] == pick_round
-            for row in self._get_pick_inventory_rows(league_id)
+            for row in self.get_pick_inventory_rows(league_id)
         )
 
     def get_pick_owner_name(self, league_id: str, owner_roster_id: int) -> str | None:
@@ -567,6 +641,11 @@ class PickRepo:
                     pv.timing_reasoning,
                     pv.class_strength_signal,
                     pv.years_out,
-                    json.dumps({}),
+                    json.dumps(
+                        {
+                            "projection_source": pv.projection_source,
+                            "original_owner_strength_slot": pv.original_owner_strength_slot,
+                        }
+                    ),
                 ],
             )

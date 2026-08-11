@@ -15,6 +15,7 @@ import duckdb
 from fantasy.config import get_settings
 from fantasy.data_health import assess_stats_health
 from fantasy.decision import build_decision_packet
+from fantasy.picks.pick_engine import PickEngine
 from fantasy.picks.pick_repo import PickRepo
 
 DECISION_TERMS = {
@@ -366,7 +367,9 @@ def _league_context(
     picks: list[dict[str, Any]] = []
     try:
         pick_repo = PickRepo(conn)
-        for pick in pick_repo.get_all_picks(league_id, roster_id):
+        owned_picks = pick_repo.get_all_picks(league_id, roster_id)
+        values = PickEngine(conn).compute_batch(owned_picks, league_id)
+        for pick, value in zip(owned_picks, values, strict=True):
             payload = pick.model_dump()
             original_owner_id = payload.get("pick_owner_roster_id")
             payload["original_owner_name"] = (
@@ -374,6 +377,12 @@ def _league_context(
                 if original_owner_id is not None
                 else None
             )
+            payload["valuation"] = value.model_dump(mode="json", exclude={"pick"})
+            if value.rule_citation is not None:
+                projected_slot = max(1, round(value.expected_draft_slot))
+                payload["projected_slot"] = (
+                    f"~{int(pick.pick_round or 1)}.{projected_slot:02d}"
+                )
             picks.append(payload)
     except duckdb.Error:
         picks = []

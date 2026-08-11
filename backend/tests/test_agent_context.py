@@ -173,6 +173,65 @@ def test_burrow_question_uses_configured_owner_and_matching_league(db):
     assert packet["evidence"]["calibration"]["status"] == "unavailable"
 
 
+def test_agent_context_exposes_live_strength_adjusted_pick_values(db):
+    _seed_burrow_context(db)
+    db.execute(
+        """
+        INSERT INTO team_scorecards (
+            id, league_id, roster_id, computed_at, win_now, future_value, depth,
+            pick_capital, flexibility, fragility, age_risk, liquidity,
+            positional_insulation, composite, computation_json
+        )
+        VALUES (
+            2, 'amg', 8, '2026-08-01 15:33:30', 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, '{}'
+        )
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO league_draft_order_rules (
+            id, league_id, non_playoff_basis, playoff_ordering, tiebreaker
+        )
+        VALUES (1, 'amg', 'inverse_standings', 'by_finish', 'points_against')
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO traded_picks (
+            id, league_id, season, round, roster_id, owner_id, previous_owner_id
+        )
+        VALUES (2, 'amg', '2027', 1, 8, '1', '8')
+        """
+    )
+
+    result = build_agent_context(
+        db,
+        question="What are all of my picks worth?",
+        owner_display_name="jakye",
+        now=datetime(2026, 8, 3, 12, 0, 0),
+    )
+
+    picks = result["leagues"][0]["roster"]["picks_owned"]
+    strong_owner_pick = next(
+        pick
+        for pick in picks
+        if pick["pick_year"] == 2027 and pick["pick_round"] == 1
+        and pick["pick_owner_roster_id"] == 1
+    )
+    weak_owner_pick = next(
+        pick
+        for pick in picks
+        if pick["pick_year"] == 2027 and pick["pick_round"] == 1
+        and pick["pick_owner_roster_id"] == 8
+    )
+
+    assert strong_owner_pick["valuation"]["projection_source"] == "team_strength"
+    assert weak_owner_pick["valuation"]["projection_source"] == "team_strength"
+    assert strong_owner_pick["valuation"]["expected_draft_slot"] > weak_owner_pick["valuation"]["expected_draft_slot"]
+    assert strong_owner_pick["valuation"]["league_adjusted_value"] < weak_owner_pick["valuation"]["league_adjusted_value"]
+
+
 def test_question_routing_distinguishes_roster_decisions_from_trivia():
     assert should_ground_question("Would you trade Joe Burrow for straight picks?") is True
     assert should_ground_question("What is a touchdown?") is False

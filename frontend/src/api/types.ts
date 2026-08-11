@@ -822,6 +822,8 @@ export interface PickValue {
   league_adjusted_value: number
   demand_adjusted_value: number
   expected_draft_slot: number
+  projection_source: "blocked" | "confirmed_slot" | "team_strength" | "standings" | "max_pf"
+  original_owner_strength_slot: number | null
   timing_label: TimingLabel
   timing_reasoning: string
   class_strength_signal: number

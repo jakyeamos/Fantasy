@@ -33,6 +33,7 @@ class _FakeRepo:
         draft_order_rule: LeagueDraftOrderRule | None | object = _TEST_RULE_UNSET,
         max_pf_slots: dict[int, int] | None = None,
         confirmed_slot: int | None = None,
+        strength_slots: dict[int, float] | None = None,
     ):
         self.season = season
         self.class_strength = class_strength
@@ -46,6 +47,7 @@ class _FakeRepo:
             self.draft_order_rule = draft_order_rule
         self.max_pf_slots = max_pf_slots or {1: 1}
         self.confirmed_slot = confirmed_slot
+        self.strength_slots = strength_slots or {}
         self.draft_order_rule_calls = 0
         self.max_pf_slots_calls = 0
         self.standings = TeamStandingsRow(
@@ -73,8 +75,11 @@ class _FakeRepo:
 
     def get_standings(self, roster_id: int, league_id: str) -> TeamStandingsRow:
         assert league_id == "league_x"
-        assert roster_id == 1
-        return self.standings
+        return self.standings.model_copy(update={"roster_id": roster_id})
+
+    def get_current_strength_slots(self, league_id: str) -> dict[int, float]:
+        assert league_id == "league_x"
+        return self.strength_slots
 
     def get_confirmed_slot(self, league_id: str, roster_id: int, pick_year: int) -> int | None:
         return self.confirmed_slot
@@ -603,6 +608,25 @@ def test_compute_batch_returns_one_value_per_pick(db):
     values = engine.compute_batch(picks, "league_x")
     assert len(values) == 2
     assert all(value.pick.asset_type == "pick" for value in values)
+
+
+def test_compute_batch_values_future_picks_from_original_owner_strength(db):
+    repo = _FakeRepo(strength_slots={1: 1.0, 2: 12.0})
+    engine = _build_engine(db, repo=repo, month=4)
+    picks = [
+        TradeAsset(asset_type="pick", pick_owner_roster_id=1, pick_year=2027, pick_round=1),
+        TradeAsset(asset_type="pick", pick_owner_roster_id=2, pick_year=2027, pick_round=1),
+    ]
+
+    early_owner_pick, late_owner_pick = engine.compute_batch(picks, "league_x")
+
+    assert early_owner_pick.projection_source == "team_strength"
+    assert late_owner_pick.projection_source == "team_strength"
+    assert early_owner_pick.original_owner_strength_slot == 1.0
+    assert late_owner_pick.original_owner_strength_slot == 12.0
+    assert early_owner_pick.expected_draft_slot == pytest.approx(3.75)
+    assert late_owner_pick.expected_draft_slot == pytest.approx(9.25)
+    assert early_owner_pick.league_adjusted_value > late_owner_pick.league_adjusted_value
 
 
 def test_compute_returns_blocked_value_when_rule_missing(db):
