@@ -15,6 +15,19 @@ falls back to the league's configured standings or max-points-for draft-order
 rule. API and agent-context values include `projection_source` and
 `original_owner_strength_slot` so the basis is machine-readable.
 
+## Weekly Stats Integrity
+
+Incremental ingest cursors track both `stats_season` and the highest contiguous
+week with non-empty weekly stats. A cursor from another season, including a
+legacy week-only cursor, restarts at week 1; empty or failed responses remain
+retryable instead of advancing coverage.
+
+Before loading stats, ingest removes a current league-season payload only when
+the semantic health check proves it is a cross-season clone of the selected
+stats season. During the regular season it also removes rows dated after the
+current NFL week. Applied cleanup is recorded in the ingest cursor under
+`repair_actions`.
+
 ## Dev Auto-Refresh
 
 When you are iterating on backend logic and want the local league data rebuilt on

@@ -1,6 +1,8 @@
-import pytest
-import polars as pl
+import json
 from unittest.mock import MagicMock, patch
+
+import polars as pl
+import pytest
 
 from fantasy.ingestion.ingest_service import IngestService
 from fantasy.ingestion.nfl_data_loader import PLAYER_STATS_COLUMNS
@@ -459,3 +461,168 @@ async def test_preseason_ingest_validates_prior_season_and_marks_stats_fresh(
         """
     ).fetchall()
     assert freshness == [("stats",), ("usage",)]
+
+
+def test_stats_integrity_repair_removes_only_proven_current_season_clone(
+    db,
+    base_league,
+    base_roster,
+):
+    rows = [
+        (
+            f"player_{player}",
+            f"Player {player}",
+            "WR",
+            season,
+            1,
+            10.0,
+            5.0,
+            1.0,
+            0.0,
+            50.0,
+            5.0,
+        )
+        for season in (2025, 2026)
+        for player in range(100)
+    ]
+    db.executemany(
+        """
+        INSERT INTO player_stats_weekly (
+            player_id, player_name, position, season, week, fantasy_points,
+            targets, carries, passing_yards, receiving_yards, rushing_yards
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        rows,
+    )
+    service = IngestService(
+        db,
+        FakeSleeperClient(base_league, [base_roster], [], {}, week=0),
+    )
+
+    actions = service._repair_stats_integrity(
+        league_season=2026,
+        stats_season=2025,
+        season_type="pre",
+        stats_max_week=18,
+    )
+
+    assert actions == [
+        {
+            "action": "removed_cross_season_clone",
+            "season": 2026,
+            "compared_with": 2025,
+            "rows_removed": 100,
+        }
+    ]
+    assert db.execute(
+        "SELECT COUNT(*) FROM player_stats_weekly WHERE season = 2026"
+    ).fetchone()[0] == 0
+    assert db.execute(
+        "SELECT COUNT(*) FROM player_stats_weekly WHERE season = 2025"
+    ).fetchone()[0] == 100
+
+
+def test_stats_integrity_repair_removes_impossible_future_regular_weeks(
+    db,
+    base_league,
+    base_roster,
+):
+    db.executemany(
+        """
+        INSERT INTO player_stats_weekly (
+            player_id, player_name, position, season, week, fantasy_points
+        ) VALUES ('player_1', 'Player 1', 'WR', 2026, ?, ?)
+        """,
+        [(1, 10.0), (2, 20.0), (3, 30.0)],
+    )
+    service = IngestService(
+        db,
+        FakeSleeperClient(base_league, [base_roster], [], {}, week=1),
+    )
+
+    actions = service._repair_stats_integrity(
+        league_season=2026,
+        stats_season=2026,
+        season_type="regular",
+        stats_max_week=1,
+    )
+
+    assert actions == [
+        {
+            "action": "removed_future_regular_weeks",
+            "season": 2026,
+            "after_week": 1,
+            "rows_removed": 2,
+        }
+    ]
+    assert db.execute(
+        "SELECT week FROM player_stats_weekly WHERE season = 2026 ORDER BY week"
+    ).fetchall() == [(1,)]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "prior_cursor",
+    [
+        {"stats_season": 2025, "max_week_fetched": 18},
+        {"max_week_fetched": 18},
+    ],
+    ids=["prior-season", "legacy-week-only"],
+)
+async def test_incremental_ingest_resets_week_cursor_when_stats_season_changes(
+    db,
+    base_league,
+    base_roster,
+    prior_cursor,
+):
+    db.execute(
+        """
+        INSERT INTO ingest_runs (id, league_id, run_type, status, cursor_json)
+        VALUES (90, 'test_league_001', 'incremental', 'complete', ?)
+        """,
+        [json.dumps(prior_cursor)],
+    )
+    regular_league = {**base_league, "season": "2026"}
+    client = FakeSleeperClient(regular_league, [base_roster], [], {}, week=1)
+    client._weekly_stats = {1: {"4017": {"rec": 5.0, "rec_yd": 60.0}}}
+
+    service = IngestService(db, client)
+    run_id = await service.run("test_league_001", "incremental")
+
+    cursor = json.loads(
+        db.execute(
+            "SELECT cursor_json FROM ingest_runs WHERE id = ?", [run_id]
+        ).fetchone()[0]
+    )
+    assert cursor["stats_season"] == 2026
+    assert cursor["max_week_fetched"] == 1
+    assert db.execute(
+        "SELECT COUNT(*) FROM player_stats_weekly WHERE season = 2026"
+    ).fetchone()[0] == 1
+
+
+@pytest.mark.asyncio
+async def test_incremental_cursor_does_not_advance_past_empty_stats_week(
+    db,
+    base_league,
+    base_roster,
+):
+    db.execute(
+        """
+        INSERT INTO ingest_runs (id, league_id, run_type, status, cursor_json)
+        VALUES (90, 'test_league_001', 'incremental', 'complete', ?)
+        """,
+        [json.dumps({"stats_season": 2025, "max_week_fetched": 0})],
+    )
+    client = FakeSleeperClient(base_league, [base_roster], [], {}, week=1)
+
+    service = IngestService(db, client)
+    run_id = await service.run("test_league_001", "incremental")
+
+    cursor = json.loads(
+        db.execute(
+            "SELECT cursor_json FROM ingest_runs WHERE id = ?", [run_id]
+        ).fetchone()[0]
+    )
+    assert cursor["stats_season"] == 2025
+    assert cursor["max_week_fetched"] == 0

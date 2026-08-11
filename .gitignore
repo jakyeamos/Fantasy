@@ -12,6 +12,7 @@ coverage.lcov
 
 # Local runtime database files
 data/*.duckdb
+data/backups/*.duckdb
 
 # Local AI OS generated audit/review artifacts
 .aios/

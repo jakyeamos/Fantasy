@@ -181,3 +181,7 @@ context unless the user connects them to a roster decision.
 - `data_health.integrity_status: blocked_by_integrity_failure` excludes the
   suspect season from scoring. A prior valid season may be used only when the
   packet labels it `scoring_status: fallback_valid`.
+- Incremental stats coverage is season-aware and advances only through
+  contiguous weeks with non-empty Sleeper stats. Ingest removes only a proven
+  current-season clone or regular-season weeks beyond the NFL state; inspect
+  `ingest_runs.cursor_json.repair_actions` when explaining an automatic repair.

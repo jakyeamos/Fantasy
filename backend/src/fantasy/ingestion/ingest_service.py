@@ -11,6 +11,7 @@ import polars as pl
 from fantasy.context.context_repo import ContextRepo
 from fantasy.context.freshness_service import FreshnessService
 from fantasy.corrections.override_service import OverrideService
+from fantasy.data_health import assess_stats_health
 from fantasy.ingestion.gap_detector import GapDetector
 from fantasy.ingestion.nfl_data_loader import NflDataPyLoader, build_sleeper_stats_df
 from fantasy.ingestion.sleeper_client import SleeperClient
@@ -59,6 +60,80 @@ class IngestService:
             return json.loads(row[0])
         except json.JSONDecodeError:
             return {}
+
+    def _repair_stats_integrity(
+        self,
+        *,
+        league_season: int,
+        stats_season: int,
+        season_type: str,
+        stats_max_week: int,
+    ) -> list[dict[str, Any]]:
+        """Remove only statistical rows that cannot be valid for the NFL state."""
+
+        actions: list[dict[str, Any]] = []
+        health = assess_stats_health(self.conn, league_season)
+        clone_issue = next(
+            (
+                issue
+                for issue in health.issues
+                if issue.get("code") == "cross_season_clone"
+                and int(issue.get("season", 0)) == league_season
+                and int(issue.get("compared_with", 0)) == stats_season
+            ),
+            None,
+        )
+        if clone_issue is not None:
+            rows_removed = int(
+                self.conn.execute(
+                    "SELECT COUNT(*) FROM player_stats_weekly WHERE season = ?",
+                    [league_season],
+                ).fetchone()[0]
+            )
+            self.conn.execute(
+                "DELETE FROM player_stats_weekly WHERE season = ?",
+                [league_season],
+            )
+            actions.append(
+                {
+                    "action": "removed_cross_season_clone",
+                    "season": league_season,
+                    "compared_with": stats_season,
+                    "rows_removed": rows_removed,
+                }
+            )
+
+        if season_type == "regular":
+            rows_removed = int(
+                self.conn.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM player_stats_weekly
+                    WHERE season = ? AND week > ?
+                    """,
+                    [stats_season, stats_max_week],
+                ).fetchone()[0]
+            )
+            if rows_removed:
+                self.conn.execute(
+                    """
+                    DELETE FROM player_stats_weekly
+                    WHERE season = ? AND week > ?
+                    """,
+                    [stats_season, stats_max_week],
+                )
+                actions.append(
+                    {
+                        "action": "removed_future_regular_weeks",
+                        "season": stats_season,
+                        "after_week": stats_max_week,
+                        "rows_removed": rows_removed,
+                    }
+                )
+
+        for action in actions:
+            logger.info("Stats integrity repair applied: %s", action)
+        return actions
 
     def _normalize_player_record(
         self, player_id: str, raw_player: dict[str, Any] | None
@@ -363,12 +438,26 @@ class IngestService:
 
             print(f"[ingest:{run_id}]   NFL state: season={state.get('season')} season_type={season_type} week={current_week} stats_season={stats_season}")
 
-            if run_type == "incremental":
-                start_week = int(latest_cursor.get("max_week_fetched", 0) or 0) + 1
+            cursor_stats_season = latest_cursor.get("stats_season")
+            same_stats_season = (
+                cursor_stats_season is not None
+                and int(cursor_stats_season) == stats_season
+            )
+            if run_type == "incremental" and same_stats_season:
+                max_week_fetched = int(
+                    latest_cursor.get("max_week_fetched", 0) or 0
+                )
             else:
-                start_week = 1
+                max_week_fetched = 0
+            start_week = max_week_fetched + 1
+
+            repair_actions = self._repair_stats_integrity(
+                league_season=season_number,
+                stats_season=stats_season,
+                season_type=season_type,
+                stats_max_week=stats_max_week,
+            )
             all_weeks_stats: dict[int, dict[str, dict]] = {}
-            max_week_fetched = int(latest_cursor.get("max_week_fetched", 0) or 0)
             if start_week <= stats_max_week:
                 print(f"[ingest:{run_id}] fetching weeks {start_week}–{stats_max_week} season={stats_season} (transactions + stats)...")
                 for week in range(start_week, stats_max_week + 1):
@@ -388,6 +477,8 @@ class IngestService:
                                 f"weekly_stats_empty: no Sleeper stat rows returned for "
                                 f"season {stats_season}, week {week}."
                             )
+                        elif week == max_week_fetched + 1:
+                            max_week_fetched = week
                     except Exception as stats_exc:
                         self._record_degradation(
                             f"weekly_stats_fetch_failed: Sleeper stats fetch failed for "
@@ -397,8 +488,6 @@ class IngestService:
                             f"[ingest:{run_id}]     WARNING: stats fetch failed for "
                             f"week {week}: {stats_exc}"
                         )
-                    max_week_fetched = week
-
             print(f"[ingest:{run_id}] applying corrections...")
             override_service = OverrideService()
             override_service.apply_corrections(self.conn, league_id)
@@ -454,7 +543,9 @@ class IngestService:
 
             cursor_json = json.dumps(
                 {
+                    "stats_season": stats_season,
                     "max_week_fetched": max_week_fetched,
+                    "repair_actions": repair_actions,
                     "degradation_warnings": self.degradation_warnings,
                 }
             )
