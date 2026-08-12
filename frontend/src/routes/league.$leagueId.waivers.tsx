@@ -19,7 +19,11 @@ function WaiversPage() {
 
   if (!rosterId) {
     return (
-      <Card className="border-dashed border-border/45">
+      <Card
+        data-mac-control-id="fantasy.league.waivers-unavailable"
+        data-task-state="waivers_roster_unavailable"
+        className="border-dashed border-border/45"
+      >
         <CardHeader>
           <p className="terminal-label text-muted-foreground">Waiver Wire</p>
           <CardTitle>Waiver Intelligence Unavailable</CardTitle>
@@ -35,7 +39,14 @@ function WaiversPage() {
 
   if (waiverQuery.isLoading) {
     return (
-      <div className="space-y-4">
+      <div
+        data-mac-control-id="fantasy.league.waivers-loading"
+        data-task-state="waivers_loading"
+        className="space-y-4"
+        role="status"
+        aria-label="Loading waiver intelligence"
+        aria-busy="true"
+      >
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-56 w-full" />
       </div>
@@ -44,7 +55,11 @@ function WaiversPage() {
 
   if (waiverQuery.isError || !waiverQuery.data) {
     return (
-      <Card>
+      <Card
+        data-mac-control-id="fantasy.league.waivers-error"
+        data-task-state="waivers_failed"
+        role="alert"
+      >
         <CardHeader>
           <p className="terminal-label text-muted-foreground">Waiver Wire</p>
           <CardTitle>Waiver Intelligence Unavailable</CardTitle>
@@ -60,7 +75,15 @@ function WaiversPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div
+      data-mac-control-id="fantasy.league.waivers-workspace"
+      data-task-state={waiverQuery.data.recommendations.length === 0 ? "waivers_empty" : "waivers_ready"}
+      data-recommendation-count={waiverQuery.data.recommendations.length}
+      data-roster-id={rosterId}
+      className="space-y-8"
+      role="region"
+      aria-label="Waiver intelligence"
+    >
       <WaiverIntelHeader directionLabel={league.direction_label} waiver={waiverQuery.data} />
       <WaiverPlayerList
         recommendations={waiverQuery.data.recommendations}

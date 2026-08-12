@@ -65,7 +65,14 @@ function RookieBoardPage() {
 
   if (query.isLoading) {
     return (
-      <div className="space-y-4">
+      <div
+        data-mac-control-id="fantasy.league.rookie-board-loading"
+        data-task-state="rookie_board_loading"
+        className="space-y-4"
+        role="status"
+        aria-label="Loading rookie board"
+        aria-busy="true"
+      >
         <Skeleton className="h-12 w-56" />
         <Skeleton className="h-48 w-full" />
       </div>
@@ -74,14 +81,28 @@ function RookieBoardPage() {
 
   if (query.isError || !query.data) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p
+        data-mac-control-id="fantasy.league.rookie-board-error"
+        data-task-state="rookie_board_failed"
+        className="text-sm text-muted-foreground"
+        role="alert"
+      >
         Rookie board unavailable. Try refreshing or recomputing on the backend.
       </p>
     )
   }
 
   return (
-    <div className="space-y-8">
+    <div
+      data-mac-control-id="fantasy.league.rookie-board-workspace"
+      data-task-state={sortedPlayers.length === 0 ? "rookie_board_empty" : "rookie_board_ready"}
+      data-player-count={sortedPlayers.length}
+      data-selected-slot={slot}
+      data-sort={sortBy}
+      className="space-y-8"
+      role="region"
+      aria-label="Rookie board"
+    >
       <Card>
         <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>

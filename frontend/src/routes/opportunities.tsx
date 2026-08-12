@@ -66,7 +66,16 @@ function OpportunityFeedPage() {
   })()
 
   return (
-    <div className="space-y-8">
+    <div
+      data-mac-control-id="fantasy.opportunities"
+      data-task-state={query.isLoading ? "opportunities_loading" : query.isError ? "opportunities_failed" : filteredItems.length === 0 ? "opportunities_empty" : "opportunities_ready"}
+      data-result-count={filteredItems.length}
+      data-total-count={items.length}
+      className="space-y-8"
+      role="region"
+      aria-label="Opportunity feed"
+      aria-busy={query.isLoading}
+    >
       <section className="grid gap-5 border-b border-border/45 pb-8 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-3">
           <p className="terminal-label text-primary/85">

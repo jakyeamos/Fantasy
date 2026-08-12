@@ -16,7 +16,10 @@ function LeagueComparisonPage() {
 
   if (!league.user_roster_id) {
     return (
-      <Card>
+      <Card
+        data-mac-control-id="fantasy.league.comparison-unavailable"
+        data-task-state="comparison_unavailable"
+      >
         <CardHeader>
           <CardTitle>League Comparison</CardTitle>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -29,7 +32,15 @@ function LeagueComparisonPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div
+      data-mac-control-id="fantasy.league.comparison-workspace"
+      data-task-state={lineupQuery.isLoading ? "comparison_loading" : "comparison_ready"}
+      data-roster-id={league.user_roster_id}
+      className="space-y-4"
+      role="region"
+      aria-label="League comparison workspace"
+      aria-busy={lineupQuery.isLoading}
+    >
       <Card>
         <CardHeader>
           <CardTitle>League Comparison</CardTitle>

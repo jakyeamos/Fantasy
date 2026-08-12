@@ -295,6 +295,8 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
                     Overview
                   </Link>
                   <Link
+                    data-mac-control-id="fantasy.league.comparison"
+                    data-task-state={isComparisonRoute ? "navigation_selected" : "navigation_ready"}
                     to="/league/$leagueId/comparison"
                     params={{ leagueId }}
                     className={buttonClasses({
@@ -339,6 +341,8 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
                     Draft Grades
                   </Link>
                   <Link
+                    data-mac-control-id="fantasy.league.roster-moves"
+                    data-task-state={isRosterMovesRoute ? "navigation_selected" : "navigation_ready"}
                     to="/league/$leagueId/roster-moves"
                     params={{ leagueId }}
                     className={buttonClasses({
@@ -375,6 +379,8 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
                     League Ops
                   </Link>
                   <Link
+                    data-mac-control-id="fantasy.league.rookie-board"
+                    data-task-state={isRookieBoardRoute ? "navigation_selected" : "navigation_ready"}
                     to="/league/$leagueId/rookie-board"
                     params={{ leagueId }}
                     className={buttonClasses({
@@ -386,6 +392,8 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
                     Rookie Board
                   </Link>
                   <Link
+                    data-mac-control-id="fantasy.league.waivers"
+                    data-task-state={isWaiversRoute ? "navigation_selected" : "navigation_ready"}
                     to="/league/$leagueId/waivers"
                     params={{ leagueId }}
                     className={buttonClasses({
@@ -466,7 +474,16 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
         ) : null}
 
         {isOverviewRoute ? (
-          <LeagueOverviewPanels league={league} leagueId={leagueId} />
+          <section
+            data-mac-control-id="fantasy.league.dashboard"
+            data-task-state="dashboard_ready"
+            data-league-id={leagueId}
+            data-roster-id={selectedRosterId ?? undefined}
+            role="region"
+            aria-label="League overview"
+          >
+            <LeagueOverviewPanels league={league} leagueId={leagueId} />
+          </section>
         ) : (
           <Outlet />
         )}
