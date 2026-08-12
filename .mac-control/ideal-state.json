@@ -1,248 +1,1247 @@
 {
-  "schema": "mac-control-task-manifest/v1",
+  "schema": "mac-control-task-manifest/v4",
   "repository_id": "repo-d1440a82f24b147f",
   "repository_name": "Fantasy",
   "applicability": "applicable",
-  "applicability_reason": "Fantasy exposes runnable React/Vite frontend UI; this manifest records its supported user-facing workflow catalog while live and measured evidence remain outstanding.",
+  "applicability_reason": "Fantasy exposes app-owned semantic regions and league navigation with stable task identities, explicit loading, unavailable, failed, empty, selected, and ready states, and independent DOM readbacks for its highest-value league workflows.",
   "app": {
-    "name": "Fantasy web application"
+    "name": "Fantasy web application",
+    "launch": "cd frontend && pnpm dev",
+    "url": "http://localhost:5173"
   },
-  "criteria": {
-    "stable_identity": true,
-    "correct_semantics": true,
-    "observable_state": true,
-    "useful_hierarchy": true,
-    "efficient_navigation": true,
-    "verifiable_outcomes": true,
-    "route_flexibility": true,
-    "stable_change_behavior": true
-  },
+  "criteria": {},
   "tasks": [
     {
+      "surface_kind": "web_content",
+      "focus_policy": "foreground",
+      "foreground_postcondition": "target_foreground",
+      "fallback_policy": "fresh_state_handoff",
+      "change_states": [],
+      "change_state_exemptions": {
+        "loading": "The route owns a separate skeleton before the dashboard region mounts.",
+        "modal": "The overview does not own a modal.",
+        "disabled": "A loaded overview is read-only and available.",
+        "permission_unavailable": "League access is resolved before rendering the route."
+      },
+      "navigation_strategy": "direct_semantic",
+      "route_candidates": [
+        {
+          "id": "browser-dom",
+          "provider": "browser_connector",
+          "method": "adapter",
+          "interaction_mode": "semantic"
+        },
+        {
+          "id": "computer-pointer",
+          "provider": "computer_use",
+          "method": "pointer",
+          "interaction_mode": "pointer"
+        }
+      ],
+      "shortcut_acceleration": {
+        "disposition": "not_applicable",
+        "reason": "No task-specific direct shortcut or reversible shortcut assignment surface is implemented."
+      },
       "task_id": "inspect-league-dashboard",
       "stable_target_id": "fantasy.league.dashboard",
-      "hierarchy": "fantasy > league > dashboard",
-      "semantic_action": "focus the league dashboard",
-      "observable_postcondition": "League identity, roster context, warnings, and overview panels are readable",
+      "hierarchy": "Fantasy > League > Overview",
+      "semantic_action": "focus",
+      "observable_postcondition": "The overview reports dashboard_ready and exposes the league and selected roster identifiers",
       "observable_states": [
         "enabled",
         "focused",
-        "selected",
-        "expanded",
         "visible",
-        "loading",
         "completed"
       ],
-      "navigation_strategy": "semantic target lookup by stable identifier, accessible role, and label; use semantic scrolling when the target is offscreen",
-      "eligible_routes": [
-        "accessibility",
-        "keyboard",
-        "scrolling"
-      ],
-      "selected_route": "accessibility",
-      "change_states": [
-        "loading",
-        "modal",
-        "disabled",
-        "permission_unavailable"
-      ],
+      "state_exemptions": {
+        "selected": "The selected roster is an outcome readback rather than selection on the region.",
+        "expanded": "The overview is a page region.",
+        "loading": "The dashboard region is mounted only after the league query succeeds."
+      },
       "accessibility": {
         "identifier": "fantasy.league.dashboard",
         "label": "League overview",
-        "role": "AXWebArea",
-        "required_actions": [
-          "AXFocus"
-        ]
+        "role": "region"
+      },
+      "verification_oracle": {
+        "oracle_id": "inspect-league-dashboard.task-state",
+        "kind": "task_state",
+        "expected_state": "dashboard_ready",
+        "independent_readback": true
+      },
+      "semantic_evidence": {
+        "stable_identity": {
+          "level": "source_grounded",
+          "claims": {
+            "selector_kind": "data_attribute",
+            "selector_value": "fantasy.league.dashboard",
+            "scope": "fantasy-web",
+            "uniqueness": "exactly_one"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.dashboard\"",
+              "evidence_tokens": [
+                "role=\"region\"",
+                "aria-label=\"League overview\""
+              ]
+            }
+          ]
+        },
+        "correct_semantics": {
+          "level": "source_grounded",
+          "claims": {
+            "role": "region",
+            "accessible_name": "League overview",
+            "action": "focus"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.dashboard\"",
+              "evidence_tokens": [
+                "role=\"region\"",
+                "aria-label=\"League overview\""
+              ]
+            }
+          ]
+        },
+        "observable_state": {
+          "level": "source_grounded",
+          "claims": {
+            "property": "data-task-state",
+            "unavailable_behavior": "block_and_explain"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-task-state=\"dashboard_ready\"",
+              "evidence_tokens": [
+                "data-league-id={leagueId}",
+                "data-roster-id={selectedRosterId ?? undefined}"
+              ]
+            }
+          ]
+        },
+        "useful_hierarchy": {
+          "level": "source_grounded",
+          "claims": {
+            "container": "fantasy-web",
+            "relationship": "Fantasy > League > Overview",
+            "uniqueness": "exactly_one"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.dashboard\"",
+              "evidence_tokens": [
+                "role=\"region\"",
+                "aria-label=\"League overview\""
+              ]
+            }
+          ]
+        },
+        "efficient_navigation": {
+          "level": "source_grounded",
+          "claims": {
+            "strategy": "direct_semantic",
+            "entry_point": "fantasy.league.dashboard"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.dashboard\"",
+              "evidence_tokens": [
+                "role=\"region\"",
+                "aria-label=\"League overview\""
+              ]
+            }
+          ]
+        },
+        "verifiable_outcomes": {
+          "level": "source_grounded",
+          "claims": {
+            "readback_provider": "browser_connector",
+            "property": "data-task-state",
+            "operator": "equals",
+            "expected": "dashboard_ready"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.dashboard\"",
+              "evidence_tokens": [
+                "data-task-state=\"dashboard_ready\"",
+                "LeagueOverviewPanels"
+              ]
+            }
+          ]
+        },
+        "route_flexibility": {
+          "level": "source_grounded",
+          "claims": {
+            "primary_provider": "browser_connector",
+            "secondary_provider": "computer_use",
+            "fallback_policy": "fresh_state_handoff"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.dashboard\"",
+              "evidence_tokens": [
+                "role=\"region\"",
+                "aria-label=\"League overview\""
+              ]
+            }
+          ]
+        },
+        "stable_change_behavior": {
+          "level": "source_grounded",
+          "claims": {
+            "scenarios": "loading,modal,disabled,permission_unavailable",
+            "failure_behavior": "block_and_explain"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-task-state=\"dashboard_ready\"",
+              "evidence_tokens": [
+                "data-league-id={leagueId}",
+                "data-roster-id={selectedRosterId ?? undefined}"
+              ]
+            }
+          ]
+        }
       }
     },
     {
+      "surface_kind": "web_content",
+      "focus_policy": "foreground",
+      "foreground_postcondition": "target_foreground",
+      "fallback_policy": "fresh_state_handoff",
+      "change_states": [
+        "loading",
+        "permission_unavailable"
+      ],
+      "change_state_exemptions": {
+        "modal": "Comparison is a page.",
+        "disabled": "The navigation link remains available; the route explains missing roster context."
+      },
+      "navigation_strategy": "direct_semantic",
+      "route_candidates": [
+        {
+          "id": "browser-dom",
+          "provider": "browser_connector",
+          "method": "adapter",
+          "interaction_mode": "semantic"
+        },
+        {
+          "id": "computer-pointer",
+          "provider": "computer_use",
+          "method": "pointer",
+          "interaction_mode": "pointer"
+        }
+      ],
+      "shortcut_acceleration": {
+        "disposition": "not_applicable",
+        "reason": "No task-specific direct shortcut or reversible shortcut assignment surface is implemented."
+      },
       "task_id": "compare-league",
       "stable_target_id": "fantasy.league.comparison",
-      "hierarchy": "fantasy > league > comparison",
-      "semantic_action": "open League Comparison",
-      "observable_postcondition": "Comparison workspace and state are readable",
+      "hierarchy": "Fantasy > League navigation > Comparison",
+      "semantic_action": "press",
+      "observable_postcondition": "The comparison workspace reports comparison_loading or comparison_ready and exposes the selected roster identifier",
       "observable_states": [
         "enabled",
         "focused",
         "selected",
-        "expanded",
         "visible",
         "loading",
         "completed"
       ],
-      "navigation_strategy": "semantic target lookup by stable identifier, accessible role, and label; use semantic scrolling when the target is offscreen",
-      "eligible_routes": [
-        "accessibility",
-        "keyboard",
-        "scrolling"
-      ],
-      "selected_route": "accessibility",
-      "change_states": [
-        "loading",
-        "modal",
-        "disabled",
-        "permission_unavailable"
-      ],
+      "state_exemptions": {
+        "expanded": "Navigation opens a route."
+      },
       "accessibility": {
         "identifier": "fantasy.league.comparison",
-        "label": "League Comparison",
-        "role": "AXLink",
-        "required_actions": [
-          "AXFocus",
-          "AXPress"
-        ]
+        "label": "Comparison",
+        "role": "link"
+      },
+      "verification_oracle": {
+        "oracle_id": "compare-league.task-state",
+        "kind": "task_state",
+        "expected_state": "comparison_ready",
+        "independent_readback": true
+      },
+      "semantic_evidence": {
+        "stable_identity": {
+          "level": "source_grounded",
+          "claims": {
+            "selector_kind": "data_attribute",
+            "selector_value": "fantasy.league.comparison",
+            "scope": "fantasy-web",
+            "uniqueness": "exactly_one"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.comparison\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/comparison\"",
+                "Comparison"
+              ]
+            }
+          ]
+        },
+        "correct_semantics": {
+          "level": "source_grounded",
+          "claims": {
+            "role": "link",
+            "accessible_name": "Comparison",
+            "action": "press"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.comparison\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/comparison\"",
+                "Comparison"
+              ]
+            }
+          ]
+        },
+        "observable_state": {
+          "level": "source_grounded",
+          "claims": {
+            "property": "data-task-state",
+            "unavailable_behavior": "block_and_explain"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-task-state={isComparisonRoute ? \"navigation_selected\" : \"navigation_ready\"}",
+              "evidence_tokens": [
+                "isComparisonRoute",
+                "params={{ leagueId }}"
+              ]
+            }
+          ]
+        },
+        "useful_hierarchy": {
+          "level": "source_grounded",
+          "claims": {
+            "container": "fantasy-web",
+            "relationship": "Fantasy > League navigation > Comparison",
+            "uniqueness": "exactly_one"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.comparison\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/comparison\"",
+                "Comparison"
+              ]
+            }
+          ]
+        },
+        "efficient_navigation": {
+          "level": "source_grounded",
+          "claims": {
+            "strategy": "direct_semantic",
+            "entry_point": "fantasy.league.comparison"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.comparison\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/comparison\"",
+                "Comparison"
+              ]
+            }
+          ]
+        },
+        "verifiable_outcomes": {
+          "level": "source_grounded",
+          "claims": {
+            "readback_provider": "browser_connector",
+            "property": "data-task-state",
+            "operator": "equals",
+            "expected": "comparison_ready"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.comparison.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.comparison-workspace\"",
+              "evidence_tokens": [
+                "comparison_loading",
+                "comparison_ready",
+                "data-roster-id={league.user_roster_id}"
+              ]
+            }
+          ]
+        },
+        "route_flexibility": {
+          "level": "source_grounded",
+          "claims": {
+            "primary_provider": "browser_connector",
+            "secondary_provider": "computer_use",
+            "fallback_policy": "fresh_state_handoff"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.comparison\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/comparison\"",
+                "Comparison"
+              ]
+            }
+          ]
+        },
+        "stable_change_behavior": {
+          "level": "source_grounded",
+          "claims": {
+            "scenarios": "loading,modal,disabled,permission_unavailable",
+            "failure_behavior": "block_and_explain"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.comparison.tsx",
+              "anchor": "data-task-state={lineupQuery.isLoading ? \"comparison_loading\" : \"comparison_ready\"}",
+              "evidence_tokens": [
+                "aria-busy={lineupQuery.isLoading}",
+                "comparison_ready"
+              ]
+            }
+          ]
+        }
       }
     },
     {
+      "surface_kind": "web_content",
+      "focus_policy": "foreground",
+      "foreground_postcondition": "target_foreground",
+      "fallback_policy": "fresh_state_handoff",
+      "change_states": [
+        "loading",
+        "permission_unavailable"
+      ],
+      "change_state_exemptions": {
+        "modal": "Waivers is a page.",
+        "disabled": "The route explains an unavailable roster instead of disabling navigation."
+      },
+      "navigation_strategy": "direct_semantic",
+      "route_candidates": [
+        {
+          "id": "browser-dom",
+          "provider": "browser_connector",
+          "method": "adapter",
+          "interaction_mode": "semantic"
+        },
+        {
+          "id": "computer-pointer",
+          "provider": "computer_use",
+          "method": "pointer",
+          "interaction_mode": "pointer"
+        }
+      ],
+      "shortcut_acceleration": {
+        "disposition": "not_applicable",
+        "reason": "No task-specific direct shortcut or reversible shortcut assignment surface is implemented."
+      },
       "task_id": "review-waivers",
       "stable_target_id": "fantasy.league.waivers",
-      "hierarchy": "fantasy > league > waivers",
-      "semantic_action": "open the waiver wire",
-      "observable_postcondition": "Waiver intelligence, player rows, and actions are readable",
+      "hierarchy": "Fantasy > League navigation > Waivers",
+      "semantic_action": "press",
+      "observable_postcondition": "Waiver intelligence reports waivers_empty or waivers_ready and exposes recommendation and roster counts",
       "observable_states": [
         "enabled",
         "focused",
         "selected",
-        "expanded",
         "visible",
         "loading",
         "completed"
       ],
-      "navigation_strategy": "semantic target lookup by stable identifier, accessible role, and label; use semantic scrolling when the target is offscreen",
-      "eligible_routes": [
-        "accessibility",
-        "keyboard",
-        "scrolling"
-      ],
-      "selected_route": "accessibility",
-      "change_states": [
-        "loading",
-        "modal",
-        "disabled",
-        "permission_unavailable"
-      ],
+      "state_exemptions": {
+        "expanded": "Navigation opens a route."
+      },
       "accessibility": {
         "identifier": "fantasy.league.waivers",
-        "label": "Waiver Wire",
-        "role": "AXLink",
-        "required_actions": [
-          "AXFocus",
-          "AXPress"
-        ]
+        "label": "Waivers",
+        "role": "link"
+      },
+      "verification_oracle": {
+        "oracle_id": "review-waivers.task-state",
+        "kind": "task_state",
+        "expected_state": "waivers_ready",
+        "independent_readback": true
+      },
+      "semantic_evidence": {
+        "stable_identity": {
+          "level": "source_grounded",
+          "claims": {
+            "selector_kind": "data_attribute",
+            "selector_value": "fantasy.league.waivers",
+            "scope": "fantasy-web",
+            "uniqueness": "exactly_one"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.waivers\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/waivers\"",
+                "Waivers"
+              ]
+            }
+          ]
+        },
+        "correct_semantics": {
+          "level": "source_grounded",
+          "claims": {
+            "role": "link",
+            "accessible_name": "Waivers",
+            "action": "press"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.waivers\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/waivers\"",
+                "Waivers"
+              ]
+            }
+          ]
+        },
+        "observable_state": {
+          "level": "source_grounded",
+          "claims": {
+            "property": "data-task-state",
+            "unavailable_behavior": "block_and_explain"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-task-state={isWaiversRoute ? \"navigation_selected\" : \"navigation_ready\"}",
+              "evidence_tokens": [
+                "isWaiversRoute",
+                "params={{ leagueId }}"
+              ]
+            }
+          ]
+        },
+        "useful_hierarchy": {
+          "level": "source_grounded",
+          "claims": {
+            "container": "fantasy-web",
+            "relationship": "Fantasy > League navigation > Waivers",
+            "uniqueness": "exactly_one"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.waivers\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/waivers\"",
+                "Waivers"
+              ]
+            }
+          ]
+        },
+        "efficient_navigation": {
+          "level": "source_grounded",
+          "claims": {
+            "strategy": "direct_semantic",
+            "entry_point": "fantasy.league.waivers"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.waivers\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/waivers\"",
+                "Waivers"
+              ]
+            }
+          ]
+        },
+        "verifiable_outcomes": {
+          "level": "source_grounded",
+          "claims": {
+            "readback_provider": "browser_connector",
+            "property": "data-task-state",
+            "operator": "equals",
+            "expected": "waivers_ready"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.waivers.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.waivers-workspace\"",
+              "evidence_tokens": [
+                "waivers_empty",
+                "waivers_ready",
+                "data-recommendation-count={waiverQuery.data.recommendations.length}"
+              ]
+            }
+          ]
+        },
+        "route_flexibility": {
+          "level": "source_grounded",
+          "claims": {
+            "primary_provider": "browser_connector",
+            "secondary_provider": "computer_use",
+            "fallback_policy": "fresh_state_handoff"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.waivers\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/waivers\"",
+                "Waivers"
+              ]
+            }
+          ]
+        },
+        "stable_change_behavior": {
+          "level": "source_grounded",
+          "claims": {
+            "scenarios": "loading,modal,disabled,permission_unavailable",
+            "failure_behavior": "block_and_explain"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.waivers.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.waivers-loading\"",
+              "evidence_tokens": [
+                "data-task-state=\"waivers_loading\"",
+                "aria-busy=\"true\""
+              ]
+            }
+          ]
+        }
       }
     },
     {
+      "surface_kind": "web_content",
+      "focus_policy": "foreground",
+      "foreground_postcondition": "target_foreground",
+      "fallback_policy": "fresh_state_handoff",
+      "change_states": [
+        "permission_unavailable"
+      ],
+      "change_state_exemptions": {
+        "loading": "The route mounts synchronously and the child panel owns query loading.",
+        "modal": "Roster Moves is a page.",
+        "disabled": "The route explains missing roster context."
+      },
+      "navigation_strategy": "direct_semantic",
+      "route_candidates": [
+        {
+          "id": "browser-dom",
+          "provider": "browser_connector",
+          "method": "adapter",
+          "interaction_mode": "semantic"
+        },
+        {
+          "id": "computer-pointer",
+          "provider": "computer_use",
+          "method": "pointer",
+          "interaction_mode": "pointer"
+        }
+      ],
+      "shortcut_acceleration": {
+        "disposition": "not_applicable",
+        "reason": "No task-specific direct shortcut or reversible shortcut assignment surface is implemented."
+      },
       "task_id": "review-roster-moves",
       "stable_target_id": "fantasy.league.roster-moves",
-      "hierarchy": "fantasy > league > roster-moves",
-      "semantic_action": "open Roster Moves",
-      "observable_postcondition": "Roster hygiene suggestions and move states are readable",
+      "hierarchy": "Fantasy > League navigation > Roster Moves",
+      "semantic_action": "press",
+      "observable_postcondition": "The roster-move workspace reports roster_moves_ready and exposes the roster identifier",
       "observable_states": [
         "enabled",
         "focused",
         "selected",
-        "expanded",
         "visible",
-        "loading",
         "completed"
       ],
-      "navigation_strategy": "semantic target lookup by stable identifier, accessible role, and label; use semantic scrolling when the target is offscreen",
-      "eligible_routes": [
-        "accessibility",
-        "keyboard",
-        "scrolling"
-      ],
-      "selected_route": "accessibility",
-      "change_states": [
-        "loading",
-        "modal",
-        "disabled",
-        "permission_unavailable"
-      ],
+      "state_exemptions": {
+        "expanded": "Navigation opens a route.",
+        "loading": "The child panel owns its own query state."
+      },
       "accessibility": {
         "identifier": "fantasy.league.roster-moves",
         "label": "Roster Moves",
-        "role": "AXLink",
-        "required_actions": [
-          "AXFocus",
-          "AXPress"
-        ]
+        "role": "link"
+      },
+      "verification_oracle": {
+        "oracle_id": "review-roster-moves.task-state",
+        "kind": "task_state",
+        "expected_state": "roster_moves_ready",
+        "independent_readback": true
+      },
+      "semantic_evidence": {
+        "stable_identity": {
+          "level": "source_grounded",
+          "claims": {
+            "selector_kind": "data_attribute",
+            "selector_value": "fantasy.league.roster-moves",
+            "scope": "fantasy-web",
+            "uniqueness": "exactly_one"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.roster-moves\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/roster-moves\"",
+                "Roster Moves"
+              ]
+            }
+          ]
+        },
+        "correct_semantics": {
+          "level": "source_grounded",
+          "claims": {
+            "role": "link",
+            "accessible_name": "Roster Moves",
+            "action": "press"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.roster-moves\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/roster-moves\"",
+                "Roster Moves"
+              ]
+            }
+          ]
+        },
+        "observable_state": {
+          "level": "source_grounded",
+          "claims": {
+            "property": "data-task-state",
+            "unavailable_behavior": "block_and_explain"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-task-state={isRosterMovesRoute ? \"navigation_selected\" : \"navigation_ready\"}",
+              "evidence_tokens": [
+                "isRosterMovesRoute",
+                "params={{ leagueId }}"
+              ]
+            }
+          ]
+        },
+        "useful_hierarchy": {
+          "level": "source_grounded",
+          "claims": {
+            "container": "fantasy-web",
+            "relationship": "Fantasy > League navigation > Roster Moves",
+            "uniqueness": "exactly_one"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.roster-moves\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/roster-moves\"",
+                "Roster Moves"
+              ]
+            }
+          ]
+        },
+        "efficient_navigation": {
+          "level": "source_grounded",
+          "claims": {
+            "strategy": "direct_semantic",
+            "entry_point": "fantasy.league.roster-moves"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.roster-moves\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/roster-moves\"",
+                "Roster Moves"
+              ]
+            }
+          ]
+        },
+        "verifiable_outcomes": {
+          "level": "source_grounded",
+          "claims": {
+            "readback_provider": "browser_connector",
+            "property": "data-task-state",
+            "operator": "equals",
+            "expected": "roster_moves_ready"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.roster-moves.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.roster-moves-workspace\"",
+              "evidence_tokens": [
+                "data-task-state=\"roster_moves_ready\"",
+                "data-roster-id={league.user_roster_id}"
+              ]
+            }
+          ]
+        },
+        "route_flexibility": {
+          "level": "source_grounded",
+          "claims": {
+            "primary_provider": "browser_connector",
+            "secondary_provider": "computer_use",
+            "fallback_policy": "fresh_state_handoff"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.roster-moves\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/roster-moves\"",
+                "Roster Moves"
+              ]
+            }
+          ]
+        },
+        "stable_change_behavior": {
+          "level": "source_grounded",
+          "claims": {
+            "scenarios": "loading,modal,disabled,permission_unavailable",
+            "failure_behavior": "block_and_explain"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-task-state={isRosterMovesRoute ? \"navigation_selected\" : \"navigation_ready\"}",
+              "evidence_tokens": [
+                "isRosterMovesRoute",
+                "params={{ leagueId }}"
+              ]
+            }
+          ]
+        }
       }
     },
     {
+      "surface_kind": "web_content",
+      "focus_policy": "foreground",
+      "foreground_postcondition": "target_foreground",
+      "fallback_policy": "fresh_state_handoff",
+      "change_states": [
+        "loading",
+        "permission_unavailable"
+      ],
+      "change_state_exemptions": {
+        "modal": "Rookie Board is a page.",
+        "disabled": "The board explains missing data instead of disabling navigation."
+      },
+      "navigation_strategy": "direct_semantic",
+      "route_candidates": [
+        {
+          "id": "browser-dom",
+          "provider": "browser_connector",
+          "method": "adapter",
+          "interaction_mode": "semantic"
+        },
+        {
+          "id": "computer-pointer",
+          "provider": "computer_use",
+          "method": "pointer",
+          "interaction_mode": "pointer"
+        }
+      ],
+      "shortcut_acceleration": {
+        "disposition": "not_applicable",
+        "reason": "No task-specific direct shortcut or reversible shortcut assignment surface is implemented."
+      },
       "task_id": "inspect-rookie-board",
       "stable_target_id": "fantasy.league.rookie-board",
-      "hierarchy": "fantasy > league > rookie-board",
-      "semantic_action": "open Rookie Board",
-      "observable_postcondition": "Rookie tiers, sort controls, and player evidence are readable",
+      "hierarchy": "Fantasy > League navigation > Rookie Board",
+      "semantic_action": "press",
+      "observable_postcondition": "The rookie-board workspace reports rookie_board_empty or rookie_board_ready and exposes player count, selected slot, and sort",
       "observable_states": [
         "enabled",
         "focused",
         "selected",
-        "expanded",
         "visible",
         "loading",
         "completed"
       ],
-      "navigation_strategy": "semantic target lookup by stable identifier, accessible role, and label; use semantic scrolling when the target is offscreen",
-      "eligible_routes": [
-        "accessibility",
-        "keyboard",
-        "scrolling"
-      ],
-      "selected_route": "accessibility",
-      "change_states": [
-        "loading",
-        "modal",
-        "disabled",
-        "permission_unavailable"
-      ],
+      "state_exemptions": {
+        "expanded": "Navigation opens a route."
+      },
       "accessibility": {
         "identifier": "fantasy.league.rookie-board",
         "label": "Rookie Board",
-        "role": "AXLink",
-        "required_actions": [
-          "AXFocus",
-          "AXPress"
-        ]
+        "role": "link"
+      },
+      "verification_oracle": {
+        "oracle_id": "inspect-rookie-board.task-state",
+        "kind": "task_state",
+        "expected_state": "rookie_board_ready",
+        "independent_readback": true
+      },
+      "semantic_evidence": {
+        "stable_identity": {
+          "level": "source_grounded",
+          "claims": {
+            "selector_kind": "data_attribute",
+            "selector_value": "fantasy.league.rookie-board",
+            "scope": "fantasy-web",
+            "uniqueness": "exactly_one"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.rookie-board\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/rookie-board\"",
+                "Rookie Board"
+              ]
+            }
+          ]
+        },
+        "correct_semantics": {
+          "level": "source_grounded",
+          "claims": {
+            "role": "link",
+            "accessible_name": "Rookie Board",
+            "action": "press"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.rookie-board\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/rookie-board\"",
+                "Rookie Board"
+              ]
+            }
+          ]
+        },
+        "observable_state": {
+          "level": "source_grounded",
+          "claims": {
+            "property": "data-task-state",
+            "unavailable_behavior": "block_and_explain"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-task-state={isRookieBoardRoute ? \"navigation_selected\" : \"navigation_ready\"}",
+              "evidence_tokens": [
+                "isRookieBoardRoute",
+                "params={{ leagueId }}"
+              ]
+            }
+          ]
+        },
+        "useful_hierarchy": {
+          "level": "source_grounded",
+          "claims": {
+            "container": "fantasy-web",
+            "relationship": "Fantasy > League navigation > Rookie Board",
+            "uniqueness": "exactly_one"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.rookie-board\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/rookie-board\"",
+                "Rookie Board"
+              ]
+            }
+          ]
+        },
+        "efficient_navigation": {
+          "level": "source_grounded",
+          "claims": {
+            "strategy": "direct_semantic",
+            "entry_point": "fantasy.league.rookie-board"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.rookie-board\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/rookie-board\"",
+                "Rookie Board"
+              ]
+            }
+          ]
+        },
+        "verifiable_outcomes": {
+          "level": "source_grounded",
+          "claims": {
+            "readback_provider": "browser_connector",
+            "property": "data-task-state",
+            "operator": "equals",
+            "expected": "rookie_board_ready"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.rookie-board.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.rookie-board-workspace\"",
+              "evidence_tokens": [
+                "rookie_board_empty",
+                "rookie_board_ready",
+                "data-player-count={sortedPlayers.length}",
+                "data-selected-slot={slot}"
+              ]
+            }
+          ]
+        },
+        "route_flexibility": {
+          "level": "source_grounded",
+          "claims": {
+            "primary_provider": "browser_connector",
+            "secondary_provider": "computer_use",
+            "fallback_policy": "fresh_state_handoff"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.rookie-board\"",
+              "evidence_tokens": [
+                "to=\"/league/$leagueId/rookie-board\"",
+                "Rookie Board"
+              ]
+            }
+          ]
+        },
+        "stable_change_behavior": {
+          "level": "source_grounded",
+          "claims": {
+            "scenarios": "loading,modal,disabled,permission_unavailable",
+            "failure_behavior": "block_and_explain"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/league.$leagueId.rookie-board.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.league.rookie-board-loading\"",
+              "evidence_tokens": [
+                "data-task-state=\"rookie_board_loading\"",
+                "aria-busy=\"true\""
+              ]
+            }
+          ]
+        }
       }
     },
     {
+      "surface_kind": "web_content",
+      "focus_policy": "foreground",
+      "foreground_postcondition": "target_foreground",
+      "fallback_policy": "fresh_state_handoff",
+      "change_states": [
+        "loading",
+        "permission_unavailable"
+      ],
+      "change_state_exemptions": {
+        "modal": "The feed is inline.",
+        "disabled": "The feed remains readable during unavailable states."
+      },
+      "navigation_strategy": "direct_semantic",
+      "route_candidates": [
+        {
+          "id": "browser-dom",
+          "provider": "browser_connector",
+          "method": "adapter",
+          "interaction_mode": "semantic"
+        },
+        {
+          "id": "computer-pointer",
+          "provider": "computer_use",
+          "method": "pointer",
+          "interaction_mode": "pointer"
+        }
+      ],
+      "shortcut_acceleration": {
+        "disposition": "not_applicable",
+        "reason": "No task-specific direct shortcut or reversible shortcut assignment surface is implemented."
+      },
       "task_id": "analyze-opportunities",
       "stable_target_id": "fantasy.opportunities",
-      "hierarchy": "fantasy > opportunities",
-      "semantic_action": "open Opportunities",
-      "observable_postcondition": "Opportunity cards, filters, and suggested actions are readable",
+      "hierarchy": "Fantasy > Opportunity Feed",
+      "semantic_action": "focus",
+      "observable_postcondition": "The feed reports opportunities_loading, opportunities_failed, opportunities_empty, or opportunities_ready and exposes filtered and total counts",
       "observable_states": [
         "enabled",
         "focused",
-        "selected",
-        "expanded",
         "visible",
         "loading",
         "completed"
       ],
-      "navigation_strategy": "semantic target lookup by stable identifier, accessible role, and label; use semantic scrolling when the target is offscreen",
-      "eligible_routes": [
-        "accessibility",
-        "keyboard",
-        "scrolling"
-      ],
-      "selected_route": "accessibility",
-      "change_states": [
-        "loading",
-        "modal",
-        "disabled",
-        "permission_unavailable"
-      ],
+      "state_exemptions": {
+        "selected": "Filter selection is exposed by child controls.",
+        "expanded": "The feed is a page region."
+      },
       "accessibility": {
         "identifier": "fantasy.opportunities",
-        "label": "Opportunities",
-        "role": "AXLink",
-        "required_actions": [
-          "AXFocus",
-          "AXPress"
-        ]
+        "label": "Opportunity feed",
+        "role": "region"
+      },
+      "verification_oracle": {
+        "oracle_id": "analyze-opportunities.task-state",
+        "kind": "task_state",
+        "expected_state": "opportunities_ready",
+        "independent_readback": true
+      },
+      "semantic_evidence": {
+        "stable_identity": {
+          "level": "source_grounded",
+          "claims": {
+            "selector_kind": "data_attribute",
+            "selector_value": "fantasy.opportunities",
+            "scope": "fantasy-web",
+            "uniqueness": "exactly_one"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/opportunities.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.opportunities\"",
+              "evidence_tokens": [
+                "role=\"region\"",
+                "aria-label=\"Opportunity feed\""
+              ]
+            }
+          ]
+        },
+        "correct_semantics": {
+          "level": "source_grounded",
+          "claims": {
+            "role": "region",
+            "accessible_name": "Opportunity feed",
+            "action": "focus"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/opportunities.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.opportunities\"",
+              "evidence_tokens": [
+                "role=\"region\"",
+                "aria-label=\"Opportunity feed\""
+              ]
+            }
+          ]
+        },
+        "observable_state": {
+          "level": "source_grounded",
+          "claims": {
+            "property": "data-task-state",
+            "unavailable_behavior": "block_and_explain"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/opportunities.tsx",
+              "anchor": "data-task-state={query.isLoading ? \"opportunities_loading\" : query.isError ? \"opportunities_failed\" : filteredItems.length === 0 ? \"opportunities_empty\" : \"opportunities_ready\"}",
+              "evidence_tokens": [
+                "aria-busy={query.isLoading}",
+                "opportunities_ready"
+              ]
+            }
+          ]
+        },
+        "useful_hierarchy": {
+          "level": "source_grounded",
+          "claims": {
+            "container": "fantasy-web",
+            "relationship": "Fantasy > Opportunity Feed",
+            "uniqueness": "exactly_one"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/opportunities.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.opportunities\"",
+              "evidence_tokens": [
+                "role=\"region\"",
+                "aria-label=\"Opportunity feed\""
+              ]
+            }
+          ]
+        },
+        "efficient_navigation": {
+          "level": "source_grounded",
+          "claims": {
+            "strategy": "direct_semantic",
+            "entry_point": "fantasy.opportunities"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/opportunities.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.opportunities\"",
+              "evidence_tokens": [
+                "role=\"region\"",
+                "aria-label=\"Opportunity feed\""
+              ]
+            }
+          ]
+        },
+        "verifiable_outcomes": {
+          "level": "source_grounded",
+          "claims": {
+            "readback_provider": "browser_connector",
+            "property": "data-task-state",
+            "operator": "equals",
+            "expected": "opportunities_ready"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/opportunities.tsx",
+              "anchor": "data-result-count={filteredItems.length}",
+              "evidence_tokens": [
+                "data-total-count={items.length}",
+                "OpportunityCardList"
+              ]
+            }
+          ]
+        },
+        "route_flexibility": {
+          "level": "source_grounded",
+          "claims": {
+            "primary_provider": "browser_connector",
+            "secondary_provider": "computer_use",
+            "fallback_policy": "fresh_state_handoff"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/opportunities.tsx",
+              "anchor": "data-mac-control-id=\"fantasy.opportunities\"",
+              "evidence_tokens": [
+                "role=\"region\"",
+                "aria-label=\"Opportunity feed\""
+              ]
+            }
+          ]
+        },
+        "stable_change_behavior": {
+          "level": "source_grounded",
+          "claims": {
+            "scenarios": "loading,modal,disabled,permission_unavailable",
+            "failure_behavior": "block_and_explain"
+          },
+          "source_refs": [
+            {
+              "path": "frontend/src/routes/opportunities.tsx",
+              "anchor": "data-task-state={query.isLoading ? \"opportunities_loading\" : query.isError ? \"opportunities_failed\" : filteredItems.length === 0 ? \"opportunities_empty\" : \"opportunities_ready\"}",
+              "evidence_tokens": [
+                "aria-busy={query.isLoading}",
+                "opportunities_ready"
+              ]
+            }
+          ]
+        }
       }
     }
   ]
