@@ -42,8 +42,9 @@ class WeeklyEdgeService:
 
     def build(self, league_id: str, roster_id: int) -> WeeklyEdgeResponse:
         ensure_weekly_context_schema(self._conn)
-        starter_ids, bench_ids, starter_slots = self._roster_players(league_id, roster_id)
-        player_ids = starter_ids + bench_ids
+        starter_ids, bench_ids, starter_slots = self._roster_players(
+            league_id, roster_id
+        )
         player_signals = self._player_signals(starter_ids, bench_ids)
         stale_domains = [
             tag.domain
@@ -94,8 +95,12 @@ class WeeklyEdgeService:
         }
         all_players = [str(player_id) for player_id in _loads(row[1], []) if player_id]
         protected = set(starters)
-        protected.update(str(player_id) for player_id in _loads(row[2], []) if player_id)
-        protected.update(str(player_id) for player_id in _loads(row[3], []) if player_id)
+        protected.update(
+            str(player_id) for player_id in _loads(row[2], []) if player_id
+        )
+        protected.update(
+            str(player_id) for player_id in _loads(row[3], []) if player_id
+        )
         bench = [
             player_id
             for player_id in all_players
@@ -162,9 +167,7 @@ class WeeklyEdgeService:
         for row in rows:
             metadata = _loads(row[4], {})
             injury_status = str(
-                metadata.get("injury_status")
-                or metadata.get("status")
-                or ""
+                metadata.get("injury_status") or metadata.get("status") or ""
             ).strip()
             warning = self._availability_warning(injury_status)
             availability = self._availability_status(injury_status)
@@ -297,7 +300,9 @@ class WeeklyEdgeService:
         team_positions: list[dict[str, str]],
     ) -> dict[str, dict[str, dict[str, float | int]]]:
         teams = sorted({row["team"] for row in team_positions if row.get("team")})
-        positions = sorted({row["position"] for row in team_positions if row.get("position")})
+        positions = sorted(
+            {row["position"] for row in team_positions if row.get("position")}
+        )
         if not teams or not positions:
             return {}
         opponent_rows = self._conn.execute(
@@ -510,7 +515,9 @@ class WeeklyEdgeService:
             edge = round(bench_score - starter_score, 2)
             if edge < 2.0 and not starter.availability_warning:
                 continue
-            confidence: Literal["HIGH", "MEDIUM", "LOW"] = "HIGH" if edge >= 5 else "MEDIUM"
+            confidence: Literal["HIGH", "MEDIUM", "LOW"] = (
+                "HIGH" if edge >= 5 else "MEDIUM"
+            )
             if stale_domains:
                 confidence = "MEDIUM" if confidence == "HIGH" else "LOW"
             if starter.availability_warning:
@@ -549,7 +556,9 @@ class WeeklyEdgeService:
                     stale_domains=stale_domains,
                 )
             )
-        decisions.sort(key=lambda item: (-item.edge_points, item.start_player_name.lower()))
+        decisions.sort(
+            key=lambda item: (-item.edge_points, item.start_player_name.lower())
+        )
         return decisions[:5]
 
     def _can_start_weekly(self, signal: WeeklyPlayerSignal) -> bool:

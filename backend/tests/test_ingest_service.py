@@ -1,11 +1,8 @@
 import json
-from unittest.mock import MagicMock, patch
 
-import polars as pl
 import pytest
 
 from fantasy.ingestion.ingest_service import IngestService
-from fantasy.ingestion.nfl_data_loader import PLAYER_STATS_COLUMNS
 
 
 class FakeSleeperClient:
@@ -123,7 +120,9 @@ async def test_trade_history_all_weeks(db, base_league, base_roster):
         5: [_txn("trade_5", "trade", 5)],
         12: [_txn("trade_12", "trade", 12)],
     }
-    client = FakeSleeperClient(base_league, [base_roster], [], weekly_transactions, week=12)
+    client = FakeSleeperClient(
+        base_league, [base_roster], [], weekly_transactions, week=12
+    )
 
     service = IngestService(db, client)
     await service.run("test_league_001", "full")
@@ -139,14 +138,18 @@ async def test_transactions_by_type(db, base_league, base_roster):
     weekly_transactions = {
         1: [_txn("trade_1", "trade", 1), _txn("fa_1", "free_agent", 1)],
     }
-    client = FakeSleeperClient(base_league, [base_roster], [], weekly_transactions, week=1)
+    client = FakeSleeperClient(
+        base_league, [base_roster], [], weekly_transactions, week=1
+    )
 
     service = IngestService(db, client)
     await service.run("test_league_001", "full")
 
     types = {
         row[0]
-        for row in db.execute("SELECT DISTINCT type FROM transactions ORDER BY type").fetchall()
+        for row in db.execute(
+            "SELECT DISTINCT type FROM transactions ORDER BY type"
+        ).fetchall()
     }
     assert "trade" in types
     assert "free_agent" in types
@@ -158,7 +161,9 @@ async def test_idempotent_ingest(db, base_league, base_roster):
         1: [_txn("trade_1", "trade", 1), _txn("fa_1", "free_agent", 1)],
         2: [_txn("waiver_1", "waiver", 2)],
     }
-    client = FakeSleeperClient(base_league, [base_roster], [], weekly_transactions, week=2)
+    client = FakeSleeperClient(
+        base_league, [base_roster], [], weekly_transactions, week=2
+    )
 
     service = IngestService(db, client)
     await service.run("test_league_001", "full")
@@ -374,9 +379,7 @@ async def test_ingest_populates_player_stats_weekly(db, base_league, base_roster
         "VALUES ('4017', 'Player One', 'WR', 'SF', 24, '{}')"
     )
     client = FakeSleeperClient(base_league, [base_roster], [], {}, week=1)
-    client._weekly_stats = {
-        1: {"4017": {"rec": 5.0, "rec_yd": 60.0}}
-    }
+    client._weekly_stats = {1: {"4017": {"rec": 5.0, "rec_yd": 60.0}}}
     service = IngestService(db, client)
     await service.run("test_league_001", "full")
 
@@ -394,8 +397,6 @@ async def test_ingest_populates_player_stats_weekly(db, base_league, base_roster
 async def test_ingest_completes_when_stats_fetch_raises(db, base_league, base_roster):
     client = FakeSleeperClient(base_league, [base_roster], [], {}, week=1)
 
-    original_fetch = client.fetch_weekly_stats
-
     async def raising_fetch(*args, **kwargs):
         raise RuntimeError("stats endpoint unavailable")
 
@@ -411,16 +412,22 @@ async def test_ingest_completes_when_stats_fetch_raises(db, base_league, base_ro
         "SELECT gaps_json FROM ingest_runs WHERE id = ?", [run_id]
     ).fetchone()[0]
     assert "Missing Sleeper Weekly Stats" in gaps
-    assert "weekly_stats_fetch_failed" in db.execute(
-        "SELECT cursor_json FROM ingest_runs WHERE id = ?", [run_id]
-    ).fetchone()[0]
-    assert db.execute(
-        """
+    assert (
+        "weekly_stats_fetch_failed"
+        in db.execute(
+            "SELECT cursor_json FROM ingest_runs WHERE id = ?", [run_id]
+        ).fetchone()[0]
+    )
+    assert (
+        db.execute(
+            """
         SELECT COUNT(*)
         FROM freshness_domains
         WHERE league_id = 'test_league_001' AND domain IN ('stats', 'usage')
         """
-    ).fetchone()[0] == 0
+        ).fetchone()[0]
+        == 0
+    )
 
 
 @pytest.mark.asyncio
@@ -428,17 +435,14 @@ async def test_preseason_ingest_validates_prior_season_and_marks_stats_fresh(
     db, base_league, base_roster
 ):
     preseason_league = {**base_league, "season": "2026"}
-    client = FakeSleeperClient(
-        preseason_league, [base_roster], [], {}, week=0
-    )
+    client = FakeSleeperClient(preseason_league, [base_roster], [], {}, week=0)
 
     async def fetch_preseason_state():
         return {"season_type": "pre", "season": "2026", "week": 0}
 
     client.fetch_nfl_state = fetch_preseason_state
     client._weekly_stats = {
-        week: {"4017": {"rec": 5.0, "rec_yd": 60.0}}
-        for week in range(1, 19)
+        week: {"4017": {"rec": 5.0, "rec_yd": 60.0}} for week in range(1, 19)
     }
 
     service = IngestService(db, client)
@@ -449,9 +453,12 @@ async def test_preseason_ingest_validates_prior_season_and_marks_stats_fresh(
     ).fetchone()[0]
     assert "2026 Season Stats" not in gaps
     assert "Unmapped Scoring Key" not in gaps
-    assert db.execute(
-        "SELECT COUNT(*) FROM player_stats_weekly WHERE season = 2025"
-    ).fetchone()[0] == 18
+    assert (
+        db.execute(
+            "SELECT COUNT(*) FROM player_stats_weekly WHERE season = 2025"
+        ).fetchone()[0]
+        == 18
+    )
     freshness = db.execute(
         """
         SELECT domain
@@ -514,12 +521,18 @@ def test_stats_integrity_repair_removes_only_proven_current_season_clone(
             "rows_removed": 100,
         }
     ]
-    assert db.execute(
-        "SELECT COUNT(*) FROM player_stats_weekly WHERE season = 2026"
-    ).fetchone()[0] == 0
-    assert db.execute(
-        "SELECT COUNT(*) FROM player_stats_weekly WHERE season = 2025"
-    ).fetchone()[0] == 100
+    assert (
+        db.execute(
+            "SELECT COUNT(*) FROM player_stats_weekly WHERE season = 2026"
+        ).fetchone()[0]
+        == 0
+    )
+    assert (
+        db.execute(
+            "SELECT COUNT(*) FROM player_stats_weekly WHERE season = 2025"
+        ).fetchone()[0]
+        == 100
+    )
 
 
 def test_stats_integrity_repair_removes_impossible_future_regular_weeks(
@@ -596,9 +609,12 @@ async def test_incremental_ingest_resets_week_cursor_when_stats_season_changes(
     )
     assert cursor["stats_season"] == 2026
     assert cursor["max_week_fetched"] == 1
-    assert db.execute(
-        "SELECT COUNT(*) FROM player_stats_weekly WHERE season = 2026"
-    ).fetchone()[0] == 1
+    assert (
+        db.execute(
+            "SELECT COUNT(*) FROM player_stats_weekly WHERE season = 2026"
+        ).fetchone()[0]
+        == 1
+    )
 
 
 @pytest.mark.asyncio

@@ -74,7 +74,9 @@ def _market_refresh_evidence(
 
 
 def build_capability_manifest(conn: duckdb.DuckDBPyConnection) -> dict[str, Any]:
-    leagues = conn.execute("SELECT league_id, season FROM leagues ORDER BY league_id").fetchall()
+    leagues = conn.execute(
+        "SELECT league_id, season FROM leagues ORDER BY league_id"
+    ).fetchall()
     health = {
         str(league_id): assess_stats_health(conn, int(season)).model_dump()
         for league_id, season in leagues
@@ -140,7 +142,9 @@ def build_capability_manifest(conn: duckdb.DuckDBPyConnection) -> dict[str, Any]
         pass
 
     def persisted_state(count: int | None) -> str:
-        return "unsupported" if count is None else "available" if count > 0 else "degraded"
+        return (
+            "unsupported" if count is None else "available" if count > 0 else "degraded"
+        )
 
     return {
         "schema_version": "fantasy-agent-capabilities/1.0",
@@ -194,7 +198,9 @@ def build_capability_manifest(conn: duckdb.DuckDBPyConnection) -> dict[str, Any]
             },
             "decision_feedback": {
                 "provider": "native" if feedback_count is not None else "unsupported",
-                "runtime_state": "available" if feedback_count is not None else "unsupported",
+                "runtime_state": "available"
+                if feedback_count is not None
+                else "unsupported",
                 "persisted_rows": feedback_count,
                 "storage_semantics": "append_only",
                 "presented_events": int(presentation_count or 0),
@@ -204,9 +210,13 @@ def build_capability_manifest(conn: duckdb.DuckDBPyConnection) -> dict[str, Any]
             },
             "decision_followups": {
                 "provider": "native" if unresolved is not None else "unsupported",
-                "runtime_state": "available" if unresolved is not None else "unsupported",
+                "runtime_state": "available"
+                if unresolved is not None
+                else "unsupported",
                 "schema_version": "decision-followups/1.0",
-                "unresolved_decisions": len(unresolved) if unresolved is not None else None,
+                "unresolved_decisions": len(unresolved)
+                if unresolved is not None
+                else None,
                 "due_followups": (
                     sum(1 for decision in unresolved if decision["is_due"])
                     if unresolved is not None
@@ -243,7 +253,7 @@ def build_capability_manifest(conn: duckdb.DuckDBPyConnection) -> dict[str, Any]
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Emit fantasy-agent capability truth.")
     parser.add_argument("--json", action="store_true")
-    args = parser.parse_args(argv)
+    parser.parse_args(argv)
     db_path = Path(get_settings().db_path)
     if not db_path.exists():
         print(json.dumps({"error": "database_missing", "database_path": str(db_path)}))

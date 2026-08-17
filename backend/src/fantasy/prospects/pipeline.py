@@ -20,7 +20,6 @@ from fantasy.prospects.constants import (
     HIT_RATE_LOW,
     HIT_RATE_MODERATE,
     MIN_OUTCOME_SEASONS,
-    OUTCOME_BUST,
     POSITIONS,
 )
 from fantasy.prospects.divergence_engine import DivergenceEngine
@@ -41,7 +40,9 @@ def run_pipeline(
     mode: str = "post_draft",
     pre_draft_csv: str | None = None,
 ) -> dict[str, Any]:
-    selected_positions = [position for position in (positions or POSITIONS) if position in POSITIONS]
+    selected_positions = [
+        position for position in (positions or POSITIONS) if position in POSITIONS
+    ]
     if mode not in {"post_draft", "pre_draft"}:
         raise ValueError(f"Unsupported pipeline mode: {mode}")
     repo: ProspectRepo
@@ -55,14 +56,22 @@ def run_pipeline(
         scoring_class_year = current_class_year
         finish_rank_lookup: dict[str, list[int]] = {}
         persisted_history_by_position: dict[str, list[ProspectFeatures]] = {}
-        current_features_by_position: dict[str, list[ProspectFeatures]] = {position: [] for position in selected_positions}
+        current_features_by_position: dict[str, list[ProspectFeatures]] = {
+            position: [] for position in selected_positions
+        }
 
         if mode == "post_draft":
             loader = NflReadPyLoader()
-            combine_df = loader.load_combine(HISTORICAL_START_YEAR, current_class_year + 1)
+            combine_df = loader.load_combine(
+                HISTORICAL_START_YEAR, current_class_year + 1
+            )
             players_df = loader.load_players()
-            draft_df = loader.load_draft_picks(HISTORICAL_START_YEAR, current_class_year + 1)
-            scoring_class_year = _resolve_current_class_year(draft_df, current_class_year)
+            draft_df = loader.load_draft_picks(
+                HISTORICAL_START_YEAR, current_class_year + 1
+            )
+            scoring_class_year = _resolve_current_class_year(
+                draft_df, current_class_year
+            )
             weekly_stats_df = _load_phase8_weekly_stats(conn, scoring_class_year)
             adp_lookup = _read_adp_baseline_from_db(conn)
 
@@ -89,13 +98,19 @@ def run_pipeline(
             for position in selected_positions:
                 persisted_history_by_position[position] = [
                     feature
-                    for feature in repo.get_features_by_position(position, max_draft_year=scoring_class_year - 1)
+                    for feature in repo.get_features_by_position(
+                        position, max_draft_year=scoring_class_year - 1
+                    )
                     if feature.outcome_bucket is not None
                 ]
                 current_features_by_position[position] = [
-                    feature for feature in pre_draft_features if feature.position == position
+                    feature
+                    for feature in pre_draft_features
+                    if feature.position == position
                 ]
-            feature_count = len(pre_draft_features) + sum(len(rows) for rows in persisted_history_by_position.values())
+            feature_count = len(pre_draft_features) + sum(
+                len(rows) for rows in persisted_history_by_position.values()
+            )
 
         classifier = HitClassifier()
         divergence_engine = DivergenceEngine()
@@ -109,10 +124,14 @@ def run_pipeline(
                 current_records = current_features_by_position.get(position, [])
                 persisted_features.extend(current_records)
                 if not labeled_history or not current_records:
-                    logger.info("No persisted history or pre-draft records for %s", position)
+                    logger.info(
+                        "No persisted history or pre-draft records for %s", position
+                    )
                     continue
             else:
-                position_features = [feature for feature in all_features if feature.position == position]
+                position_features = [
+                    feature for feature in all_features if feature.position == position
+                ]
                 if not position_features:
                     logger.info("No features built for %s", position)
                     continue
@@ -120,9 +139,11 @@ def run_pipeline(
                 historical_records: list[dict[str, Any]] = []
                 current_records = []
                 for feature in position_features:
-                    ranks = finish_rank_lookup.get(feature.player_id) or finish_rank_lookup.get(
-                        _normalize_name(feature.player_name)
-                    ) or []
+                    ranks = (
+                        finish_rank_lookup.get(feature.player_id)
+                        or finish_rank_lookup.get(_normalize_name(feature.player_name))
+                        or []
+                    )
                     if feature.draft_year == scoring_class_year:
                         current_records.append(feature)
                         continue
@@ -162,27 +183,42 @@ def run_pipeline(
             current_labels = clusterer.predict(current_rows)
             for index, row in enumerate(current_records):
                 row.archetype_label = current_labels[index]
-            archetype_rates = clusterer.get_archetype_hit_rates([row.model_dump(mode="python") for row in labeled_history])
+            archetype_rates = clusterer.get_archetype_hit_rates(
+                [row.model_dump(mode="python") for row in labeled_history]
+            )
 
             current_df = pl.DataFrame(current_rows)
             probabilities = model.predict_frame(current_df)
             scored = []
-            for feature, probability in zip(current_records, probabilities, strict=False):
-                score = probability.get("hit", 0.0) * 2.0 + probability.get("mediocre", 0.0)
+            for feature, probability in zip(
+                current_records, probabilities, strict=False
+            ):
+                score = probability.get("hit", 0.0) * 2.0 + probability.get(
+                    "mediocre", 0.0
+                )
                 scored.append((feature, probability, score))
-            scored.sort(key=lambda item: (-item[2], item[0].adp or 999.0, item[0].player_name))
+            scored.sort(
+                key=lambda item: (-item[2], item[0].adp or 999.0, item[0].player_name)
+            )
             model_rankings = [item[0].player_id for item in scored]
             adp_rankings = [
                 feature.player_id
                 for feature in sorted(
                     current_records,
-                    key=lambda item: (item.adp if item.adp is not None else 999.0, item.player_name),
+                    key=lambda item: (
+                        item.adp if item.adp is not None else 999.0,
+                        item.player_name,
+                    ),
                 )
             ]
 
             for index, (feature, probability, _score) in enumerate(scored, start=1):
                 comps, low_confidence = comp_finder.find_comps(feature, labeled_history)
-                comp_features = [row for row in labeled_history if row.player_id in {comp.player_id for comp in comps}]
+                comp_features = [
+                    row
+                    for row in labeled_history
+                    if row.player_id in {comp.player_id for comp in comps}
+                ]
                 sub_flags = divergence_engine.compute_sub_flags(feature, comp_features)
                 direction, magnitude = divergence_engine.compute_divergence(
                     player_id=feature.player_id,
@@ -198,7 +234,9 @@ def run_pipeline(
                     player_name=feature.player_name,
                     position=feature.position,
                     archetype_label=feature.archetype_label or "Unclassified",
-                    hit_rate_bucket=_determine_hit_rate_bucket(archetype_rates, feature.archetype_label or "Unclassified"),
+                    hit_rate_bucket=_determine_hit_rate_bucket(
+                        archetype_rates, feature.archetype_label or "Unclassified"
+                    ),
                     tier=_tier_from_rank(index),
                     predicted_tier=_tier_from_rank(index),
                     predicted_bucket=predicted_bucket,
@@ -221,10 +259,14 @@ def run_pipeline(
             league_outputs = []
             for league_id in league_ids:
                 for output in processed_outputs:
-                    league_outputs.append(output.model_copy(update={"league_id": league_id}))
+                    league_outputs.append(
+                        output.model_copy(update={"league_id": league_id})
+                    )
             repo.upsert_model_outputs(league_outputs)
             for output in league_outputs:
-                repo.upsert_sub_flags(output.league_id, output.player_id, output.sub_flags)
+                repo.upsert_sub_flags(
+                    output.league_id, output.player_id, output.sub_flags
+                )
         for output in processed_outputs:
             repo.upsert_sub_flags(output.league_id, output.player_id, output.sub_flags)
 
@@ -258,7 +300,9 @@ def _risk_band(bust_probability: float) -> str:
     return "Low"
 
 
-def _determine_hit_rate_bucket(archetype_hit_rates: dict[str, dict[str, float]], archetype_label: str) -> str:
+def _determine_hit_rate_bucket(
+    archetype_hit_rates: dict[str, dict[str, float]], archetype_label: str
+) -> str:
     hit_rate = archetype_hit_rates.get(archetype_label, {}).get("hit", 0.0)
     if hit_rate >= 0.4:
         return HIT_RATE_HIGH
@@ -271,10 +315,7 @@ def _resolve_current_class_year(draft_df: pl.DataFrame, requested_year: int) -> 
     if draft_df.is_empty() or "season" not in draft_df.columns:
         return requested_year
     available_years = sorted(
-        {
-            int(value)
-            for value in draft_df["season"].drop_nulls().to_list()
-        }
+        {int(value) for value in draft_df["season"].drop_nulls().to_list()}
     )
     if not available_years:
         return requested_year
@@ -303,7 +344,9 @@ def _load_pre_draft_features(
     pre_draft_df = _read_pre_draft_csv_with_enrichment(path)
     missing_columns = sorted({"player_name", "position"} - set(pre_draft_df.columns))
     if missing_columns:
-        raise ValueError(f"Pre-draft prospect CSV is missing required columns: {', '.join(missing_columns)}")
+        raise ValueError(
+            f"Pre-draft prospect CSV is missing required columns: {', '.join(missing_columns)}"
+        )
 
     features: list[ProspectFeatures] = []
     for row in pre_draft_df.to_dicts():
@@ -325,7 +368,10 @@ def _load_pre_draft_features(
 
         features.append(
             ProspectFeatures(
-                player_id=str(row.get("player_id") or f"pre_{current_class_year}_{normalized_name}"),
+                player_id=str(
+                    row.get("player_id")
+                    or f"pre_{current_class_year}_{normalized_name}"
+                ),
                 player_name=player_name,
                 position=position,
                 draft_year=current_class_year,
@@ -361,8 +407,12 @@ def _read_pre_draft_csv_with_enrichment(path: Path) -> pl.DataFrame:
     if "position" in pre_draft_df.columns and "position" in enrichment_df.columns:
         join_keys.append("position")
 
-    merged = pre_draft_df.join(enrichment_df, on=join_keys, how="left", suffix="_enrichment")
-    overlapping = set(pre_draft_df.columns).intersection(enrichment_df.columns) - set(join_keys)
+    merged = pre_draft_df.join(
+        enrichment_df, on=join_keys, how="left", suffix="_enrichment"
+    )
+    overlapping = set(pre_draft_df.columns).intersection(enrichment_df.columns) - set(
+        join_keys
+    )
     for column in overlapping:
         enrichment_column = f"{column}_enrichment"
         if enrichment_column in merged.columns:
@@ -379,7 +429,11 @@ def _load_phase8_weekly_stats(
     db_stats = _read_weekly_stats_from_db(conn)
     historical_years = list(range(HISTORICAL_START_YEAR, current_class_year))
     loader = NflDataPyLoader()
-    historical_stats = loader.load_weekly_stats(historical_years) if historical_years else pl.DataFrame()
+    historical_stats = (
+        loader.load_weekly_stats(historical_years)
+        if historical_years
+        else pl.DataFrame()
+    )
     if db_stats.is_empty():
         return historical_stats
     if historical_stats.is_empty():
@@ -457,8 +511,12 @@ def _safe_int(value: Any) -> int | None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run prospect model pipeline")
     parser.add_argument("--db-path", required=True, help="Path to DuckDB database")
-    parser.add_argument("--positions", default="QB,RB,WR,TE", help="Comma-separated positions")
-    parser.add_argument("--current-class-year", type=int, default=2026, help="Current draft class year")
+    parser.add_argument(
+        "--positions", default="QB,RB,WR,TE", help="Comma-separated positions"
+    )
+    parser.add_argument(
+        "--current-class-year", type=int, default=2026, help="Current draft class year"
+    )
     parser.add_argument(
         "--mode",
         choices=("post_draft", "pre_draft"),
@@ -473,7 +531,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     result = run_pipeline(
         db_path=args.db_path,
-        positions=[item.strip().upper() for item in args.positions.split(",") if item.strip()],
+        positions=[
+            item.strip().upper() for item in args.positions.split(",") if item.strip()
+        ],
         current_class_year=args.current_class_year,
         mode=args.mode,
         pre_draft_csv=args.pre_draft_csv,

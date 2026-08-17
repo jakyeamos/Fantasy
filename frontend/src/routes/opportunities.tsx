@@ -68,7 +68,15 @@ function OpportunityFeedPage() {
   return (
     <div
       data-mac-control-id="fantasy.opportunities"
-      data-task-state={query.isLoading ? "opportunities_loading" : query.isError ? "opportunities_failed" : filteredItems.length === 0 ? "opportunities_empty" : "opportunities_ready"}
+      data-task-state={
+        query.isLoading
+          ? "opportunities_loading"
+          : query.isError
+            ? "opportunities_failed"
+            : filteredItems.length === 0
+              ? "opportunities_empty"
+              : "opportunities_ready"
+      }
       data-result-count={filteredItems.length}
       data-total-count={items.length}
       className="space-y-8"

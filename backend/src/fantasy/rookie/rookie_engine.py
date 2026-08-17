@@ -13,7 +13,6 @@ from fantasy.rookie.constants import (
     CLASS_TIER2_WEIGHT,
     CLASS_WEAKNESS_THRESHOLD,
     EARLY_PICK_VALUE_THRESHOLD,
-    GAP_THRESHOLD,
     MAX_TIER_COUNT,
     POSITIONAL_RUN_THRESHOLD,
     RISK_BAND_HIGH,
@@ -95,12 +94,16 @@ class RookieEngine:
             self._repo.replace_league_tendencies(league_id, [])
             return board
 
-        adp_sorted = sorted(raw_players, key=lambda player: (float(player.get("adp", 999.0)), player["full_name"]))
+        adp_sorted = sorted(
+            raw_players,
+            key=lambda player: (float(player.get("adp", 999.0)), player["full_name"]),
+        )
         adp_rank_by_player = {
             player["player_id"]: index + 1 for index, player in enumerate(adp_sorted)
         }
         max_slot = max(
-            int(league_settings.get("league_size", 12)) * SLOT_AVAILABILITY_MAX_SLOT_MULTIPLIER,
+            int(league_settings.get("league_size", 12))
+            * SLOT_AVAILABILITY_MAX_SLOT_MULTIPLIER,
             len(raw_players),
         )
 
@@ -115,7 +118,9 @@ class RookieEngine:
                         position=str(raw_player["position"]),
                         archetype_label=self._assign_archetype(raw_player),
                         risk_band=self._assign_risk_band(raw_player),
-                        composite_score=round(self._score_rookie(raw_player, league_settings), 2),
+                        composite_score=round(
+                            self._score_rookie(raw_player, league_settings), 2
+                        ),
                         tier_number=1,
                         available_probability_by_slot={},
                         model_vs_market_gap=self._card_engine.model_vs_market_gap(
@@ -138,18 +143,16 @@ class RookieEngine:
         for system_rank, row in enumerate(scored_rows, start=1):
             player = row["player"]  # type: ignore[assignment]
             player.available_probability_by_slot = {
-                self._format_slot(slot, league_size=int(league_settings["league_size"])): round(
-                    slot_availability_probability(system_rank, slot), 2
-                )
+                self._format_slot(
+                    slot, league_size=int(league_settings["league_size"])
+                ): round(slot_availability_probability(system_rank, slot), 2)
                 for slot in range(1, max_slot + 1)
             }
             row["system_rank"] = system_rank
 
         tiers = self._assign_tiers([row["player"] for row in scored_rows])  # type: ignore[list-item]
         player_by_id = {
-            player.player_id: player
-            for tier in tiers
-            for player in tier.players
+            player.player_id: player for tier in tiers for player in tier.players
         }
         for row in scored_rows:
             row["player"] = player_by_id[row["player"].player_id]  # type: ignore[index]
@@ -166,7 +169,9 @@ class RookieEngine:
             tiers=tiers,
             computed_at=computed_at,
         )
-        self._repo.save_board_cache(league_id, class_strength_signal, board.model_dump_json())
+        self._repo.save_board_cache(
+            league_id, class_strength_signal, board.model_dump_json()
+        )
         self._repo.replace_league_tendencies(
             league_id,
             self._build_tendencies(scored_rows),
@@ -185,9 +190,13 @@ class RookieEngine:
             pick_slot,
             league_size=int(league_settings["league_size"]),
         )
-        best_in_abstract = available[0] if available else next(
-            (player for tier in board.tiers for player in tier.players),
-            None,
+        best_in_abstract = (
+            available[0]
+            if available
+            else next(
+                (player for tier in board.tiers for player in tier.players),
+                None,
+            )
         )
         trade_verdict = self._compute_trade_verdict(
             pick_slot,
@@ -237,13 +246,19 @@ class RookieEngine:
             "bust": 34.0,
         }.get(str(metadata.get("predicted_bucket") or "").lower(), 55.0)
         predicted_tier = int(metadata.get("predicted_tier") or 5)
-        model_score = (model_score * 0.75) + (_clamp(110.0 - predicted_tier * 18.0) * 0.25)
+        model_score = (model_score * 0.75) + (
+            _clamp(110.0 - predicted_tier * 18.0) * 0.25
+        )
 
-        draft_score = _scale_lower(metadata.get("draft_ovr") or metadata.get("draft_pick"), 1.0, 160.0)
+        draft_score = _scale_lower(
+            metadata.get("draft_ovr") or metadata.get("draft_pick"), 1.0, 160.0
+        )
         market_score = _scale_lower(adp, 1.0, 120.0)
         production_score = self._production_score(position, metadata)
         athletic_score = self._athletic_score(position, metadata)
-        age_score = _scale_lower(metadata.get("age_at_draft") or player.get("age"), 20.5, 24.5)
+        age_score = _scale_lower(
+            metadata.get("age_at_draft") or player.get("age"), 20.5, 24.5
+        )
 
         score = (
             model_score * 0.26
@@ -288,7 +303,8 @@ class RookieEngine:
             return (
                 _scale_higher(metadata.get("college_yprr"), 1.2, 3.5) * 0.34
                 + _scale_higher(metadata.get("college_ypt"), 6.5, 12.5) * 0.20
-                + _scale_higher(metadata.get("college_mkt_share_proxy"), 0.70, 0.90) * 0.26
+                + _scale_higher(metadata.get("college_mkt_share_proxy"), 0.70, 0.90)
+                * 0.26
                 + _scale_higher(metadata.get("college_td_rate"), 0.04, 0.18) * 0.20
             )
         if position == "RB":
@@ -296,23 +312,30 @@ class RookieEngine:
                 _scale_higher(metadata.get("college_ypc"), 4.2, 7.0) * 0.28
                 + _scale_higher(metadata.get("college_rush_ypg"), 45.0, 115.0) * 0.28
                 + _scale_higher(metadata.get("college_rec_ypg"), 5.0, 32.0) * 0.20
-                + _scale_higher(metadata.get("college_mkt_share_proxy"), 0.70, 0.90) * 0.14
+                + _scale_higher(metadata.get("college_mkt_share_proxy"), 0.70, 0.90)
+                * 0.14
                 + _scale_higher(metadata.get("college_td_rate"), 0.04, 0.16) * 0.10
             )
         if position == "QB":
             return (
                 _scale_higher(metadata.get("college_ypa"), 6.2, 9.4) * 0.30
-                + _scale_higher(metadata.get("college_pass_td_rate"), 0.035, 0.10) * 0.24
-                + _scale_higher(metadata.get("college_completion_pct_proxy"), 0.58, 0.72) * 0.20
+                + _scale_higher(metadata.get("college_pass_td_rate"), 0.035, 0.10)
+                * 0.24
+                + _scale_higher(
+                    metadata.get("college_completion_pct_proxy"), 0.58, 0.72
+                )
+                * 0.20
                 + _scale_higher(metadata.get("college_qb_rush_ypg"), -5.0, 45.0) * 0.18
-                + _scale_higher(metadata.get("college_scramble_rate"), 0.02, 0.14) * 0.08
+                + _scale_higher(metadata.get("college_scramble_rate"), 0.02, 0.14)
+                * 0.08
             )
         if position == "TE":
             return (
                 _scale_higher(metadata.get("college_yprr"), 1.0, 2.6) * 0.34
                 + _scale_higher(metadata.get("college_ypt"), 6.0, 10.5) * 0.20
                 + _scale_higher(metadata.get("college_rec_ypg"), 20.0, 70.0) * 0.20
-                + _scale_higher(metadata.get("college_mkt_share_proxy"), 0.65, 0.88) * 0.16
+                + _scale_higher(metadata.get("college_mkt_share_proxy"), 0.65, 0.88)
+                * 0.16
                 + _scale_higher(metadata.get("college_td_rate"), 0.03, 0.15) * 0.10
             )
         return 50.0
@@ -323,23 +346,43 @@ class RookieEngine:
         height = metadata.get("height")
         speed_score = _scale_lower(forty, 4.30, 4.75)
         if position == "QB":
-            return speed_score * 0.35 + _scale_higher(weight, 205.0, 235.0) * 0.35 + _scale_higher(height, 72.0, 77.0) * 0.30
+            return (
+                speed_score * 0.35
+                + _scale_higher(weight, 205.0, 235.0) * 0.35
+                + _scale_higher(height, 72.0, 77.0) * 0.30
+            )
         if position == "RB":
-            return speed_score * 0.50 + _scale_higher(weight, 195.0, 225.0) * 0.35 + _scale_higher(height, 68.0, 73.0) * 0.15
+            return (
+                speed_score * 0.50
+                + _scale_higher(weight, 195.0, 225.0) * 0.35
+                + _scale_higher(height, 68.0, 73.0) * 0.15
+            )
         if position == "WR":
-            return speed_score * 0.50 + _scale_higher(weight, 175.0, 215.0) * 0.25 + _scale_higher(height, 69.0, 76.0) * 0.25
+            return (
+                speed_score * 0.50
+                + _scale_higher(weight, 175.0, 215.0) * 0.25
+                + _scale_higher(height, 69.0, 76.0) * 0.25
+            )
         if position == "TE":
-            return speed_score * 0.40 + _scale_higher(weight, 230.0, 255.0) * 0.35 + _scale_higher(height, 74.0, 78.0) * 0.25
+            return (
+                speed_score * 0.40
+                + _scale_higher(weight, 230.0, 255.0) * 0.35
+                + _scale_higher(height, 74.0, 78.0) * 0.25
+            )
         return 50.0
 
     def _assign_tiers(self, players: list[RookiePlayer]) -> list[RookieTier]:
         if not players:
             return []
 
-        tier_buckets: dict[int, list[RookiePlayer]] = {tier: [] for tier in range(1, MAX_TIER_COUNT + 1)}
+        tier_buckets: dict[int, list[RookiePlayer]] = {
+            tier: [] for tier in range(1, MAX_TIER_COUNT + 1)
+        }
         for player in players:
             tier_number = self._tier_from_score(player.composite_score)
-            tier_buckets[tier_number].append(player.model_copy(update={"tier_number": tier_number}))
+            tier_buckets[tier_number].append(
+                player.model_copy(update={"tier_number": tier_number})
+            )
 
         return [
             RookieTier(
@@ -392,7 +435,10 @@ class RookieEngine:
                 return "Workhorse"
             return "Early Down Back"
         if position == "QB":
-            if bool(metadata.get("mobile")) or float(metadata.get("rush_yards", 0.0) or 0.0) >= 400:
+            if (
+                bool(metadata.get("mobile"))
+                or float(metadata.get("rush_yards", 0.0) or 0.0) >= 400
+            ):
                 return "Dual Threat QB"
             if float(metadata.get("scramble_rate", 0.0) or 0.0) >= 0.1:
                 return "Scrambler"
@@ -400,7 +446,10 @@ class RookieEngine:
                 return "Pro Style QB"
             return "Pocket Passer"
         if position == "TE":
-            if bool(metadata.get("move_te")) or float(metadata.get("slot_rate", 0.0) or 0.0) >= 0.35:
+            if (
+                bool(metadata.get("move_te"))
+                or float(metadata.get("slot_rate", 0.0) or 0.0) >= 0.35
+            ):
                 return "Move TE"
             if bool(metadata.get("h_back")):
                 return "H-Back"
@@ -411,13 +460,20 @@ class RookieEngine:
 
     def _assign_risk_band(self, player: dict) -> str:
         metadata = player.get("metadata", {})
-        if metadata.get("risk_band") in {RISK_BAND_LOW, RISK_BAND_MODERATE, RISK_BAND_HIGH}:
+        if metadata.get("risk_band") in {
+            RISK_BAND_LOW,
+            RISK_BAND_MODERATE,
+            RISK_BAND_HIGH,
+        }:
             return str(metadata["risk_band"])
         position = str(player.get("position", ""))
         age = player.get("age")
         draft_pick = metadata.get("draft_pick")
         injury_flag = bool(metadata.get("injury_flag"))
-        production_score = float(metadata.get("production_score", player.get("avg_fantasy_points", 0.0)) or 0.0)
+        production_score = float(
+            metadata.get("production_score", player.get("avg_fantasy_points", 0.0))
+            or 0.0
+        )
         adp = float(player.get("adp", 999.0))
 
         if injury_flag:
@@ -443,12 +499,18 @@ class RookieEngine:
             return 0.0
         tier1_count = sum(1 for player in players if player.tier_number == 1)
         tier2_count = sum(1 for player in players if player.tier_number == 2)
-        tier1_delta = (tier1_count - BASELINE_TIER1_COUNT) / max(BASELINE_TIER1_COUNT, 1)
-        tier2_delta = (tier2_count - BASELINE_TIER2_COUNT) / max(BASELINE_TIER2_COUNT, 1)
+        tier1_delta = (tier1_count - BASELINE_TIER1_COUNT) / max(
+            BASELINE_TIER1_COUNT, 1
+        )
+        tier2_delta = (tier2_count - BASELINE_TIER2_COUNT) / max(
+            BASELINE_TIER2_COUNT, 1
+        )
         signal = CLASS_TIER1_WEIGHT * tier1_delta + CLASS_TIER2_WEIGHT * tier2_delta
         return round(max(-1.0, min(1.0, signal)), 4)
 
-    def _build_tendencies(self, scored_rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    def _build_tendencies(
+        self, scored_rows: list[dict[str, object]]
+    ) -> list[dict[str, object]]:
         if not scored_rows:
             return []
 
@@ -529,7 +591,10 @@ class RookieEngine:
                 reasoning=self._use_reasoning(best_player, board.class_strength_signal),
             )
 
-        if best_player.tier_number == 2 and best_player.composite_score >= STRONG_TIER2_THRESHOLD:
+        if (
+            best_player.tier_number == 2
+            and best_player.composite_score >= STRONG_TIER2_THRESHOLD
+        ):
             return TradeVerdict(
                 verdict="use",
                 label="Use it",
