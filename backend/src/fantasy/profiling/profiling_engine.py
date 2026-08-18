@@ -11,7 +11,6 @@ import duckdb
 
 from fantasy.profiling.constants import (
     ADP_FALLBACK_BY_POSITION,
-    EXPLOITATION_TYPE_LABELS,
     EXPLOITATION_TYPE_WEIGHTS,
     MIN_TRADE_EVIDENCE_THRESHOLD,
     PICK_VALUE_NORMALIZED,
@@ -103,7 +102,8 @@ class ProfilingEngine:
         received_pick_rounds = [
             int(pick.get("round"))
             for pick in picks
-            if pick.get("owner_id") is not None and int(pick.get("owner_id")) == roster_id
+            if pick.get("owner_id") is not None
+            and int(pick.get("owner_id")) == roster_id
         ]
         sent_pick_rounds = [
             int(pick.get("round"))
@@ -186,9 +186,7 @@ class ProfilingEngine:
             f"SELECT player_id, age FROM players WHERE player_id IN ({placeholders})",
             player_ids,
         ).fetchall()
-        return {
-            str(row[0]): int(row[1]) for row in rows if row[1] is not None
-        }
+        return {str(row[0]): int(row[1]) for row in rows if row[1] is not None}
 
     def _load_player_positions(self, player_ids: list[str]) -> dict[str, str]:
         if not player_ids:
@@ -210,9 +208,7 @@ class ProfilingEngine:
         ).fetchall()
         return {str(row[0]): str(row[1] or row[0]) for row in rows}
 
-    def _timing_error_count(
-        self, trades: list[dict[str, Any]], roster_id: int
-    ) -> int:
+    def _timing_error_count(self, trades: list[dict[str, Any]], roster_id: int) -> int:
         evidence = 0
         for trade in trades:
             received, sent, _, _ = self._parse_trade_sides(trade, roster_id)
@@ -243,7 +239,11 @@ class ProfilingEngine:
                     """,
                     [player_id],
                 ).fetchone()
-                season_avg = float(season_row[0]) if season_row and season_row[0] is not None else 0.0
+                season_avg = (
+                    float(season_row[0])
+                    if season_row and season_row[0] is not None
+                    else 0.0
+                )
                 if season_avg <= 0:
                     continue
                 recent_avg = mean(history)
@@ -290,7 +290,9 @@ class ProfilingEngine:
         overpay_by_position: dict[str, list[float]] = defaultdict(list)
         sent_pick_trades = 0
         for trade in trades:
-            received, sent, received_picks, sent_picks = self._parse_trade_sides(trade, roster_id)
+            received, sent, received_picks, sent_picks = self._parse_trade_sides(
+                trade, roster_id
+            )
             delta = self._compute_value_delta(
                 received,
                 sent,
@@ -301,7 +303,9 @@ class ProfilingEngine:
             deltas.append(delta)
             if delta < 0:
                 negative_count += 1
-            received_positions = [positions.get(player_id, "UNKNOWN") for player_id in received]
+            received_positions = [
+                positions.get(player_id, "UNKNOWN") for player_id in received
+            ]
             for position in received_positions:
                 overpay_by_position[position].append(delta)
             if sent_picks:
@@ -317,7 +321,9 @@ class ProfilingEngine:
                         directional_incoherence += 1
 
         win_rate = (
-            sum(1 for delta in deltas if delta > 0) / total_trades if total_trades else 0.0
+            sum(1 for delta in deltas if delta > 0) / total_trades
+            if total_trades
+            else 0.0
         )
         avg_delta = mean(deltas) if deltas else 0.0
         timing_error = self._timing_error_count(trades, roster_id)
@@ -333,7 +339,9 @@ class ProfilingEngine:
         evidence_counts = {
             "value_loss": negative_count if win_rate < 0.40 or avg_delta < 0 else 0,
             "timing_error": timing_error,
-            "directional_incoherence": directional_incoherence if direction is not None else 0,
+            "directional_incoherence": directional_incoherence
+            if direction is not None
+            else 0,
             "archetype_overpay": overpay_count,
         }
         sorted_types = sorted(
@@ -341,7 +349,9 @@ class ProfilingEngine:
             key=lambda item: (item[1], EXPLOITATION_TYPE_WEIGHTS.get(item[0], 0.0)),
             reverse=True,
         )
-        primary_type = sorted_types[0][0] if sorted_types and sorted_types[0][1] > 0 else None
+        primary_type = (
+            sorted_types[0][0] if sorted_types and sorted_types[0][1] > 0 else None
+        )
         secondary_type = None
         if primary_type is not None and len(sorted_types) > 1:
             secondary_candidate, secondary_count = sorted_types[1]
@@ -400,7 +410,9 @@ class ProfilingEngine:
     ) -> dict[str, str | int | float]:
         focus_position = str(exploitation.metadata.get("focus_position") or "").upper()
         focus_position_label = (
-            focus_position if focus_position and focus_position != "UNKNOWN" else "position-specific"
+            focus_position
+            if focus_position and focus_position != "UNKNOWN"
+            else "position-specific"
         )
         if focus_position == "QB":
             focus_asset_phrase = "QB2 or volatile quarterback depth"
@@ -503,14 +515,20 @@ class ProfilingEngine:
                 )
         else:
             if focus_position == "QB":
-                families.extend(["archetype_overpay_qb_patch", "archetype_overpay_qb_ceiling"])
+                families.extend(
+                    ["archetype_overpay_qb_patch", "archetype_overpay_qb_ceiling"]
+                )
             else:
                 families.append("archetype_overpay_position")
             families.append(
-                "value_loss_rebuild_insulation" if rebuild else "value_loss_contender_points_patch"
+                "value_loss_rebuild_insulation"
+                if rebuild
+                else "value_loss_contender_points_patch"
             )
             families.append(
-                "timing_error_rebuild_patience" if rebuild else "timing_error_contender_spike_sale"
+                "timing_error_rebuild_patience"
+                if rebuild
+                else "timing_error_contender_spike_sale"
             )
 
         if secondary == "timing_error":
@@ -597,7 +615,10 @@ class ProfilingEngine:
             season = str(pick.get("season") or "Unknown")
             round_number = int(pick.get("round") or 0)
             label = f"{season} Round {round_number} pick"
-            if pick.get("owner_id") is not None and int(pick.get("owner_id")) == roster_id:
+            if (
+                pick.get("owner_id") is not None
+                and int(pick.get("owner_id")) == roster_id
+            ):
                 received.append(label)
             if (
                 pick.get("previous_owner_id") is not None
@@ -625,7 +646,9 @@ class ProfilingEngine:
         names = self._load_player_names(player_ids)
         history: list[dict[str, Any]] = []
         for trade in trades:
-            received, sent, received_picks, sent_picks = self._parse_trade_sides(trade, roster_id)
+            received, sent, received_picks, sent_picks = self._parse_trade_sides(
+                trade, roster_id
+            )
             value_delta = self._compute_value_delta(
                 received,
                 sent,
@@ -636,8 +659,12 @@ class ProfilingEngine:
             sent_pick_assets, received_pick_assets = self._pick_descriptions(
                 trade, roster_id
             )
-            sent_assets = [names.get(player_id, player_id) for player_id in sent] + sent_pick_assets
-            received_assets = [names.get(player_id, player_id) for player_id in received] + received_pick_assets
+            sent_assets = [
+                names.get(player_id, player_id) for player_id in sent
+            ] + sent_pick_assets
+            received_assets = [
+                names.get(player_id, player_id) for player_id in received
+            ] + received_pick_assets
             created_at = trade.get("created_at")
             history.append(
                 {
@@ -680,9 +707,7 @@ class ProfilingEngine:
             urgency_state = "stable"
 
         early_trades = sum(
-            1
-            for trade in trades
-            if 1 <= int(trade.get("week") or 0) <= 5
+            1 for trade in trades if 1 <= int(trade.get("week") or 0) <= 5
         )
         toc_sensitivity = (
             round(min(early_trades / max(total, 1), 1.0), 3) if total > 0 else 0.0
@@ -805,13 +830,17 @@ class ProfilingEngine:
         )
         adp_map = self._load_adp_values(all_players)
         direction = self._load_direction(league_id, roster_id)
-        exploitation = self._classify_exploitation(trades, roster_id, direction, adp_map)
+        exploitation = self._classify_exploitation(
+            trades, roster_id, direction, adp_map
+        )
         exploitability_score = self._compute_score(len(trades), exploitation)
         pitch_angles = self._compute_pitch_angles(exploitation, direction)
 
         deltas = []
         for trade in trades:
-            received, sent, received_picks, sent_picks = self._parse_trade_sides(trade, roster_id)
+            received, sent, received_picks, sent_picks = self._parse_trade_sides(
+                trade, roster_id
+            )
             deltas.append(
                 self._compute_value_delta(
                     received,
@@ -822,9 +851,11 @@ class ProfilingEngine:
                 )
             )
         avg_delta = round(mean(deltas), 3) if deltas else 0.0
-        win_rate = round(
-            sum(1 for delta in deltas if delta > 0) / len(deltas), 3
-        ) if deltas else 0.0
+        win_rate = (
+            round(sum(1 for delta in deltas if delta > 0) / len(deltas), 3)
+            if deltas
+            else 0.0
+        )
 
         roster_row = self._conn.execute(
             """
@@ -855,7 +886,9 @@ class ProfilingEngine:
             ).fetchall()
         )
 
-        weakest_positions = sorted(position_counts.items(), key=lambda item: item[1])[:2]
+        weakest_positions = sorted(position_counts.items(), key=lambda item: item[1])[
+            :2
+        ]
         low_confidence = len(trades) < MIN_TRADE_EVIDENCE_THRESHOLD
         roster_summary = {
             "manager_name": manager_name,

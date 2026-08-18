@@ -7,7 +7,6 @@ import duckdb
 
 from fantasy.context.context_repo import ContextRepo
 from fantasy.context.freshness_service import FreshnessService
-from fantasy.context.models import FreshnessTag
 from fantasy.weekly.models import WeeklyContextRefreshResponse
 
 
@@ -43,7 +42,9 @@ class WeeklyPublicContextService:
         self._conn = conn
         self._freshness = FreshnessService(ContextRepo(conn))
 
-    def refresh(self, league_id: str, season: int | None = None) -> WeeklyContextRefreshResponse:
+    def refresh(
+        self, league_id: str, season: int | None = None
+    ) -> WeeklyContextRefreshResponse:
         ensure_weekly_context_schema(self._conn)
         active_season = season or self._league_season(league_id)
         schedule_rows = self._load_schedule_rows(active_season)

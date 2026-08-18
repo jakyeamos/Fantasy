@@ -15,7 +15,7 @@ from fantasy.intelligence.models import PlayerValue
 from fantasy.trends.models import TrendResult
 
 if TYPE_CHECKING:
-    from fantasy.lineup.models import HygieneSuggestion, LineupResult, LineupSlotScore
+    from fantasy.lineup.models import HygieneSuggestion, LineupResult
     from fantasy.trade.models import DimensionScore, TradeEvaluation
     from fantasy.waiver.models import WaiverRecommendation
 
@@ -24,8 +24,15 @@ def _clamp01(value: float) -> float:
     return max(0.0, min(1.0, value))
 
 
-def compute_priority(impact: float, confidence: float, execution: float, urgency: float) -> int:
-    raw_score = _clamp01(impact) * _clamp01(confidence) * _clamp01(execution) * _clamp01(urgency)
+def compute_priority(
+    impact: float, confidence: float, execution: float, urgency: float
+) -> int:
+    raw_score = (
+        _clamp01(impact)
+        * _clamp01(confidence)
+        * _clamp01(execution)
+        * _clamp01(urgency)
+    )
     return max(1, min(100, round((1.0 - raw_score) * 99) + 1))
 
 
@@ -50,7 +57,9 @@ class RecommendationCardEngine:
             return "medium"
         return "low"
 
-    def _factor_from_dimension(self, name: str, dimension: "DimensionScore") -> SupportingFactor:
+    def _factor_from_dimension(
+        self, name: str, dimension: "DimensionScore"
+    ) -> SupportingFactor:
         normalized = _clamp01(float(dimension.score) / 100.0)
         if normalized >= 0.55:
             direction = "positive"
@@ -67,7 +76,11 @@ class RecommendationCardEngine:
 
     def _factor_from_flag(self, flag: str) -> SupportingFactor:
         copy = {
-            "injury_recovery": ("Availability", "negative", "Player availability is still worth checking."),
+            "injury_recovery": (
+                "Availability",
+                "negative",
+                "Player availability is still worth checking.",
+            ),
             "depth_chart_competition": (
                 "Depth chart pressure",
                 "negative",
@@ -141,7 +154,9 @@ class RecommendationCardEngine:
             lens_production=float(row[6]),
             lens_market=float(row[7]),
         )
-        active_flag_types = [flag.flag_type for flag in self._flag_repo.get_active_flags(player_id)]
+        active_flag_types = [
+            flag.flag_type for flag in self._flag_repo.get_active_flags(player_id)
+        ]
         anti_overreaction_fired = (
             is_elite(value)
             and (value.comp_current_production or 0.0) <= BEARISH_PRODUCTION_FLOOR
@@ -149,13 +164,17 @@ class RecommendationCardEngine:
             and "role_compression" not in active_flag_types
         )
         total_row = self._conn.execute("SELECT COUNT(*) FROM market_values").fetchone()
-        player_total_count = int(total_row[0]) if total_row and total_row[0] is not None else 0
+        player_total_count = (
+            int(total_row[0]) if total_row and total_row[0] is not None else 0
+        )
         if player_total_count <= 0:
             total_row = self._conn.execute(
                 "SELECT COUNT(*) FROM player_values WHERE league_id = ?",
                 [league_id],
             ).fetchone()
-            player_total_count = int(total_row[0]) if total_row and total_row[0] is not None else 0
+            player_total_count = (
+                int(total_row[0]) if total_row and total_row[0] is not None else 0
+            )
         return self._gap_engine.compute_model_vs_market_gap(
             lens_production=float(value.lens_production or 0.0),
             lens_market=float(value.lens_market or 0.0),
@@ -164,7 +183,9 @@ class RecommendationCardEngine:
             anti_overreaction_fired=anti_overreaction_fired,
         )
 
-    def _trend_result_from_players(self, league_id: str, player_ids: list[str]) -> TrendResult | None:
+    def _trend_result_from_players(
+        self, league_id: str, player_ids: list[str]
+    ) -> TrendResult | None:
         for player_id in player_ids:
             row = self._player_value_row(league_id, player_id)
             if row is None or row[8] is None:
@@ -195,32 +216,43 @@ class RecommendationCardEngine:
         del user_roster_id
         sending_values = sending_values or []
         receiving_values = receiving_values or []
-        confidence_score = sum(
-            [
-                self._confidence_score(evaluation.market_fairness.confidence),
-                self._confidence_score(evaluation.roster_fit.confidence),
-                self._confidence_score(evaluation.direction_fit.confidence),
-                self._confidence_score(evaluation.timing_quality.confidence),
-            ]
-        ) / 4.0
+        confidence_score = (
+            sum(
+                [
+                    self._confidence_score(evaluation.market_fairness.confidence),
+                    self._confidence_score(evaluation.roster_fit.confidence),
+                    self._confidence_score(evaluation.direction_fit.confidence),
+                    self._confidence_score(evaluation.timing_quality.confidence),
+                ]
+            )
+            / 4.0
+        )
         impact = max(
             float(evaluation.market_fairness.score) / 100.0,
             float(evaluation.direction_fit.score) / 100.0,
         )
         urgency = float(evaluation.timing_quality.score) / 100.0
-        execution = 0.75 if float(evaluation.manager_exploit_quality.score) >= 50 else 0.6
+        execution = (
+            0.75 if float(evaluation.manager_exploit_quality.score) >= 50 else 0.6
+        )
         distinction = evaluation.strategic_distinction
-        direction_copy = direction_label.replace("_", " ") if direction_label else "current plan"
+        direction_copy = (
+            direction_label.replace("_", " ") if direction_label else "current plan"
+        )
         if (
             evaluation.direction_fit.confidence == "LOW"
-            and "first in both win-now and future value" in evaluation.direction_fit.reasoning
+            and "first in both win-now and future value"
+            in evaluation.direction_fit.reasoning
         ):
             action = (
                 "Counter for a lineup-improving asset; keep the favorable value package as the fallback."
                 if float(evaluation.market_fairness.score) >= 55
                 else "Require a clear lineup upgrade before moving an elite cornerstone."
             )
-        elif float(evaluation.direction_fit.score) >= 55 and float(evaluation.market_fairness.score) >= 50:
+        elif (
+            float(evaluation.direction_fit.score) >= 55
+            and float(evaluation.market_fairness.score) >= 50
+        ):
             action = "Push this trade forward or counter around the same structure."
         elif float(evaluation.direction_fit.score) <= 45:
             action = "Rework the deal before sending it, or walk away."
@@ -233,17 +265,23 @@ class RecommendationCardEngine:
         ]
         card = RecommendationCard(
             recommendation_type="trade",
-            priority_rank=compute_priority(impact, confidence_score, execution, urgency),
+            priority_rank=compute_priority(
+                impact, confidence_score, execution, urgency
+            ),
             headline=distinction.headline,
             action=action,
             target_entity_type="player" if candidate_ids else "manager",
             target_entity_ids=candidate_ids or [direction_copy],
             why_summary=distinction.explanation,
             supporting_factors=[
-                self._factor_from_dimension("Market Fairness", evaluation.market_fairness),
+                self._factor_from_dimension(
+                    "Market Fairness", evaluation.market_fairness
+                ),
                 self._factor_from_dimension("Direction Fit", evaluation.direction_fit),
                 self._factor_from_dimension("Roster Fit", evaluation.roster_fit),
-                self._factor_from_dimension("Timing Quality", evaluation.timing_quality),
+                self._factor_from_dimension(
+                    "Timing Quality", evaluation.timing_quality
+                ),
             ],
             confidence_label=confidence_label_from_score(confidence_score),
             confidence_score=confidence_score,
@@ -275,7 +313,9 @@ class RecommendationCardEngine:
         )
         best_slot = ordered_slots[0]
         leverage = _clamp01(best_slot.upgrade_leverage_score)
-        confidence_score = _clamp01(0.45 + (float(result.title_window_composite) * 0.45))
+        confidence_score = _clamp01(
+            0.45 + (float(result.title_window_composite) * 0.45)
+        )
         if leverage > 0:
             headline = f"Upgrade {best_slot.position} to raise weekly ceiling"
             action = f"Shop for a stronger {best_slot.position} starter or a more insulated weekly option."
@@ -294,7 +334,9 @@ class RecommendationCardEngine:
                     if result.title_window_label == "Outside Window"
                     else "neutral"
                 ),
-                magnitude=self._magnitude_from_score(float(result.title_window_composite)),
+                magnitude=self._magnitude_from_score(
+                    float(result.title_window_composite)
+                ),
                 explanation=(
                     f"Current title-window label is {result.title_window_label} with "
                     f"{result.title_window_composite:.2f} composite strength."
@@ -339,14 +381,20 @@ class RecommendationCardEngine:
                 horizon="this_week",
                 league_specificity_notes="Contender benchmarks are derived from this league's active starters.",
                 manager_specificity_notes=None,
-                model_vs_market_gap=self.model_vs_market_gap(result.league_id, best_slot.player_id),
-                trend_result=self._trend_result_from_players(result.league_id, [best_slot.player_id]),
+                model_vs_market_gap=self.model_vs_market_gap(
+                    result.league_id, best_slot.player_id
+                ),
+                trend_result=self._trend_result_from_players(
+                    result.league_id, [best_slot.player_id]
+                ),
                 cta_label="Open Overview",
                 cta_destination=f"/league/{result.league_id}",
             )
         ]
 
-    def build_hygiene_card(self, suggestion: "HygieneSuggestion", league_id: str) -> RecommendationCard:
+    def build_hygiene_card(
+        self, suggestion: "HygieneSuggestion", league_id: str
+    ) -> RecommendationCard:
         recommendation_type = {
             "consolidate": "trade",
             "cut": "drop",
@@ -359,12 +407,18 @@ class RecommendationCardEngine:
             "reroll_into_pick": "reroll",
             "throw_in_now": "package",
         }.get(suggestion.action_type, "hold")
-        confidence_score = _clamp01(0.45 + (float(suggestion.direction_fit_score) * 0.4))
+        confidence_score = _clamp01(
+            0.45 + (float(suggestion.direction_fit_score) * 0.4)
+        )
         supporting_factors = [
             SupportingFactor(
                 factor_name="Direction fit",
-                direction="positive" if suggestion.direction_fit_score >= 0.55 else "negative",
-                magnitude=self._magnitude_from_score(float(suggestion.direction_fit_score)),
+                direction="positive"
+                if suggestion.direction_fit_score >= 0.55
+                else "negative",
+                magnitude=self._magnitude_from_score(
+                    float(suggestion.direction_fit_score)
+                ),
                 explanation=suggestion.timing_rationale,
             )
         ]
@@ -409,13 +463,20 @@ class RecommendationCardEngine:
         suggestions: list["HygieneSuggestion"],
         league_id: str,
     ) -> list[RecommendationCard]:
-        return [self.build_hygiene_card(suggestion, league_id) for suggestion in suggestions[:5]]
+        return [
+            self.build_hygiene_card(suggestion, league_id)
+            for suggestion in suggestions[:5]
+        ]
 
-    def build_waiver_card(self, rec: "WaiverRecommendation", league_id: str) -> RecommendationCard:
+    def build_waiver_card(
+        self, rec: "WaiverRecommendation", league_id: str
+    ) -> RecommendationCard:
         urgency_score = {"High": 0.9, "Medium": 0.6, "Low": 0.3}.get(rec.urgency, 0.5)
         confidence_score = 0.7 if rec.is_immediate_start else 0.55
         return RecommendationCard(
-            recommendation_type="bid" if rec.recommendation_label == "faab_bid" else "stash",
+            recommendation_type="bid"
+            if rec.recommendation_label == "faab_bid"
+            else "stash",
             priority_rank=compute_priority(0.7, confidence_score, 0.85, urgency_score),
             headline=f"Add {rec.player_name} ({rec.position})",
             action=rec.rationale,

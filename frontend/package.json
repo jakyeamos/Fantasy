@@ -35,7 +35,7 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
-    "eslint-plugin-anti-slop": "file:../../eslint-plugin-anti-slop",
+    "eslint-plugin-anti-slop": "0.5.0",
     "playwright": "^1.61.1",
     "prettier": "3.8.1",
     "tailwindcss": "^4.2.2",

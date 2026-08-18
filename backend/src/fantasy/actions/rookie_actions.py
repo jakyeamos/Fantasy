@@ -73,7 +73,6 @@ def _rookie_action(
     status: str,
     result: DraftRoomResult,
 ) -> CommandAction:
-    best = result.best_in_abstract
     stale_domains = [
         tag.domain
         for tag in freshness.get_tags(league_id, DRAFT_DOMAINS)

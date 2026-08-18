@@ -77,7 +77,9 @@ function WaiversPage() {
   return (
     <div
       data-mac-control-id="fantasy.league.waivers-workspace"
-      data-task-state={waiverQuery.data.recommendations.length === 0 ? "waivers_empty" : "waivers_ready"}
+      data-task-state={
+        waiverQuery.data.recommendations.length === 0 ? "waivers_empty" : "waivers_ready"
+      }
       data-recommendation-count={waiverQuery.data.recommendations.length}
       data-roster-id={rosterId}
       className="space-y-8"

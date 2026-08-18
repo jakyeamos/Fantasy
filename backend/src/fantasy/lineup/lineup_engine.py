@@ -25,6 +25,7 @@ from fantasy.lineup.constants import (
     PEAK_WINDOW_THRESHOLD,
     TE_NON_PREMIUM_URGENCY_WEIGHT,
     TITLE_TARGET_PERCENTILE,
+    TITLE_WINDOW_LABELS,
     TITLE_WINDOW_WEIGHTS,
     UPGRADE_LEVERAGE_BASE_EQUITY,
 )
@@ -165,13 +166,14 @@ class LineupEngine:
         self._conn = conn
         self._card_engine = RecommendationCardEngine(conn)
 
-    def _base_current_strength_value(self, inputs: ScorecardInputs, player_id: str) -> float:
+    def _base_current_strength_value(
+        self, inputs: ScorecardInputs, player_id: str
+    ) -> float:
         if player_id in inputs.weekly_fantasy_pts:
             return float(inputs.weekly_fantasy_pts[player_id])
         position = inputs.player_positions.get(player_id, "UNKNOWN")
         med_avg = float(
-            sum(inputs.position_medians.values())
-            / max(len(inputs.position_medians), 1)
+            sum(inputs.position_medians.values()) / max(len(inputs.position_medians), 1)
         )
         position_average = float(inputs.position_medians.get(position, med_avg))
         adp = inputs.adp_ranks.get(player_id)
@@ -195,7 +197,9 @@ class LineupEngine:
             {
                 player_id
                 for inputs in all_inputs.values()
-                for player_id in (inputs.starters + inputs.bench + inputs.ir + inputs.taxi)
+                for player_id in (
+                    inputs.starters + inputs.bench + inputs.ir + inputs.taxi
+                )
                 if player_id
             }
         )
@@ -223,10 +227,7 @@ class LineupEngine:
                 """,
                 [player_ids, stats_season],
             ).fetchall()
-            best_week_by_player = {
-                str(row[0]): float(row[1] or 0.0)
-                for row in rows
-            }
+            best_week_by_player = {str(row[0]): float(row[1] or 0.0) for row in rows}
         except duckdb.Error:
             try:
                 rows = self._conn.execute(
@@ -342,7 +343,9 @@ class LineupEngine:
             player_id = str(inputs.starters[active_ordinal] or "")
             if not player_id or player_id in used:
                 continue
-            player_position = inputs.player_positions.get(player_id, "UNKNOWN").strip().upper()
+            player_position = (
+                inputs.player_positions.get(player_id, "UNKNOWN").strip().upper()
+            )
             if player_position not in _slot_allowed_positions(slot):
                 continue
             used.add(player_id)
@@ -413,7 +416,9 @@ class LineupEngine:
                     if _flex_like(slot):
                         continue
                     if slot.strip().upper() == target:
-                        values.append(self._value_proxy(inputs, pid, strength_snapshots))
+                        values.append(
+                            self._value_proxy(inputs, pid, strength_snapshots)
+                        )
 
         if not values:
             return float(first_in.position_medians.get(slot_label, med_avg))
@@ -435,7 +440,9 @@ class LineupEngine:
             for roster_id in roster_ids
         }
 
-    def _benchmark_pool_ids(self, title_window_composites: dict[int, float]) -> set[int]:
+    def _benchmark_pool_ids(
+        self, title_window_composites: dict[int, float]
+    ) -> set[int]:
         if not title_window_composites:
             return set()
         sorted_ids = sorted(
@@ -457,8 +464,12 @@ class LineupEngine:
         values: list[float],
         fallback: float,
     ) -> tuple[float, float, float]:
-        playoff = max(fallback, float(_percentile(values, PLAYOFF_TARGET_PERCENTILE) or fallback))
-        title = max(playoff, float(_percentile(values, TITLE_TARGET_PERCENTILE) or playoff))
+        playoff = max(
+            fallback, float(_percentile(values, PLAYOFF_TARGET_PERCENTILE) or fallback)
+        )
+        title = max(
+            playoff, float(_percentile(values, TITLE_TARGET_PERCENTILE) or playoff)
+        )
         elite = max(title, float(_percentile(values, ELITE_TARGET_PERCENTILE) or title))
         return playoff, title, elite
 
@@ -498,7 +509,9 @@ class LineupEngine:
                     contender_values.append(value)
 
         if len(contender_values) >= 2:
-            playoff, title, elite = self._build_target_triplet(contender_values, fallback)
+            playoff, title, elite = self._build_target_triplet(
+                contender_values, fallback
+            )
             return SlotBenchmarkTargets(
                 playoff_target=playoff,
                 title_target=title,
@@ -510,7 +523,9 @@ class LineupEngine:
 
         top_tier_values = _top_tier_values(all_values)
         if len(top_tier_values) >= 2:
-            playoff, title, elite = self._build_target_triplet(top_tier_values, fallback)
+            playoff, title, elite = self._build_target_triplet(
+                top_tier_values, fallback
+            )
             return SlotBenchmarkTargets(
                 playoff_target=playoff,
                 title_target=title,
@@ -521,7 +536,9 @@ class LineupEngine:
             )
 
         if contender_values:
-            playoff, title, elite = self._build_target_triplet(contender_values, fallback)
+            playoff, title, elite = self._build_target_triplet(
+                contender_values, fallback
+            )
             return SlotBenchmarkTargets(
                 playoff_target=playoff,
                 title_target=title,
@@ -554,7 +571,9 @@ class LineupEngine:
         ]
 
         if len(contender_values) >= 2:
-            playoff, title, elite = self._build_target_triplet(contender_values, fallback)
+            playoff, title, elite = self._build_target_triplet(
+                contender_values, fallback
+            )
             return SlotBenchmarkTargets(
                 playoff_target=playoff,
                 title_target=title,
@@ -566,7 +585,9 @@ class LineupEngine:
 
         top_tier_values = _top_tier_values(all_values)
         if len(top_tier_values) >= 2:
-            playoff, title, elite = self._build_target_triplet(top_tier_values, fallback)
+            playoff, title, elite = self._build_target_triplet(
+                top_tier_values, fallback
+            )
             return SlotBenchmarkTargets(
                 playoff_target=playoff,
                 title_target=title,
@@ -638,8 +659,14 @@ class LineupEngine:
                 flags.append("age_cliff_proximity")
 
         games_played = inputs.player_games_played.get(player_id)
-        active_starters = starter_ids if starter_ids is not None else set(inputs.starters)
-        if player_id in active_starters and games_played is not None and games_played < 8:
+        active_starters = (
+            starter_ids if starter_ids is not None else set(inputs.starters)
+        )
+        if (
+            player_id in active_starters
+            and games_played is not None
+            and games_played < 8
+        ):
             flags.append("injury_recovery")
 
         try:
@@ -659,9 +686,7 @@ class LineupEngine:
             if flag in _VALID_CONTEXT_FLAGS and flag not in flags:
                 flags.append(flag)
 
-        return [
-            flag for flag in _VALID_CONTEXT_FLAGS if flag in flags
-        ]
+        return [flag for flag in _VALID_CONTEXT_FLAGS if flag in flags]
 
     def compute_all(
         self,
@@ -688,7 +713,9 @@ class LineupEngine:
         for roster_id, inputs in all_inputs.items():
             starters_set = {
                 player_id
-                for _slot, player_id, _slot_index in active_slots_by_roster.get(roster_id, [])
+                for _slot, player_id, _slot_index in active_slots_by_roster.get(
+                    roster_id, []
+                )
                 if player_id
             }
             ceiling_raw[roster_id] = float(
@@ -726,7 +753,9 @@ class LineupEngine:
                 sum(inputs.position_medians.values())
                 / max(len(inputs.position_medians), 1)
             )
-            depth_raw[roster_id] = float(sum(1 for value in bench_vals if value >= med_avg))
+            depth_raw[roster_id] = float(
+                sum(1 for value in bench_vals if value >= med_avg)
+            )
 
         ceiling_norm = normalize_within_league(ceiling_raw)
         stability_norm = normalize_within_league(stability_raw)
@@ -805,7 +834,9 @@ class LineupEngine:
                         slot.strip().upper(),
                         float(inputs.position_medians.get(player_position, med_avg)),
                     )
-                raw_by_slot[slot_index][roster_id] = max(0.0, starter_value - replacement_level)
+                raw_by_slot[slot_index][roster_id] = max(
+                    0.0, starter_value - replacement_level
+                )
                 slot_meta[roster_id][slot_index] = (
                     slot,
                     pid,
@@ -814,7 +845,9 @@ class LineupEngine:
                     replacement_level,
                 )
 
-        norm_by_slot = [normalize_within_league(raw) if raw else {} for raw in raw_by_slot]
+        norm_by_slot = [
+            normalize_within_league(raw) if raw else {} for raw in raw_by_slot
+        ]
         team_raw_totals = {
             roster_id: float(sum(raw.get(roster_id, 0.0) for raw in raw_by_slot))
             for roster_id in roster_ids
@@ -838,20 +871,23 @@ class LineupEngine:
             total_lineup_score = float(total_lineup_scores.get(roster_id, 0.0))
             active_starter_ids = {
                 player_id
-                for _slot, player_id, _slot_index in active_slots_by_roster.get(roster_id, [])
+                for _slot, player_id, _slot_index in active_slots_by_roster.get(
+                    roster_id, []
+                )
             }
             guard_active = bool(
                 scorecards
                 and roster_id in scorecards
-                and float(scorecards[roster_id].positional_insulation) >= ELITE_INSULATION_THRESHOLD
+                and float(scorecards[roster_id].positional_insulation)
+                >= ELITE_INSULATION_THRESHOLD
             )
 
             for slot_index in range(max_slots):
                 if slot_index not in slot_meta[roster_id]:
                     continue
-                slot, pid, position, starter_value, replacement_level = slot_meta[roster_id][
-                    slot_index
-                ]
+                slot, pid, position, starter_value, replacement_level = slot_meta[
+                    roster_id
+                ][slot_index]
                 benchmark_targets = (
                     flex_targets
                     if _flex_like(slot)
@@ -873,9 +909,15 @@ class LineupEngine:
                 below_title_target = starter_value < benchmark_targets.title_target
                 below_elite_target = starter_value < benchmark_targets.elite_target
                 weak_relative_to_contender = below_title_target
-                gap_to_playoff_target = max(0.0, benchmark_targets.playoff_target - starter_value)
-                gap_to_title_target = max(0.0, benchmark_targets.title_target - starter_value)
-                gap_to_elite_target = max(0.0, benchmark_targets.elite_target - starter_value)
+                gap_to_playoff_target = max(
+                    0.0, benchmark_targets.playoff_target - starter_value
+                )
+                gap_to_title_target = max(
+                    0.0, benchmark_targets.title_target - starter_value
+                )
+                gap_to_elite_target = max(
+                    0.0, benchmark_targets.elite_target - starter_value
+                )
                 upgrade_leverage_score = gap_to_title_target
                 format_urgency_weight = (
                     TE_NON_PREMIUM_URGENCY_WEIGHT
@@ -1005,7 +1047,11 @@ class LineupEngine:
         except duckdb.Error:
             pass
         return max(
-            (self._value_proxy(inputs, pid, strength_snapshots) for pid in inputs.starters if pid),
+            (
+                self._value_proxy(inputs, pid, strength_snapshots)
+                for pid in inputs.starters
+                if pid
+            ),
             default=0.0,
         )
 

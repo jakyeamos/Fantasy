@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from statistics import median
-from typing import Any
 
 from fantasy.prospects.constants import FEATURE_DISPLAY_NAMES, SUB_FLAG_FEATURES
-from fantasy.prospects.models import HistoricalComp, ProspectFeatures, SubFlag
+from fantasy.prospects.models import ProspectFeatures, SubFlag
 
 
 class DivergenceEngine:

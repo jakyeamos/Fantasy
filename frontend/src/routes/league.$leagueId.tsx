@@ -342,7 +342,9 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
                   </Link>
                   <Link
                     data-mac-control-id="fantasy.league.roster-moves"
-                    data-task-state={isRosterMovesRoute ? "navigation_selected" : "navigation_ready"}
+                    data-task-state={
+                      isRosterMovesRoute ? "navigation_selected" : "navigation_ready"
+                    }
                     to="/league/$leagueId/roster-moves"
                     params={{ leagueId }}
                     className={buttonClasses({
@@ -380,7 +382,9 @@ function LeagueDetailPageContent({ leagueId }: { leagueId: string }) {
                   </Link>
                   <Link
                     data-mac-control-id="fantasy.league.rookie-board"
-                    data-task-state={isRookieBoardRoute ? "navigation_selected" : "navigation_ready"}
+                    data-task-state={
+                      isRookieBoardRoute ? "navigation_selected" : "navigation_ready"
+                    }
                     to="/league/$leagueId/rookie-board"
                     params={{ leagueId }}
                     className={buttonClasses({
