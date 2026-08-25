@@ -24,7 +24,7 @@ It is marked private in `package.json` and is intended for workspace use rather 
 - `pnpm dev` - `vite`
 - `pnpm build` - `tsc --noEmit && vite build`
 - `pnpm format` - checked Prettier formatting
-- `pnpm browser:smoke` - bounded Playwright route, interaction, and state smoke
+- `pnpm browser:smoke` - bounded Playwright route, interaction, and state smoke; starts and stops an isolated Vite server automatically
 - `pnpm preview` - `vite preview`
 - `pnpm format` - enforce Prettier on files added or changed after the recorded legacy baseline
 - `pnpm format:baseline` - explicitly refresh reviewed legacy hashes after formatter configuration or intentional normalization changes
@@ -41,6 +41,8 @@ The formatting baseline does not declare legacy files formatted; it prevents
 unchanged legacy style from blocking work while requiring every later change
 or new file to satisfy the pinned Prettier contract.
 
-The browser smoke harness uses explicit DOM readiness rather than Vite's
+The browser smoke harness owns its local Vite server for the duration of the
+check, so it is safe for Quality Runner's disposable worktrees and does not
+depend on a developer-started process. It uses explicit DOM readiness rather than Vite's
 persistent-HMR `networkidle` state. It also checks empty, stale, degraded, and
 error opportunity fixtures through `?smokeState=` routes.

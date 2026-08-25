@@ -23,17 +23,17 @@
     },
     {
       "name": "frontend-build",
-      "command": "pnpm --dir frontend build",
+      "command": "cd frontend && pnpm build",
       "required": true
     },
     {
       "name": "frontend-render-smoke",
-      "command": "pnpm --dir frontend test:render",
+      "command": "cd frontend && pnpm test:render",
       "required": true
     },
     {
       "name": "frontend-dead-code",
-      "command": "pnpm --dir frontend audit:dead-code",
+      "command": "cd frontend && pnpm audit:dead-code",
       "required": true
     }
   ],

@@ -13,8 +13,8 @@
     "preview": "vite preview",
     "audit:dead-code": "tsc --noEmit --noUnusedLocals --noUnusedParameters",
     "browser:install": "playwright install chromium",
-    "browser:smoke": "node scripts/browserSmoke.mjs",
-    "routes:smoke": "node scripts/browserSmoke.mjs",
+    "browser:smoke": "node scripts/browserSmokeWithServer.mjs",
+    "routes:smoke": "node scripts/browserSmokeWithServer.mjs",
     "smoke": "pnpm browser:smoke",
     "pre-pr": "pnpm typecheck && pnpm test:render",
     "test:render": "node tests/marketGapRender.test.mjs"
