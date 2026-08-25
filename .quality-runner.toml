@@ -1,3 +1,28 @@
 [quality_runner]
 default_profile = "default"
 required_capabilities = ["formatter", "lint", "typecheck", "tests", "build", "dead_code", "runtime_smoke", "pre_pr", "pre_cr"]
+
+[[quality_runner.cache_design.paths]]
+path = "backend/.pytest_cache"
+class = "tool_cache"
+lifecycle = "tool_managed"
+
+[[quality_runner.cache_design.paths]]
+path = "backend/dist"
+class = "build_output"
+lifecycle = "rebuildable"
+
+[[quality_runner.cache_design.paths]]
+path = "data/cache"
+class = "tool_cache"
+lifecycle = "tool_managed"
+
+[[quality_runner.cache_design.paths]]
+path = "frontend/dist"
+class = "build_output"
+lifecycle = "rebuildable"
+
+[[quality_runner.cache_design.paths]]
+path = "frontend/node_modules"
+class = "dependency_materialization"
+lifecycle = "tool_managed"
