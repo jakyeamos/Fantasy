@@ -1,0 +1,86 @@
+{
+  "schema": "compass-development/v1",
+  "revision": 1,
+  "inventory": {
+    "source": "git-tracked",
+    "include": [
+      "**"
+    ],
+    "exclude": [],
+    "behavior_ref": ".project-compass/behaviors.json"
+  },
+  "bindings": [
+    {
+      "id": "freshness-ledger",
+      "compass_id": "project",
+      "authority": "accepted",
+      "paths": [
+        "backend/src/fantasy/context/freshness_service.py",
+        "backend/src/fantasy/context/context_repo.py",
+        "backend/src/fantasy/context/constants.py",
+        "backend/src/fantasy/context/models.py",
+        "backend/src/fantasy/__init__.py",
+        "backend/src/fantasy/context/__init__.py",
+        "backend/tests/test_freshness.py",
+        "backend/tests/conftest.py",
+        "backend/test_support/__init__.py",
+        "backend/test_support/schema_sql.py",
+        "backend/test_support/schema_sql_core.py",
+        "backend/test_support/schema_sql_weekly.py",
+        "backend/test_support/schema_sql_intelligence.py",
+        "backend/pyproject.toml",
+        "backend/uv.lock",
+        ".planning/PROJECT.md",
+        ".project-compass/contract.json",
+        ".project-compass/development.json",
+        ".project-compass/behaviors.json"
+      ],
+      "outcomes": [
+        "traceable-refresh"
+      ],
+      "references": [
+        ".planning/PROJECT.md",
+        ".project-compass/contract.json",
+        "backend/tests/test_freshness.py"
+      ],
+      "constraints": [
+        "Expose stale, missing and degraded source state separately from recommendation strength.",
+        "Preserve manual decision authority; do not submit trades, waivers or league actions.",
+        "Do not infer live provider freshness or visible UI readiness from in-memory ledger tests.",
+        "Retain last-good source timestamps on failed or nonauthoritative empty refresh; four selected tests do not establish this complete negative-case obligation."
+      ],
+      "behavior_ids": [
+        "freshness-ledger"
+      ],
+      "proof": [
+        {
+          "id": "freshness-fixtures",
+          "receipt": ".project-compass/evidence/freshness-fixtures.json",
+          "command": [
+            "uv",
+            "run",
+            "--frozen",
+            "--directory",
+            "backend",
+            "pytest",
+            "tests/test_freshness.py"
+          ],
+          "oracle_ref": "backend/tests/test_freshness.py",
+          "behavior_ids": [
+            "freshness-ledger"
+          ]
+        }
+      ],
+      "decision_id": "canonical-freshness-source-association",
+      "handoff_review": "Existing accepted root traceable-refresh and canonical project freshness requirements support this ledger association. Four tests assert stale/fresh/missing injury data and global metadata fallback in an in-memory DuckDB schema. Failed/empty refresh preservation, authoritative empty, override precedence, threshold edges and consumer UI remain oracle gaps. Full tracked inventory retained with unrelated implementation/support unbound. No broader child organization ratified."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "canonical-freshness-source-association",
+      "summary": "Reviewed canonical freshness source association under existing accepted outcome; selected ledger scope does not establish full recommendation or live-provider proof.",
+      "source": ".project-compass/contract.json",
+      "status": "accepted"
+    }
+  ]
+}
