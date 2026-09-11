@@ -1,0 +1,11 @@
+{
+  "behaviors": [
+    {
+      "id": "freshness-ledger",
+      "spec_ref": ".planning/PROJECT.md",
+      "title": "Expose source freshness and degraded ledger state",
+      "authority": "accepted",
+      "scope_note": "Existing root source association; selected fixture proof does not establish all refresh negatives or visible consumers."
+    }
+  ]
+}
